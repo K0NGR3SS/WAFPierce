@@ -1,0 +1,10 @@
+admin
+.git
+.env
+config
+api
+login
+dashboard
+upload
+search
+user

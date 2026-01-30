@@ -1,0 +1,5 @@
+prod
+staging
+backup
+assets
+static
