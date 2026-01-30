@@ -7,7 +7,7 @@ import json
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
-from .pierce import WAFPiercer as CloudFrontBypasser
+from .pierce import CloudFrontBypasser
 
 
 class FullPentestChain:
