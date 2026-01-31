@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Full Pentest Chain: Bypass → Enum → Scan → Recon → Report
 """
