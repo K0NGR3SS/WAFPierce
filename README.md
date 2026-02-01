@@ -21,7 +21,7 @@ WAFPierce is a specialized penetration testing tool that identifies WAF (Web App
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/WAFPierce.git
+git clone https://github.com/K0NGR3SS/WAFPierce.git
 cd WAFPierce
 
 # Install dependencies
