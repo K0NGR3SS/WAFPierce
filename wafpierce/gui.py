@@ -45,7 +45,7 @@ def _load_prefs() -> dict:
         'theme': 'dark',
         'font_size': 12,
         'watermark': True,
-        'threads': 10,
+        'threads': 5,
         'concurrent': 1,
         'use_concurrent': False,
     }
@@ -190,7 +190,7 @@ class PierceGUI:
         opts = ttk.Frame(left)
         opts.pack(fill='x', padx=6, pady=(6, 6))
         ttk.Label(opts, text='Threads:').pack(side='left')
-        self.threads_var = tk.IntVar(value=int(self._prefs.get('threads', 10)))
+        self.threads_var = tk.IntVar(value=int(self._prefs.get('threads', 5)))
         ttk.Spinbox(opts, from_=1, to=200, textvariable=self.threads_var, width=6).pack(side='left', padx=(4, 12))
         ttk.Label(opts, text='Concurrent:').pack(side='left')
         self.concurrent_var = tk.IntVar(value=int(self._prefs.get('concurrent', 2)))
@@ -810,7 +810,7 @@ def main() -> None:
                 opts = QHBoxLayout()
                 self.threads_spin = QSpinBox()
                 self.threads_spin.setRange(1, 200)
-                self.threads_spin.setValue(10)
+                self.threads_spin.setValue(5)
                 self.delay_spin = QDoubleSpinBox()
                 self.delay_spin.setRange(0.0, 5.0)
                 self.delay_spin.setSingleStep(0.05)
@@ -1589,3 +1589,9 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
+#    \|/          (__)    <-- GUI made by Marwan-verse
+#         `\------(oo)
+#           ||    (__)
+#           ||w--||     \|/
+#       \|/

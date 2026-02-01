@@ -5,6 +5,8 @@
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
+![promotion image](promotion1.png)
+
 ## What is WAFPierce?
 
 WAFPierce is a specialized penetration testing tool that identifies WAF (Web Application Firewall) bypass techniques specifically for AWS CloudFront distributions. It automates the discovery of misconfigurations and bypass vectors that could expose backend applications.
@@ -16,6 +18,7 @@ WAFPierce is a specialized penetration testing tool that identifies WAF (Web App
 - **Vulnerability Scanning** - Tests for XSS and injection points
 - **AWS Reconnaissance** - Enumerates related S3 buckets
 - **Automated Reporting** - Generates detailed markdown reports
+- **GUI system** - Clean and efficient GUI system made for the users comfort  
 
 ## Installation
 
@@ -32,6 +35,11 @@ pip3 install -e .
 ```
 
 ## Usage
+
+###<font color="gree"> Run UI</font>
+```bash
+python3 -m wafpierce.gui  
+```
 
 ### Basic Scan
 ```bash
@@ -73,6 +81,7 @@ WAFPierce tests the following bypass methods:
 ## Requirements
 
 - Python 3.8+
+- PySide6 6.10.1+
 - requests library
 
 ## Responsible Disclosure
