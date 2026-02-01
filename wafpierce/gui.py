@@ -5,7 +5,7 @@ we don't need to modify any scanner code. That lets the GUI provide a
 responsive Start / Stop experience and save results to disk.
 
 Run with:
-    python -m wafpierce.gui
+    python3 -m wafpierce.gui
 """
 from __future__ import annotations
 
