@@ -11,6 +11,7 @@ WAFPierce is a specialized penetration testing tool that identifies WAF (Web App
 
 **Key Features:**
 - **WAF Bypass Detection** - Tests 8 different bypass techniques (Host header, X-Forwarded-For, encoding, etc.)
+- **Smart WAF Bypass** - Uses baseline comparison and heuristic analysis (size, hash, status codes) to detect bypasses even when WAFs return 200 OK.
 - **Directory Enumeration** - Discovers hidden paths using successful bypass methods
 - **Vulnerability Scanning** - Tests for XSS and injection points
 - **AWS Reconnaissance** - Enumerates related S3 buckets
@@ -63,6 +64,11 @@ WAFPierce tests the following bypass methods:
 6. **Path Encoding** - URL encoding bypasses (%2e, %252e, etc.)
 7. **HTTP Method** - Tests non-standard methods (TRACE, TRACK, etc.)
 8. **Content-Type** - MIME type confusion attacks
+9. **HTTP/2 Downgrade** - Tests for protocol downgrade attacks
+10. **WebSocket Upgrade** - Attempts to tunnel through WAFs via WebSocket upgrades
+11. **Range Header** - Tests for partial content bypasses (Critical for large file handling)
+12. **Double/Triple Encoding** - Advanced encoding evasion
+
 
 ## Requirements
 
