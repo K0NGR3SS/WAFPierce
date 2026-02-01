@@ -36,7 +36,7 @@ pip3 install -e .
 
 ## Usage
 
-###<font color="gree"> Run UI</font>
+### Run UI
 ```bash
 python3 -m wafpierce.gui  
 ```
