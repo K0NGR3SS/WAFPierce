@@ -42,12 +42,18 @@ def _get_config_path() -> str:
 def _load_prefs() -> dict:
     path = _get_config_path()
     defaults = {
-        'theme': 'dark',
         'font_size': 12,
         'watermark': True,
         'threads': 5,
         'concurrent': 1,
         'use_concurrent': False,
+        'delay': 0.2,
+        'window_geometry': '980x640',
+        'qt_geometry': '1000x640',
+        'remember_targets': True,
+        'retry_failed': 0,
+        'ui_density': 'comfortable',
+        'last_targets': [],
     }
     try:
         if os.path.exists(path):
@@ -83,23 +89,35 @@ class PierceGUI:
         self._target_tmp_map: dict = {}
         self._per_target: dict = {}
         self._running_procs: dict = {}
+        self._target_row_map: dict = {}
         self._scan_thread: Optional[threading.Thread] = None
         self._abort = False
 
+        # use stored window geometry when available
+        try:
+            self.root.geometry(self._prefs.get('window_geometry', '980x640'))
+        except Exception:
+            pass
+
+        # example placeholder for target entry
+        self._placeholder_target = 'https://example.com'
+
         self._build_ui()
         self._apply_prefs(self._prefs)
+        try:
+            self._restore_targets()
+        except Exception:
+            pass
         self.root.after(100, self._poll_queue)
+        try:
+            self.root.protocol('WM_DELETE_WINDOW', self._on_close)
+        except Exception:
+            pass
 
     def _apply_prefs(self, prefs: dict) -> None:
-        theme = prefs.get('theme', 'dark')
-        if theme == 'light':
-            bg = '#f5f6f7'
-            text_bg = '#ffffff'
-            fg = '#111'
-        else:
-            bg = '#0f1112'
-            text_bg = '#16181a'
-            fg = '#d7e1ea'
+        bg = '#0f1112'
+        text_bg = '#16181a'
+        fg = '#d7e1ea'
 
         try:
             self.root.configure(bg=bg)
@@ -112,6 +130,33 @@ class PierceGUI:
         except Exception:
             pass
 
+        # Apply theme to ttk elements (buttons, labels, frames)
+        try:
+            style = ttk.Style()
+            style.theme_use('clam')
+            style.configure('TButton', background='#2b2f33', foreground='#d7e1ea')
+            style.configure('TLabel', background='#0f1112', foreground='#d7e1ea')
+            style.configure('TFrame', background='#0f1112')
+            style.map('TButton', background=[('active', '#3b3f43'), ('pressed', '#1b1f23')])
+            style.configure('Treeview', background='#16181a', fieldbackground='#16181a', foreground='#d7e1ea')
+            style.configure('Treeview.Heading', background='#2b2f33', foreground='#d7e1ea')
+            style.configure('TSpinbox', arrowsize=12)
+
+            density = prefs.get('ui_density', 'comfortable')
+            if density == 'compact':
+                rowheight = 20
+                btn_pad = (6, 2)
+            elif density == 'spacious':
+                rowheight = 28
+                btn_pad = (10, 6)
+            else:
+                rowheight = 24
+                btn_pad = (8, 4)
+            style.configure('Treeview', rowheight=rowheight)
+            style.configure('TButton', padding=btn_pad)
+        except Exception:
+            pass
+
         try:
             if prefs.get('watermark', True) and os.path.exists(LOGO_PATH):
                 img = tk.PhotoImage(file=LOGO_PATH)
@@ -119,7 +164,7 @@ class PierceGUI:
                 wm = tk.Label(self.log.master, image=img, bg=text_bg)
                 wm.place(relx=0.5, rely=0.5, anchor='center')
                 try:
-                    wm.lower(self.log)
+                    wm.lift()
                 except Exception:
                     pass
                 self._logo_label = wm
@@ -144,12 +189,12 @@ class PierceGUI:
 
     def _build_ui(self) -> None:
         root = self.root
-        root.geometry('980x640')
+        # geometry already set from prefs in __init__
 
         main = ttk.Panedwindow(root, orient=tk.HORIZONTAL)
         main.pack(fill='both', expand=True, padx=8, pady=8)
 
-        left = ttk.Frame(main, width=360)
+        left = ttk.Frame(main, width=420)
         right = ttk.Frame(main)
         main.add(left, weight=0)
         main.add(right, weight=1)
@@ -163,24 +208,27 @@ class PierceGUI:
         self.save_btn = ttk.Button(toolbar, text='Save', command=self.save_results, state='disabled')
         self.save_btn.pack(side='left', padx=(6, 0))
         ttk.Button(toolbar, text='Clear', command=lambda: self.clean_tmp_files(clear_targets=True)).pack(side='left', padx=(6, 0))
-        ttk.Button(toolbar, text='⚙', command=self._open_settings).pack(side='right')
+        ttk.Button(toolbar, text='Settings', command=self._open_settings).pack(side='right')
 
         entry_frame = ttk.Frame(left)
         entry_frame.pack(fill='x', padx=6, pady=(6, 6))
-        ttk.Label(entry_frame, text='Target URL:').pack(side='left')
+        ttk.Label(entry_frame, text='Target URL (e.g., https://example.com):').pack(side='left')
         self.target_var = tk.StringVar()
         entry = ttk.Entry(entry_frame, textvariable=self.target_var)
         entry.pack(side='left', fill='x', expand=True, padx=(6, 6))
         ttk.Button(entry_frame, text='Add', command=self.add_target).pack(side='left')
 
+        # quick hint for users
+        ttk.Label(entry_frame, text='Example: https://example.com', foreground='gray').pack(anchor='w', pady=(4, 0))
+
         ttk.Label(left, text='Targets:').pack(anchor='w', padx=6)
         tree_frame = ttk.Frame(left)
         tree_frame.pack(fill='both', expand=True, padx=6, pady=(2, 6))
-        self.targets_tree = ttk.Treeview(tree_frame, columns=('target', 'status'), show='headings', height=12)
+        self.targets_tree = ttk.Treeview(tree_frame, columns=('target', 'status'), show='headings', height=16)
         self.targets_tree.heading('target', text='Target')
         self.targets_tree.heading('status', text='Status')
-        self.targets_tree.column('target', anchor='w')
-        self.targets_tree.column('status', width=120, anchor='center')
+        self.targets_tree.column('target', width=300, anchor='w', stretch=True)
+        self.targets_tree.column('status', width=100, anchor='center', stretch=False)
         self.targets_tree.pack(side='left', fill='both', expand=True)
         sb = ttk.Scrollbar(tree_frame, orient='vertical', command=self.targets_tree.yview)
         sb.pack(side='left', fill='y')
@@ -198,7 +246,7 @@ class PierceGUI:
         self.use_concurrent_var = tk.BooleanVar(value=bool(self._prefs.get('use_concurrent', False)))
         ttk.Checkbutton(opts, text='Use concurrent targets', variable=self.use_concurrent_var).pack(side='left', padx=(6, 0))
         ttk.Label(opts, text='Delay (s):').pack(side='left', padx=(6, 0))
-        self.delay_var = tk.DoubleVar(value=0.2)
+        self.delay_var = tk.DoubleVar(value=float(self._prefs.get('delay', 0.2)))
         ttk.Spinbox(opts, from_=0.0, to=5.0, increment=0.05, textvariable=self.delay_var, width=6).pack(side='left', padx=(4, 0))
 
         top_right = ttk.Frame(right)
@@ -228,6 +276,7 @@ class PierceGUI:
                 continue
             iid = self.targets_tree.insert('', 'end', values=(t, 'Queued'))
             self.targets_tree.item(iid, tags=('queued',))
+            self._target_row_map[t] = iid
         self.target_var.set('')
 
     def show_target_details(self, event: Optional[tk.Event] = None) -> None:
@@ -262,6 +311,9 @@ class PierceGUI:
         if not targets:
             t = self.target_var.get().strip()
             if t:
+                iid = self.targets_tree.insert('', 'end', values=(t, 'Queued'))
+                self.targets_tree.item(iid, tags=('queued',))
+                self._target_row_map[t] = iid
                 targets = [t]
         if not targets:
             messagebox.showwarning('Missing target', 'Please add at least one target')
@@ -271,6 +323,17 @@ class PierceGUI:
         delay = float(self.delay_var.get())
         concurrent_targets = int(self.concurrent_var.get())
         use_concurrent = bool(self.use_concurrent_var.get())
+
+        # persist runtime prefs
+        try:
+            self._prefs['threads'] = threads
+            self._prefs['concurrent'] = concurrent_targets
+            self._prefs['use_concurrent'] = use_concurrent
+            self._prefs['delay'] = delay
+            self._prefs['window_geometry'] = self.root.winfo_geometry()
+            _save_prefs(self._prefs)
+        except Exception:
+            pass
 
         self._results = []
         self._tmp_result_paths = []
@@ -293,65 +356,84 @@ class PierceGUI:
                 self._queue.put(f'[!] Aborted before starting {target}\n')
                 return
             sem.acquire()
-            self._queue.put(f"\n[*] Starting target {idx}/{len(targets)}: {target}\n")
-            self._queue.put({'__target_update__': target, 'status': 'Running', 'idx': idx})
-
-            tmpf = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
-            tmpf.close()
-            tmp_path = tmpf.name
-            self._target_tmp_map[target] = tmp_path
-            self._tmp_result_paths.append(tmp_path)
-
-            cmd = [sys.executable, '-m', 'wafpierce.pierce', target, '-t', str(threads), '-d', str(delay), '-o', tmp_path]
-            env = os.environ.copy()
-            env['PYTHONIOENCODING'] = 'utf-8'
             try:
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', env=env)
-            except Exception as e:
-                self._queue.put(f"[!] Failed to start scanner for {target}: {e}\n")
+                retry_max = int(self._prefs.get('retry_failed', 0))
+                last_status = None
+                success = False
+                for attempt in range(retry_max + 1):
+                    if self._abort:
+                        break
+                    if attempt == 0:
+                        self._queue.put(f"\n[*] Starting target {idx}/{len(targets)}: {target}\n")
+                    else:
+                        self._queue.put(f"[!] Retrying {target} (attempt {attempt + 1}/{retry_max + 1})\n")
+                        self._queue.put({'__target_update__': target, 'status': 'Retrying', 'idx': idx})
+                    self._queue.put({'__target_update__': target, 'status': 'Running', 'idx': idx})
+
+                    tmpf = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
+                    tmpf.close()
+                    tmp_path = tmpf.name
+                    self._target_tmp_map[target] = tmp_path
+                    self._tmp_result_paths.append(tmp_path)
+
+                    cmd = [sys.executable, '-m', 'wafpierce.pierce', target, '-t', str(threads), '-d', str(delay), '-o', tmp_path]
+                    env = os.environ.copy()
+                    env['PYTHONIOENCODING'] = 'utf-8'
+                    try:
+                        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', env=env)
+                    except Exception as e:
+                        self._queue.put(f"[!] Failed to start scanner for {target}: {e}\n")
+                        last_status = 'Error'
+                        continue
+
+                    self._running_procs[target] = proc
+                    log_lines = []
+                    try:
+                        if proc.stdout is not None:
+                            for line in proc.stdout:
+                                log_lines.append(line)
+                                self._queue.put(line)
+                                if self._abort:
+                                    try:
+                                        proc.terminate()
+                                    except Exception:
+                                        pass
+                                    break
+                    except Exception as e:
+                        self._queue.put(f"[!] Error reading output for {target}: {e}\n")
+
+                    proc.wait()
+                    self._running_procs.pop(target, None)
+
+                    if os.path.exists(tmp_path):
+                        try:
+                            with open(tmp_path, 'r', encoding='utf-8') as f:
+                                data = json.load(f)
+                                if isinstance(data, list):
+                                    self._results.extend(data)
+                                    self._per_target[target] = {'done': list(data), 'errors': []}
+                                    self._queue.put(f"[+] Loaded {len(data)} result(s) from {tmp_path}\n")
+                                    success = True
+                                    last_status = 'Done'
+                                    break
+                                else:
+                                    self._queue.put(f"[!] Results file for {target} did not contain a list\n")
+                                    last_status = 'NoResults'
+                        except Exception:
+                            self._queue.put(f"[!] No JSON results or failed to parse results for {target}\n")
+                            last_status = 'ParseError'
+
+                if self._abort:
+                    self._queue.put('[!] Scan aborted by user\n')
+                    self._queue.put({'__target_update__': target, 'status': 'Aborted'})
+                elif success:
+                    self._queue.put({'__target_update__': target, 'status': 'Done', 'count': len(self._per_target.get(target, {}).get('done', []))})
+                else:
+                    if last_status is None:
+                        last_status = 'Error'
+                    self._queue.put({'__target_update__': target, 'status': last_status})
+            finally:
                 sem.release()
-                return
-
-            self._running_procs[target] = proc
-            log_lines = []
-            try:
-                if proc.stdout is not None:
-                    for line in proc.stdout:
-                        log_lines.append(line)
-                        self._queue.put(line)
-                        if self._abort:
-                            try:
-                                proc.terminate()
-                            except Exception:
-                                pass
-                            break
-            except Exception as e:
-                self._queue.put(f"[!] Error reading output for {target}: {e}\n")
-
-            proc.wait()
-            self._running_procs.pop(target, None)
-
-            if os.path.exists(tmp_path):
-                try:
-                    with open(tmp_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if isinstance(data, list):
-                            self._results.extend(data)
-                            self._per_target[target] = {'done': list(data), 'errors': []}
-                            self._queue.put(f"[+] Loaded {len(data)} result(s) from {tmp_path}\n")
-                            self._queue.put({'__target_update__': target, 'status': 'Done', 'count': len(data)})
-                        else:
-                            self._queue.put(f"[!] Results file for {target} did not contain a list\n")
-                            self._queue.put({'__target_update__': target, 'status': 'NoResults'})
-                except Exception:
-                    self._queue.put(f"[!] No JSON results or failed to parse results for {target}\n")
-                    self._queue.put({'__target_update__': target, 'status': 'ParseError'})
-
-            if self._abort:
-                self._queue.put('[!] Scan aborted by user\n')
-                self._queue.put({'__target_update__': target, 'status': 'Aborted'})
-
-            sem.release()
 
         threads_list = []
         for idx, target in enumerate(targets, start=1):
@@ -415,6 +497,7 @@ class PierceGUI:
                         self.targets_tree.delete(ch)
                     except Exception:
                         pass
+                self._target_row_map = {}
                 self._results = []
                 self._tmp_result_paths = []
                 self._target_tmp_map = {}
@@ -451,6 +534,7 @@ class PierceGUI:
                         pass
             except Exception:
                 pass
+            self._target_row_map = {}
             try:
                 self.log.configure(state='normal')
                 self.log.delete('1.0', tk.END)
@@ -461,12 +545,66 @@ class PierceGUI:
                 self._results = []
                 self._tmp_result_paths = []
                 self._target_tmp_map = {}
+                self._target_row_map = {}
             except Exception:
                 pass
         try:
             self._update_legend_counts()
         except Exception:
             pass
+
+    def _on_close(self) -> None:
+        try:
+            self._prefs['window_geometry'] = self.root.winfo_geometry()
+            if bool(self._prefs.get('remember_targets', True)):
+                targets = [self.targets_tree.set(ch, 'target') for ch in self.targets_tree.get_children()]
+                self._prefs['last_targets'] = targets
+            else:
+                self._prefs['last_targets'] = []
+            _save_prefs(self._prefs)
+        except Exception:
+            pass
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+
+    def _restore_targets(self) -> None:
+        if not bool(self._prefs.get('remember_targets', True)):
+            return
+        targets = self._prefs.get('last_targets', [])
+        if not isinstance(targets, list):
+            return
+        existing = {self.targets_tree.set(ch, 'target') for ch in self.targets_tree.get_children()}
+        for t in targets:
+            if not isinstance(t, str) or not t.strip() or t in existing:
+                continue
+            iid = self.targets_tree.insert('', 'end', values=(t, 'Queued'))
+            self.targets_tree.item(iid, tags=('queued',))
+            self._target_row_map[t] = iid
+
+    def _set_target_status(self, target: str, status: str, count: int | None = None) -> None:
+        display = status
+        if status == 'Done' and count is not None:
+            display = f"✅ Done ({count})"
+        elif status == 'Running':
+            display = '▶ Running'
+        elif status in ('NoResults', 'ParseError'):
+            display = f'❌ {status}'
+        elif status == 'Aborted':
+            display = '⏹ Aborted'
+        iid = self._target_row_map.get(target)
+        if iid:
+            try:
+                self.targets_tree.set(iid, 'status', display)
+                return
+            except Exception:
+                pass
+        for ch in self.targets_tree.get_children():
+            if self.targets_tree.set(ch, 'target') == target:
+                self.targets_tree.set(ch, 'status', display)
+                self._target_row_map[target] = ch
+                break
 
     def _poll_queue(self) -> None:
         try:
@@ -486,19 +624,7 @@ class PierceGUI:
                     tgt = item.get('__target_update__')
                     if tgt:
                         status = item.get('status', '')
-                        for ch in self.targets_tree.get_children():
-                            if self.targets_tree.set(ch, 'target') == tgt:
-                                display = status
-                                if status == 'Done' and 'count' in item:
-                                    display = f"✅ Done ({item.get('count')})"
-                                elif status == 'Running':
-                                    display = '▶ Running'
-                                elif status in ('NoResults', 'ParseError'):
-                                    display = f'❌ {status}'
-                                elif status == 'Aborted':
-                                    display = '⏹ Aborted'
-                                self.targets_tree.set(ch, 'status', display)
-                                break
+                        self._set_target_status(tgt, status, item.get('count'))
                         self._append_log(f"[>] {tgt} -> {status}\n")
                         continue
                 self._append_log(str(item))
@@ -555,29 +681,57 @@ class PierceGUI:
         dlg.title('Settings')
         dlg.transient(self.root)
         dlg.grab_set()
-        frm = ttk.Frame(dlg, padding=10)
+        dlg.geometry('400x300')
+        dlg.configure(bg='#0f1112')
+        
+        frm = ttk.Frame(dlg, padding=15)
         frm.pack(fill='both', expand=True)
-
-        ttk.Label(frm, text='Theme:').grid(row=0, column=0, sticky='w')
-        theme_var = tk.StringVar(value=self._prefs.get('theme', 'dark'))
-        ttk.Radiobutton(frm, text='Dark', variable=theme_var, value='dark').grid(row=0, column=1, sticky='w')
-        ttk.Radiobutton(frm, text='Light', variable=theme_var, value='light').grid(row=0, column=2, sticky='w')
-
-        ttk.Label(frm, text='Font size:').grid(row=1, column=0, sticky='w', pady=(8, 0))
+        # Font size section
+        ttk.Label(frm, text='Font Size:', font=('', 10, 'bold')).grid(row=0, column=0, sticky='w', pady=(12, 8))
         font_size_var = tk.IntVar(value=int(self._prefs.get('font_size', 11)))
-        ttk.Spinbox(frm, from_=8, to=20, textvariable=font_size_var, width=6).grid(row=1, column=1, sticky='w', pady=(8, 0))
+        font_frame = ttk.Frame(frm)
+        font_frame.grid(row=0, column=1, columnspan=2, sticky='w', pady=(12, 8))
+        ttk.Spinbox(font_frame, from_=8, to=20, textvariable=font_size_var, width=6).pack(side='left', padx=(0, 6))
+        ttk.Label(font_frame, text='(8-20)', foreground='gray').pack(side='left')
 
+        # Watermark section
         watermark_var = tk.BooleanVar(value=bool(self._prefs.get('watermark', True)))
-        ttk.Checkbutton(frm, text='Show watermark/logo', variable=watermark_var).grid(row=2, column=0, columnspan=3, sticky='w', pady=(8, 0))
+        ttk.Checkbutton(frm, text='🎨 Show watermark/logo', variable=watermark_var).grid(row=1, column=0, columnspan=3, sticky='w', pady=(12, 20))
 
+        # Remember targets
+        remember_var = tk.BooleanVar(value=bool(self._prefs.get('remember_targets', True)))
+        ttk.Checkbutton(frm, text='Remember last targets', variable=remember_var).grid(row=2, column=0, columnspan=3, sticky='w', pady=(0, 12))
+
+        # Retry failed targets
+        ttk.Label(frm, text='Retry failed targets:', font=('', 10, 'bold')).grid(row=3, column=0, sticky='w', pady=(4, 8))
+        retry_var = tk.IntVar(value=int(self._prefs.get('retry_failed', 0)))
+        retry_frame = ttk.Frame(frm)
+        retry_frame.grid(row=3, column=1, columnspan=2, sticky='w', pady=(4, 8))
+        ttk.Spinbox(retry_frame, from_=0, to=5, textvariable=retry_var, width=6).pack(side='left', padx=(0, 6))
+        ttk.Label(retry_frame, text='(0-5)', foreground='gray').pack(side='left')
+
+        # UI density
+        ttk.Label(frm, text='UI density:', font=('', 10, 'bold')).grid(row=4, column=0, sticky='w', pady=(4, 8))
+        density_var = tk.StringVar(value=self._prefs.get('ui_density', 'comfortable'))
+        density_combo = ttk.Combobox(frm, textvariable=density_var, values=['compact', 'comfortable', 'spacious'], state='readonly', width=14)
+        density_combo.grid(row=4, column=1, columnspan=2, sticky='w', pady=(4, 8))
+
+        # Button frame
         btns = ttk.Frame(frm)
-        btns.grid(row=3, column=0, columnspan=3, pady=(12, 0))
+        btns.grid(row=5, column=0, columnspan=3, sticky='ew', pady=(12, 0))
+        
+        save_btn = ttk.Button(btns, text='✓ Save', command=lambda: _save_and_apply())
+        save_btn.pack(side='left', padx=(0, 6))
+        cancel_btn = ttk.Button(btns, text='✕ Cancel', command=lambda: dlg.destroy())
+        cancel_btn.pack(side='left')
 
         def _save_and_apply():
             try:
-                self._prefs['theme'] = theme_var.get()
                 self._prefs['font_size'] = int(font_size_var.get())
                 self._prefs['watermark'] = bool(watermark_var.get())
+                self._prefs['remember_targets'] = bool(remember_var.get())
+                self._prefs['retry_failed'] = int(retry_var.get())
+                self._prefs['ui_density'] = density_var.get()
                 _save_prefs(self._prefs)
             except Exception:
                 pass
@@ -594,9 +748,6 @@ class PierceGUI:
             except Exception:
                 pass
 
-        ttk.Button(btns, text='Save', command=_save_and_apply).pack(side='left', padx=(0, 6))
-        ttk.Button(btns, text='Cancel', command=lambda: dlg.destroy()).pack(side='left')
-
 
 
 def main() -> None:
@@ -606,7 +757,7 @@ def main() -> None:
         from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                                        QLineEdit, QPushButton, QTreeWidget, QTreeWidgetItem,
                                        QTextEdit, QLabel, QFileDialog, QMessageBox, QCheckBox,
-                                       QSpinBox, QDoubleSpinBox)
+                                       QSpinBox, QDoubleSpinBox, QHeaderView)
         from PySide6.QtCore import QObject, Signal
         from PySide6.QtGui import QBrush, QColor, QFont, QFontDatabase
 
@@ -619,13 +770,14 @@ def main() -> None:
             # emit per-target summary: target, done_list, errors_list
             target_summary = Signal(str, object, object)
 
-            def __init__(self, targets, threads, delay, concurrent=1, use_concurrent=True, parent=None):
+            def __init__(self, targets, threads, delay, concurrent=1, use_concurrent=True, retry_failed=0, parent=None):
                 super().__init__(parent)
                 self.targets = targets
                 self.threads = threads
                 self.delay = delay
                 self.concurrent = concurrent
                 self.use_concurrent = use_concurrent
+                self.retry_failed = int(retry_failed)
                 self._abort = False
                 # track running subprocesses so abort() can terminate them
                 self._running_procs = {}
@@ -655,88 +807,106 @@ def main() -> None:
                         self.log_line.emit(f"[!] Aborted before starting {target}\n")
                         return
 
-                    self.log_line.emit(f"\n[*] Starting target {idx}/{len(self.targets)}: {target}\n")
-                    self.target_update.emit(target, 'Running', idx)
+                    last_status = None
+                    success = False
+                    done_count = 0
+                    for attempt in range(self.retry_failed + 1):
+                        if self._abort:
+                            break
+                        if attempt == 0:
+                            self.log_line.emit(f"\n[*] Starting target {idx}/{len(self.targets)}: {target}\n")
+                        else:
+                            self.log_line.emit(f"[!] Retrying {target} (attempt {attempt + 1}/{self.retry_failed + 1})\n")
+                            self.target_update.emit(target, 'Retrying', idx)
+                        self.target_update.emit(target, 'Running', idx)
 
-                    tmpf = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
-                    tmpf.close()
-                    tmp_path = tmpf.name
-                    try:
-                        self.tmp_created.emit(target, tmp_path)
-                    except Exception:
-                        pass
-
-                    cmd = [sys.executable, '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
-                    env = os.environ.copy()
-                    env['PYTHONIOENCODING'] = 'utf-8'
-                    try:
-                        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', bufsize=1, env=env)
-                    except Exception as e:
-                        self.log_line.emit(f"[!] Failed to start scanner for {target}: {e}\n")
-                        return
-
-                    self._running_procs[target] = proc
-
-                    log_lines = []
-                    try:
-                        if proc.stdout is not None:
-                            for line in proc.stdout:
-                                log_lines.append(line)
-                                self.log_line.emit(line)
-                                if self._abort:
-                                    try:
-                                        proc.terminate()
-                                    except Exception:
-                                        pass
-                                    break
-                    except Exception as e:
-                        self.log_line.emit(f"[!] Error reading output for {target}: {e}\n")
-
-                    proc.wait()
-                    self._running_procs.pop(target, None)
-
-                    if os.path.exists(tmp_path):
+                        tmpf = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
+                        tmpf.close()
+                        tmp_path = tmpf.name
                         try:
-                            with open(tmp_path, 'r', encoding='utf-8') as f:
-                                data = json.load(f)
-                                done_list = data if isinstance(data, list) else []
-                                if isinstance(data, list):
-                                    self.log_line.emit(f"[+] Loaded {len(data)} result(s) from {tmp_path}\n")
-                                    try:
-                                        self.results_emitted.emit(data)
-                                    except Exception:
-                                        pass
-                                    # parse errors from log_lines
-                                    errors = []
-                                    joined = '\n'.join(log_lines).lower()
-                                    import re
-                                    m = re.search(r"\[!\] Warning: (\d+) techniques encountered errors", joined)
-                                    if m:
+                            self.tmp_created.emit(target, tmp_path)
+                        except Exception:
+                            pass
+
+                        cmd = [sys.executable, '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
+                        env = os.environ.copy()
+                        env['PYTHONIOENCODING'] = 'utf-8'
+                        try:
+                            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', bufsize=1, env=env)
+                        except Exception as e:
+                            self.log_line.emit(f"[!] Failed to start scanner for {target}: {e}\n")
+                            last_status = 'Error'
+                            continue
+
+                        self._running_procs[target] = proc
+
+                        log_lines = []
+                        try:
+                            if proc.stdout is not None:
+                                for line in proc.stdout:
+                                    log_lines.append(line)
+                                    self.log_line.emit(line)
+                                    if self._abort:
                                         try:
-                                            cnt = int(m.group(1))
-                                            errors.append(f"{cnt} technique errors")
+                                            proc.terminate()
                                         except Exception:
                                             pass
-                                    # also collect traceback / exception lines
-                                    for ln in log_lines:
-                                        low = ln.lower()
-                                        if 'traceback' in low or 'exception' in low or 'error:' in low:
-                                            errors.append(ln.strip())
-                                    try:
-                                        self.target_summary.emit(target, done_list, errors)
-                                    except Exception:
-                                        pass
-                                    self.target_update.emit(target, 'Done', len(done_list))
-                                else:
-                                    self.log_line.emit(f"[!] Results file for {target} did not contain a list\n")
-                                    self.target_update.emit(target, 'NoResults', 0)
-                        except Exception:
-                            self.log_line.emit(f"[!] No JSON results or failed to parse results for {target}\n")
-                            self.target_update.emit(target, 'ParseError', 0)
+                                        break
+                        except Exception as e:
+                            self.log_line.emit(f"[!] Error reading output for {target}: {e}\n")
+
+                        proc.wait()
+                        self._running_procs.pop(target, None)
+
+                        if os.path.exists(tmp_path):
+                            try:
+                                with open(tmp_path, 'r', encoding='utf-8') as f:
+                                    data = json.load(f)
+                                    done_list = data if isinstance(data, list) else []
+                                    if isinstance(data, list):
+                                        self.log_line.emit(f"[+] Loaded {len(data)} result(s) from {tmp_path}\n")
+                                        try:
+                                            self.results_emitted.emit(data)
+                                        except Exception:
+                                            pass
+                                        # parse errors from log_lines
+                                        errors = []
+                                        joined = '\n'.join(log_lines).lower()
+                                        import re
+                                        m = re.search(r"\[!\] Warning: (\d+) techniques encountered errors", joined)
+                                        if m:
+                                            try:
+                                                cnt = int(m.group(1))
+                                                errors.append(f"{cnt} technique errors")
+                                            except Exception:
+                                                pass
+                                        # also collect traceback / exception lines
+                                        for ln in log_lines:
+                                            low = ln.lower()
+                                            if 'traceback' in low or 'exception' in low or 'error:' in low:
+                                                errors.append(ln.strip())
+                                        try:
+                                            self.target_summary.emit(target, done_list, errors)
+                                        except Exception:
+                                            pass
+                                        success = True
+                                        done_count = len(done_list)
+                                        last_status = 'Done'
+                                        break
+                                    else:
+                                        self.log_line.emit(f"[!] Results file for {target} did not contain a list\n")
+                                        last_status = 'NoResults'
+                            except Exception:
+                                self.log_line.emit(f"[!] No JSON results or failed to parse results for {target}\n")
+                                last_status = 'ParseError'
 
                     if self._abort:
                         self.log_line.emit('[!] Scan aborted by user\n')
                         self.target_update.emit(target, 'Aborted', 0)
+                    elif success:
+                        self.target_update.emit(target, 'Done', done_count)
+                    else:
+                        self.target_update.emit(target, last_status or 'Error', 0)
 
                 # run with a small thread pool inside this QThread
                 try:
@@ -760,7 +930,6 @@ def main() -> None:
             def __init__(self):
                 super().__init__()
                 self.setWindowTitle('WAFPierce - GUI (Qt)')
-                self.resize(1000, 640)
 
                 self._worker_thread = None
                 self._worker = None
@@ -775,18 +944,37 @@ def main() -> None:
                     self._prefs = _load_prefs()
                 except Exception:
                     self._prefs = {'theme': 'dark', 'font_size': 11}
+                try:
+                    size = self._prefs.get('qt_geometry', '1000x640')
+                    if isinstance(size, str) and 'x' in size:
+                        w, h = size.split('x', 1)
+                        self.resize(int(float(w)), int(float(h)))
+                    else:
+                        self.resize(1000, 640)
+                except Exception:
+                    self.resize(1000, 640)
                 self._build_ui()
                 try:
                     self._apply_qt_prefs(self._prefs)
                 except Exception:
                     pass
+                try:
+                    self._restore_qt_targets()
+                except Exception:
+                    pass
 
             def _build_ui(self):
                 v = QVBoxLayout(self)
+                self._layout_main = v
 
                 # top controls
                 top = QHBoxLayout()
+                self._layout_top = top
                 self.target_edit = QLineEdit()
+                try:
+                    self.target_edit.setPlaceholderText('https://example.com')
+                except Exception:
+                    pass
                 add_btn = QPushButton('Add')
                 add_btn.clicked.connect(self.add_target)
                 remove_btn = QPushButton('Remove')
@@ -798,8 +986,8 @@ def main() -> None:
                 # small compact settings button at the top-right
                 try:
                     top.addStretch()
-                    sbtn = QPushButton('⚙')
-                    sbtn.setFixedSize(28, 28)
+                    sbtn = QPushButton('Settings')
+                    sbtn.setFixedHeight(28)
                     sbtn.clicked.connect(self._open_qt_settings)
                     top.addWidget(sbtn)
                 except Exception:
@@ -808,19 +996,32 @@ def main() -> None:
 
                 # options (threads / delay)
                 opts = QHBoxLayout()
+                self._layout_opts = opts
                 self.threads_spin = QSpinBox()
                 self.threads_spin.setRange(1, 200)
-                self.threads_spin.setValue(5)
+                try:
+                    self.threads_spin.setValue(int(self._prefs.get('threads', 5)))
+                except Exception:
+                    self.threads_spin.setValue(5)
                 self.delay_spin = QDoubleSpinBox()
                 self.delay_spin.setRange(0.0, 5.0)
                 self.delay_spin.setSingleStep(0.05)
-                self.delay_spin.setValue(0.2)
+                try:
+                    self.delay_spin.setValue(float(self._prefs.get('delay', 0.2)))
+                except Exception:
+                    self.delay_spin.setValue(0.2)
                 self.concurrent_spin = QSpinBox()
                 self.concurrent_spin.setRange(1, 200)
-                self.concurrent_spin.setValue(2)
+                try:
+                    self.concurrent_spin.setValue(int(self._prefs.get('concurrent', 2)))
+                except Exception:
+                    self.concurrent_spin.setValue(2)
                 # default to sequential execution (one target at a time)
                 self.use_concurrent_chk = QCheckBox('Use concurrent targets')
-                self.use_concurrent_chk.setChecked(False)
+                try:
+                    self.use_concurrent_chk.setChecked(bool(self._prefs.get('use_concurrent', False)))
+                except Exception:
+                    self.use_concurrent_chk.setChecked(False)
                 opts.addWidget(QLabel('Threads:'))
                 opts.addWidget(self.threads_spin)
                 opts.addWidget(QLabel('Concurrent:'))
@@ -851,9 +1052,18 @@ def main() -> None:
 
                 # middle: tree and log
                 middle = QHBoxLayout()
+                self._layout_middle = middle
                 self.tree = QTreeWidget()
                 self.tree.setColumnCount(2)
                 self.tree.setHeaderLabels(['Target', 'Status'])
+                try:
+                    header = self.tree.header()
+                    header.setStretchLastSection(False)
+                    header.setSectionResizeMode(0, QHeaderView.Stretch)
+                    header.setSectionResizeMode(1, QHeaderView.Fixed)
+                    self.tree.setColumnWidth(1, 120)
+                except Exception:
+                    pass
                 self.tree.itemDoubleClicked.connect(self.show_target_details)
                 # single-click status to open details as well
                 try:
@@ -863,6 +1073,7 @@ def main() -> None:
                 middle.addWidget(self.tree, 2)
 
                 right_v = QVBoxLayout()
+                self._layout_right = right_v
                 self.log = QTextEdit()
                 self.log.setReadOnly(True)
                 # Prefer modern fonts for Qt widgets when available
@@ -889,35 +1100,18 @@ def main() -> None:
                 # attempt to set a faint watermark background using the bundled logo
                 try:
                     if os.path.exists(LOGO_PATH):
-                        from PySide6.QtGui import QPixmap, QPainter
-                        from PySide6.QtCore import Qt
-                        pix = QPixmap(LOGO_PATH)
-                        if not pix.isNull():
-                            # scale to a reasonable size for a watermark
-                            scaled = pix.scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                            tmpf = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-                            tmpf.close()
-                            trans = QPixmap(scaled.size())
-                            trans.fill(Qt.transparent)
-                            p = QPainter(trans)
-                            try:
-                                p.setOpacity(0.08)
-                                p.drawPixmap(0, 0, scaled)
-                            finally:
-                                p.end()
-                            trans.save(tmpf.name)
-                            # use a posix-style path for Qt stylesheets (works cross-platform)
+                        theme = self._prefs.get('theme', 'dark')
+                        opacity = 0.18 if theme == 'light' else 0.08
+                        tmp = self._create_qt_watermark(opacity)
+                        if tmp and os.path.exists(tmp):
                             try:
                                 from pathlib import Path
-                                css_path = Path(tmpf.name).as_posix()
+                                css_path = Path(tmp).as_posix()
                             except Exception:
-                                css_path = tmpf.name.replace('\\', '/')
-                            # set as background image for the QTextEdit
+                                css_path = tmp.replace('\\', '/')
                             self.log.setStyleSheet(
                                 f"background-image: url('{css_path}'); background-repeat: no-repeat; background-position: center; background-attachment: fixed;"
                             )
-                            # keep path so it isn't GC'd and can be cleaned later
-                            self._qt_watermark_tmp = tmpf.name
                 except Exception:
                     pass
                 right_v.addWidget(QLabel('Output'))
@@ -927,6 +1121,7 @@ def main() -> None:
 
                 # bottom controls
                 bottom = QHBoxLayout()
+                self._layout_bottom = bottom
                 self.start_btn = QPushButton('Start')
                 self.start_btn.clicked.connect(self.start_scan)
                 self.stop_btn = QPushButton('Stop')
@@ -1059,7 +1254,21 @@ def main() -> None:
 
                 concurrent = int(self.concurrent_spin.value())
                 use_concurrent = bool(self.use_concurrent_chk.isChecked())
-                self._worker = QtWorker(targets, threads, delay, concurrent, use_concurrent)
+                retry_failed = int(self._prefs.get('retry_failed', 0))
+
+                # persist runtime prefs
+                try:
+                    prefs = _load_prefs()
+                    prefs['threads'] = threads
+                    prefs['delay'] = delay
+                    prefs['concurrent'] = concurrent
+                    prefs['use_concurrent'] = use_concurrent
+                    prefs['qt_geometry'] = f"{self.width()}x{self.height()}"
+                    _save_prefs(prefs)
+                    self._prefs = prefs
+                except Exception:
+                    pass
+                self._worker = QtWorker(targets, threads, delay, concurrent, use_concurrent, retry_failed)
                 self._worker_thread = QtCore.QThread()
                 self._worker.moveToThread(self._worker_thread)
                 self._worker.log_line.connect(self.append_log)
@@ -1207,19 +1416,10 @@ def main() -> None:
                     dlg.setWindowTitle('Settings')
                     layout = QtWidgets.QVBoxLayout(dlg)
 
-                    # theme
-                    h = QtWidgets.QHBoxLayout()
-                    h.addWidget(QLabel('Theme:'))
-                    theme_combo = QtWidgets.QComboBox()
-                    theme_combo.addItems(['dark', 'light'])
-                    # load existing pref
                     try:
                         prefs = _load_prefs()
-                        theme_combo.setCurrentText(prefs.get('theme', 'dark'))
                     except Exception:
-                        pass
-                    h.addWidget(theme_combo)
-                    layout.addLayout(h)
+                        prefs = {}
 
                     # font size
                     h2 = QtWidgets.QHBoxLayout()
@@ -1227,7 +1427,7 @@ def main() -> None:
                     font_spin = QSpinBox()
                     font_spin.setRange(8, 20)
                     try:
-                        font_spin.setValue(int(_load_prefs().get('font_size', 11)))
+                        font_spin.setValue(int(prefs.get('font_size', 11)))
                     except Exception:
                         font_spin.setValue(11)
                     h2.addWidget(font_spin)
@@ -1236,10 +1436,42 @@ def main() -> None:
                     # watermark
                     wm_chk = QCheckBox('Show watermark/logo')
                     try:
-                        wm_chk.setChecked(bool(_load_prefs().get('watermark', True)))
+                        wm_chk.setChecked(bool(prefs.get('watermark', True)))
                     except Exception:
                         wm_chk.setChecked(True)
                     layout.addWidget(wm_chk)
+
+                    # remember targets
+                    remember_chk = QCheckBox('Remember last targets')
+                    try:
+                        remember_chk.setChecked(bool(prefs.get('remember_targets', True)))
+                    except Exception:
+                        remember_chk.setChecked(True)
+                    layout.addWidget(remember_chk)
+
+                    # retry failed
+                    retry_layout = QtWidgets.QHBoxLayout()
+                    retry_layout.addWidget(QLabel('Retry failed targets:'))
+                    retry_spin = QSpinBox()
+                    retry_spin.setRange(0, 5)
+                    try:
+                        retry_spin.setValue(int(prefs.get('retry_failed', 0)))
+                    except Exception:
+                        retry_spin.setValue(0)
+                    retry_layout.addWidget(retry_spin)
+                    layout.addLayout(retry_layout)
+
+                    # UI density
+                    density_layout = QtWidgets.QHBoxLayout()
+                    density_layout.addWidget(QLabel('UI density:'))
+                    density_combo = QtWidgets.QComboBox()
+                    density_combo.addItems(['compact', 'comfortable', 'spacious'])
+                    try:
+                        density_combo.setCurrentText(prefs.get('ui_density', 'comfortable'))
+                    except Exception:
+                        pass
+                    density_layout.addWidget(density_combo)
+                    layout.addLayout(density_layout)
 
                     btn_h = QtWidgets.QHBoxLayout()
                     save_btn = QPushButton('Save')
@@ -1250,11 +1482,13 @@ def main() -> None:
 
                     def _save_qt():
                         try:
-                            prefs = _load_prefs()
-                            prefs['theme'] = theme_combo.currentText()
                             prefs['font_size'] = int(font_spin.value())
                             prefs['watermark'] = bool(wm_chk.isChecked())
+                            prefs['remember_targets'] = bool(remember_chk.isChecked())
+                            prefs['retry_failed'] = int(retry_spin.value())
+                            prefs['ui_density'] = density_combo.currentText()
                             _save_prefs(prefs)
+                            self._prefs = prefs
                             self._apply_qt_prefs(prefs)
                         except Exception:
                             pass
@@ -1265,43 +1499,6 @@ def main() -> None:
 
                     save_btn.clicked.connect(_save_qt)
                     cancel_btn.clicked.connect(dlg.reject)
-                    # live apply handlers so changes are visible immediately
-                    try:
-                        def _live_theme(val: str):
-                            try:
-                                prefs = _load_prefs()
-                                prefs['theme'] = val
-                                _save_prefs(prefs)
-                                self._apply_qt_prefs(prefs)
-                            except Exception:
-                                pass
-                        theme_combo.currentTextChanged.connect(_live_theme)
-                    except Exception:
-                        pass
-                    try:
-                        def _live_font(val: int):
-                            try:
-                                prefs = _load_prefs()
-                                prefs['font_size'] = int(val)
-                                _save_prefs(prefs)
-                                self._apply_qt_prefs(prefs)
-                            except Exception:
-                                pass
-                        font_spin.valueChanged.connect(_live_font)
-                    except Exception:
-                        pass
-                    try:
-                        def _live_wm(checked: bool):
-                            try:
-                                prefs = _load_prefs()
-                                prefs['watermark'] = bool(checked)
-                                _save_prefs(prefs)
-                                self._apply_qt_prefs(prefs)
-                            except Exception:
-                                pass
-                        wm_chk.toggled.connect(_live_wm)
-                    except Exception:
-                        pass
                     dlg.exec()
                 except Exception:
                     pass
@@ -1325,58 +1522,75 @@ def main() -> None:
                         f = QFont(mono, size)
                         self.log.setFont(f)
                     else:
-                        # fallback: do nothing
                         pass
                 except Exception:
                     pass
-                # handle watermark visibility and theme
+                show_watermark = prefs.get('watermark', True)
                 try:
-                    # Theme: apply a minimal stylesheet for light/dark
-                    theme = prefs.get('theme', 'dark')
-                    if theme == 'light':
-                        try:
-                            self.setStyleSheet('QWidget { background: #f5f6f7; color: #111; }')
-                            self.log.setStyleSheet('background: #ffffff; color: #111;')
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            self.setStyleSheet('')
-                            # if watermark is present we set it below
-                        except Exception:
-                            pass
+                    self.setStyleSheet('')
                 except Exception:
                     pass
                 try:
-                    if not prefs.get('watermark', True):
-                        try:
-                            self.log.setStyleSheet("")
-                        except Exception:
-                            pass
+                    density = prefs.get('ui_density', 'comfortable')
+                    if density == 'compact':
+                        spacing = 4
+                        margins = 6
+                        rowheight = 20
+                    elif density == 'spacious':
+                        spacing = 10
+                        margins = 12
+                        rowheight = 28
                     else:
-                        # ensure watermark tmp exists and apply as background
+                        spacing = 6
+                        margins = 8
+                        rowheight = 24
+                    for layout in [getattr(self, '_layout_main', None), getattr(self, '_layout_top', None),
+                                   getattr(self, '_layout_opts', None), getattr(self, '_layout_middle', None),
+                                   getattr(self, '_layout_right', None), getattr(self, '_layout_bottom', None)]:
+                        if layout is None:
+                            continue
+                        layout.setSpacing(spacing)
                         try:
-                            tmp = getattr(self, '_qt_watermark_tmp', None)
-                            if not tmp or not os.path.exists(tmp):
-                                tmp = self._create_qt_watermark()
-                            if tmp and os.path.exists(tmp):
-                                try:
-                                    from pathlib import Path
-                                    css_path = Path(tmp).as_posix()
-                                except Exception:
-                                    css_path = tmp.replace('\\', '/')
-                                try:
-                                    self.log.setStyleSheet(
-                                        f"background-image: url('{css_path}'); background-repeat: no-repeat; background-position: center; background-attachment: fixed;"
-                                    )
-                                except Exception:
-                                    pass
+                            layout.setContentsMargins(margins, margins, margins, margins)
                         except Exception:
                             pass
+                    try:
+                        self.tree.setStyleSheet(f"QTreeWidget::item{{height:{rowheight}px;}}")
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+                try:
+                    if show_watermark:
+                        tmp = self._create_qt_watermark(0.08)
+                        if tmp and os.path.exists(tmp):
+                            try:
+                                from pathlib import Path
+                                css_path = Path(tmp).as_posix()
+                            except Exception:
+                                css_path = tmp.replace('\\', '/')
+                            self.log.setStyleSheet(
+                                f"background-image: url('{css_path}'); background-repeat: no-repeat; background-position: center; background-attachment: fixed;"
+                            )
+                    else:
+                        self.log.setStyleSheet('')
                 except Exception:
                     pass
 
-            def _create_qt_watermark(self):
+            def _restore_qt_targets(self):
+                if not bool(self._prefs.get('remember_targets', True)):
+                    return
+                targets = self._prefs.get('last_targets', [])
+                if not isinstance(targets, list):
+                    return
+                existing = {self.tree.topLevelItem(i).text(0) for i in range(self.tree.topLevelItemCount())}
+                for t in targets:
+                    if not isinstance(t, str) or not t.strip() or t in existing:
+                        continue
+                    item = QTreeWidgetItem([t, 'Queued'])
+                    self.tree.addTopLevelItem(item)
+
+            def _create_qt_watermark(self, opacity: float = 0.08):
                 try:
                     if not os.path.exists(LOGO_PATH):
                         return None
@@ -1392,7 +1606,7 @@ def main() -> None:
                     trans.fill(Qt.transparent)
                     p = QPainter(trans)
                     try:
-                        p.setOpacity(0.08)
+                        p.setOpacity(opacity)
                         p.drawPixmap(0, 0, scaled)
                     finally:
                         p.end()
@@ -1549,6 +1763,26 @@ def main() -> None:
                         pass
                 try:
                     self._update_legend_counts()
+                except Exception:
+                    pass
+
+            def closeEvent(self, event):
+                try:
+                    prefs = _load_prefs()
+                    prefs['qt_geometry'] = f"{self.width()}x{self.height()}"
+                    prefs['threads'] = int(self.threads_spin.value())
+                    prefs['delay'] = float(self.delay_spin.value())
+                    prefs['concurrent'] = int(self.concurrent_spin.value())
+                    prefs['use_concurrent'] = bool(self.use_concurrent_chk.isChecked())
+                    if bool(prefs.get('remember_targets', True)):
+                        prefs['last_targets'] = [self.tree.topLevelItem(i).text(0) for i in range(self.tree.topLevelItemCount())]
+                    else:
+                        prefs['last_targets'] = []
+                    _save_prefs(prefs)
+                except Exception:
+                    pass
+                try:
+                    super().closeEvent(event)
                 except Exception:
                     pass
 
