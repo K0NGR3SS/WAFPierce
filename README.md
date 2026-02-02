@@ -72,10 +72,12 @@ WAFPierce tests the following bypass methods:
 6. **Path Encoding** - URL encoding bypasses (%2e, %252e, etc.)
 7. **HTTP Method** - Tests non-standard methods (TRACE, TRACK, etc.)
 8. **Content-Type** - MIME type confusion attacks
-9. **HTTP/2 Downgrade** - Tests for protocol downgrade attacks
-10. **WebSocket Upgrade** - Attempts to tunnel through WAFs via WebSocket upgrades
-11. **Range Header** - Tests for partial content bypasses (Critical for large file handling)
-12. **Double/Triple Encoding** - Advanced encoding evasion
+9. **Transfer-Encoding Smuggling** - Request smuggling via obfuscated chunked encoding (CL.TE/TE.TE)
+10. **HTTP/2 Downgrade** - Tests for protocol downgrade attacks
+11. **WebSocket Upgrade** - Attempts to tunnel through WAFs via WebSocket upgrades
+12. **Range Header** - Tests for partial content bypasses (Critical for large file handling)
+13. **Double/Triple Encoding** - Advanced encoding evasion
+
 
 
 ## Requirements
