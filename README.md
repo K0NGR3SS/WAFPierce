@@ -12,13 +12,20 @@
 WAFPierce is a specialized penetration testing tool that identifies WAF (Web Application Firewall) bypass techniques specifically for AWS CloudFront distributions. It automates the discovery of misconfigurations and bypass vectors that could expose backend applications.
 
 **Key Features:**
-- **WAF Bypass Detection** - Tests 8 different bypass techniques (Host header, X-Forwarded-For, encoding, etc.)
+- **WAF Detection & Fingerprinting** - Identifies 17+ WAF vendors (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, and more)
+- **CDN Detection** - Detects 12+ CDN providers (CloudFront, Akamai, Fastly, Cloudflare, etc.)
+- **WAF Bypass Detection** - Tests 35+ different bypass techniques
 - **Smart WAF Bypass** - Uses baseline comparison and heuristic analysis (size, hash, status codes) to detect bypasses even when WAFs return 200 OK.
+- **Payload Evasion Testing** - SQLi, XSS, Command Injection, Path Traversal, SSRF bypass payloads
+- **Protocol-Level Attacks** - HTTP Request Smuggling, HTTP/2 Downgrade, WebSocket tunneling
+- **Rate Limit Detection** - Identifies request thresholds and rate limiting behavior
+- **API Endpoint Discovery** - Finds unprotected API routes and debug endpoints
 - **Directory Enumeration** - Discovers hidden paths using successful bypass methods
 - **Vulnerability Scanning** - Tests for XSS and injection points
 - **AWS Reconnaissance** - Enumerates related S3 buckets
 - **Automated Reporting** - Generates detailed markdown reports
 - **GUI system** - Clean and efficient GUI system made for the users comfort  
+- **Optimized Performance** - Connection pooling, response caching, and parallel batch testing
 
 ## Installation
 
@@ -64,19 +71,52 @@ python3 -m wafpierce.pierce https://target.cloudfront.net -t 10
 
 WAFPierce tests the following bypass methods:
 
+### Header Manipulation
 1. **Host Header Injection** - Manipulates Host header values
-2. **X-Forwarded-For** - IP spoofing via proxy headers
+2. **X-Forwarded-For** - IP spoofing via proxy headers (127.0.0.1, 10.x, 192.168.x, AWS metadata IP)
 3. **X-Forwarded-Host** - Alternative host header injection
-4. **X-Original-URL** - Path override attempts
-5. **Cache-Control** - Cache directive manipulation
-6. **Path Encoding** - URL encoding bypasses (%2e, %252e, etc.)
-7. **HTTP Method** - Tests non-standard methods (TRACE, TRACK, etc.)
-8. **Content-Type** - MIME type confusion attacks
-9. **Transfer-Encoding Smuggling** - Request smuggling via obfuscated chunked encoding (CL.TE/TE.TE)
-10. **HTTP/2 Downgrade** - Tests for protocol downgrade attacks
-11. **WebSocket Upgrade** - Attempts to tunnel through WAFs via WebSocket upgrades
-12. **Range Header** - Tests for partial content bypasses (Critical for large file handling)
-13. **Double/Triple Encoding** - Advanced encoding evasion
+4. **X-Original-URL / X-Rewrite-URL** - Path override attempts
+5. **Origin/Referer Manipulation** - CORS and origin header bypass
+6. **Custom Header Fuzzing** - X-Debug, X-Internal, X-Skip-WAF headers
+7. **True-Client-IP / CF-Connecting-IP** - CDN-specific header spoofing
+
+### Encoding & Obfuscation
+8. **Path Encoding** - URL encoding bypasses (%2e, %252e, etc.)
+9. **Double/Triple Encoding** - Advanced encoding evasion
+10. **Case Manipulation** - Mixed case payloads (/AdMiN, /WP-ADMIN)
+11. **Comment Injection** - SQL/HTML comment insertion
+12. **Whitespace Manipulation** - Tabs, newlines, null bytes to break signatures
+13. **Unicode Normalization** - Unicode encoding tricks
+
+### Protocol-Level Attacks
+14. **Transfer-Encoding Smuggling** - CL.TE/TE.TE request smuggling
+15. **HTTP/2 Downgrade** - Protocol downgrade attacks
+16. **WebSocket Upgrade** - Tunnel through WAFs via WebSocket
+17. **HTTP Pipelining** - Connection keep-alive abuse
+18. **Chunked Transfer** - Split payloads across chunks
+19. **HTTP Method Bypass** - Tests non-standard methods (TRACE, OPTIONS, PUT, DELETE)
+
+### Cache & Control
+20. **Cache-Control** - Cache directive manipulation
+21. **Cache Poisoning** - Unkeyed header injection
+22. **Range Header** - Partial content bypasses
+
+### Payload Evasion
+23. **SQLi Bypass** - WAF-evading SQL injection payloads (comment obfuscation, case variation, encoding)
+24. **XSS Bypass** - Cross-site scripting evasion (tag manipulation, event handlers, encoding)
+25. **Command Injection Bypass** - OS command injection evasion (IFS, encoding, chaining)
+26. **Path Traversal Bypass** - Directory traversal evasion (encoding, null bytes, normalization)
+27. **SSRF Bypass** - Server-side request forgery evasion (IP formats, DNS rebinding, protocol smuggling)
+28. **HTTP Parameter Pollution** - Duplicate parameters to confuse parsing
+
+### Detection & Reconnaissance
+29. **WAF Fingerprinting** - Identifies WAF vendor and version (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, Barracuda, Fortinet, and more)
+30. **CDN Detection** - Identifies CDN provider (CloudFront, Akamai, Fastly, Cloudflare, etc.)
+31. **Rate Limit Detection** - Identifies request thresholds
+32. **Bot Detection Evasion** - User-Agent rotation, browser fingerprint simulation
+33. **API Endpoint Discovery** - Finds unprotected /api/, /graphql, /swagger, /actuator endpoints
+34. **IPv6 Bypass** - Direct IPv6 connection attempts
+35. **Content-Type Bypass** - MIME type confusion attacks
 
 
 
