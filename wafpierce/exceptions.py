@@ -30,9 +30,13 @@ class TargetUnreachableError(NetworkError):
     pass
 
 
-class TimeoutError(NetworkError):
+class RequestTimeoutError(NetworkError):
     """Request timed out"""
     pass
+
+
+# Alias for backwards compatibility
+TimeoutError = RequestTimeoutError
 
 
 class SSLError(NetworkError):
@@ -104,6 +108,42 @@ class RateLimitError(ScanError):
 
 class ScanInterruptedError(ScanError):
     """Scan was interrupted by user or system"""
+    pass
+
+
+# Backend Detection errors
+class BackendDetectionError(WAFPierceError):
+    """Base class for backend detection errors"""
+    pass
+
+
+class NoBackendDetectedError(BackendDetectionError):
+    """No backend origin could be detected"""
+    pass
+
+
+class S3DetectionError(BackendDetectionError):
+    """Error detecting S3 bucket origin"""
+    pass
+
+
+class ELBDetectionError(BackendDetectionError):
+    """Error detecting Elastic Load Balancer origin"""
+    pass
+
+
+class EC2DetectionError(BackendDetectionError):
+    """Error detecting EC2 instance origin"""
+    pass
+
+
+class MediaServicesDetectionError(BackendDetectionError):
+    """Error detecting MediaPackage/MediaStore origin"""
+    pass
+
+
+class HeaderAnalysisError(BackendDetectionError):
+    """Error analyzing response headers for backend detection"""
     pass
 
 

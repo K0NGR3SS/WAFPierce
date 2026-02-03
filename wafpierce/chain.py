@@ -27,6 +27,74 @@ from .error_handler import (
 logger = logging.getLogger(__name__)
 
 
+# ============= Banner and Disclaimer =============
+
+DISCLAIMER_BANNER = """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   ██╗    ██╗ █████╗ ███████╗██████╗ ██╗███████╗██████╗  ██████╗███████╗      ║
+║   ██║    ██║██╔══██╗██╔════╝██╔══██╗██║██╔════╝██╔══██╗██╔════╝██╔════╝      ║
+║   ██║ █╗ ██║███████║█████╗  ██████╔╝██║█████╗  ██████╔╝██║     █████╗        ║
+║   ██║███╗██║██╔══██║██╔══╝  ██╔═══╝ ██║██╔══╝  ██╔══██╗██║     ██╔══╝        ║
+║   ╚███╔███╔╝██║  ██║██║     ██║     ██║███████╗██║  ██║╚██████╗███████╗      ║
+║    ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝     ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝      ║
+║                                                                              ║
+║                    CloudFront WAF Bypass & Recon Scanner                     ║
+║                                                                              ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  ⚠️  LEGAL DISCLAIMER - READ BEFORE PROCEEDING ⚠️                             ║
+║                                                                              ║
+║  This tool is designed for AUTHORIZED security testing ONLY.                 ║
+║                                                                              ║
+║  By using WAFPierce, you acknowledge and agree that:                         ║
+║                                                                              ║
+║  1. You have EXPLICIT WRITTEN AUTHORIZATION to test the target system        ║
+║  2. You will use this tool RESPONSIBLY and ETHICALLY                         ║
+║  3. You understand that unauthorized access to systems is ILLEGAL            ║
+║  4. You accept FULL RESPONSIBILITY for any actions taken with this tool      ║
+║  5. The developers are NOT LIABLE for any misuse or damage caused            ║
+║                                                                              ║
+║  Unauthorized use of this tool may violate:                                  ║
+║  • Computer Fraud and Abuse Act (CFAA) - USA                                 ║
+║  • Computer Misuse Act - UK                                                  ║
+║  • Similar laws in your jurisdiction                                         ║
+║                                                                              ║
+║  🔒 USE RESPONSIBLY • TEST ETHICALLY • REPORT VULNERABILITIES 🔒             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+"""
+
+
+def print_banner():
+    """Display the WAFPierce banner and disclaimer"""
+    print(DISCLAIMER_BANNER)
+
+
+def print_phase_header(phase_num: int, phase_name: str, description: str = ""):
+    """Print a formatted phase header"""
+    print(f"\n{'─'*60}")
+    print(f"▶ PHASE {phase_num}: {phase_name.upper()}")
+    if description:
+        print(f"  {description}")
+    print(f"{'─'*60}")
+
+
+def print_status(message: str, status_type: str = "info"):
+    """Print a formatted status message"""
+    icons = {
+        'info': '○',
+        'progress': '◐',
+        'success': '●',
+        'warning': '⚠',
+        'error': '✗',
+        'found': '✓',
+        'scanning': '↻',
+    }
+    icon = icons.get(status_type, '○')
+    print(f"    [{icon}] {message}")
+
+
 class FullPentestChain:
     def __init__(self, target: str, output_dir: str = "pentest_results", threads: int = 10):
         """
@@ -72,11 +140,22 @@ class FullPentestChain:
         Raises:
             WAFPierceError: If bypass scanning fails critically
         """
-        print(f"[+] Phase 1: WAF Bypass - {self.target}")
+        print_phase_header(1, "WAF Bypass", "Testing bypass techniques against WAF protection")
+        print_status(f"Target: {self.target}", "info")
+        print_status("Initializing bypass scanner...", "progress")
         logger.info("Starting Phase 1: WAF Bypass")
         
         try:
+            print_status("Establishing baseline response...", "scanning")
             bypasser = CloudFrontBypasser(self.target, self.threads, 0.2)
+            
+            print_status("Testing 13 bypass techniques...", "scanning")
+            print_status("Techniques: Host Header, X-Forwarded-For, X-Forwarded-Host,", "info")
+            print_status("           X-Original-URL, Cache-Control, Encoding, Methods,", "info")
+            print_status("           Content-Type, Transfer-Encoding, HTTP/2, WebSocket,", "info")
+            print_status("           Range Header, Double Encoding", "info")
+            print()
+            
             all_results = bypasser.scan()
             self.bypasses = [r for r in all_results if r.get('bypass')]
             
@@ -86,11 +165,20 @@ class FullPentestChain:
                 json.dump(self.bypasses, f, indent=2)
             
             logger.info(f"Found {len(self.bypasses)} bypasses")
-            print(f"    Found {len(self.bypasses)} bypasses")
+            print()
+            if self.bypasses:
+                print_status(f"Found {len(self.bypasses)} bypass techniques!", "success")
+                for bypass in self.bypasses[:5]:  # Show first 5
+                    print_status(f"  → {bypass.get('technique', 'Unknown')} [{bypass.get('severity', 'N/A')}]", "found")
+                if len(self.bypasses) > 5:
+                    print_status(f"  ... and {len(self.bypasses) - 5} more", "info")
+            else:
+                print_status("No bypasses found - target may be well protected", "warning")
+            
+            print_status(f"Results saved to {output_file}", "info")
             
             if not self.bypasses:
                 logger.warning("No bypasses found - subsequent phases may fail")
-                print("    [!] Warning: No bypasses found. Continuing with baseline...")
                 return False
             
             return True
@@ -107,10 +195,11 @@ class FullPentestChain:
         Returns:
             True if enumeration succeeded, False otherwise
         """
-        print("[+] Phase 2: Directory Enumeration")
+        print_phase_header(2, "Directory Enumeration", "Discovering accessible paths and directories")
         logger.info("Starting Phase 2: Directory Enumeration")
         
         # Try to load wordlist
+        print_status("Loading wordlist...", "progress")
         wordlist_paths = [
             "wordlists/dirs.txt",
             "/usr/share/wordlists/dirb/common.txt",
@@ -122,6 +211,8 @@ class FullPentestChain:
             try:
                 with open(path) as f:
                     wordlist = [line.strip() for line in f if line.strip()]
+                print_status(f"Loaded wordlist: {path}", "success")
+                print_status(f"Entries to test: {len(wordlist)}", "info")
                 logger.info(f"Loaded wordlist from {path} ({len(wordlist)} entries)")
                 break
             except FileNotFoundError:
@@ -132,9 +223,13 @@ class FullPentestChain:
         
         if not wordlist:
             logger.error("No wordlist found")
-            print("    [!] Error: No wordlist found")
+            print_status("No wordlist found - skipping enumeration", "error")
             self.errors.append({'phase': 'enum', 'error': 'Wordlist not found'})
             return False
+        
+        print_status(f"Starting enumeration with {self.threads} threads...", "scanning")
+        if self.bypasses:
+            print_status(f"Using {min(5, len(self.bypasses))} bypass technique(s) for requests", "info")
         
         def test_path(path: str) -> Optional[Dict[str, Any]]:
             """Test a single path with available bypasses"""
@@ -162,17 +257,23 @@ class FullPentestChain:
             return None
         
         live_paths = []
+        tested_count = 0
         with GracefulErrorHandler("directory_enumeration", continue_on_error=True):
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
                 futures = {executor.submit(test_path, path): path for path in wordlist}
+                total = len(futures)
                 
                 for future in as_completed(futures):
+                    tested_count += 1
                     try:
                         result = future.result()
                         if result:
                             live_paths.append(result)
-                            print(f"    LIVE: {result['path']} ({result['status']})")
+                            print_status(f"FOUND: {result['path']} (HTTP {result['status']})", "found")
                             logger.info(f"Found live path: {result['path']}")
+                        # Progress update every 50 paths
+                        if tested_count % 50 == 0:
+                            print_status(f"Progress: {tested_count}/{total} paths tested...", "progress")
                     except Exception as e:
                         logger.debug(f"Path enumeration error: {e}")
         
@@ -188,7 +289,10 @@ class FullPentestChain:
             logger.error(f"Failed to save live paths: {e}")
             self.errors.append({'phase': 'enum', 'error': f'Save failed: {str(e)}'})
         
-        print(f"    Found {len(live_paths)} live paths")
+        print()
+        print_status(f"Enumeration complete: {tested_count} paths tested", "success")
+        print_status(f"Live paths discovered: {len(live_paths)}", "success" if live_paths else "info")
+        print_status(f"Results saved to {output_file}", "info")
         return len(live_paths) > 0
 
     def phase3_scan(self) -> bool:
@@ -244,27 +348,60 @@ class FullPentestChain:
             logger.error(f"Failed to save vulnerabilities: {e}")
             self.errors.append({'phase': 'scan', 'error': f'Save failed: {str(e)}'})
         
-        print(f"    Found {len(vuln_findings)} potential vulnerabilities")
+        print()
+        if vuln_findings:
+            print_status(f"Found {len(vuln_findings)} potential vulnerabilities!", "warning")
+            for vuln in vuln_findings[:5]:
+                print_status(f"  \u2192 {vuln['type']} [{vuln['severity']}]: {vuln.get('url', 'N/A')[:50]}...", "found")
+        else:
+            print_status("No vulnerabilities detected", "success")
+        print_status(f"Results saved to {output_file}", "info")
         return True
 
     def phase4_recon(self) -> bool:
         """
-        Phase 4: AWS Recon
+        Phase 4: AWS Recon - Detect backend origins
+        
+        Detects:
+            - Amazon S3 buckets
+            - Elastic Load Balancing (ALB/NLB)
+            - Amazon EC2 instances
+            - AWS Elemental MediaPackage/MediaStore
+            - Custom HTTP servers
         
         Returns:
             True if recon succeeded, False otherwise
         """
-        print("[+] Phase 4: AWS Recon")
-        logger.info("Starting Phase 4: AWS Reconnaissance")
+        print_phase_header(4, "AWS Backend Reconnaissance", "Identifying CloudFront origin servers and AWS services")
+        logger.info("Starting Phase 4: AWS Reconnaissance - Backend Detection")
         
-        s3_buckets = []
+        print_status("Backend detection targets:", "info")
+        print_status("  \u2022 Amazon S3 buckets", "info")
+        print_status("  \u2022 Elastic Load Balancers (ALB/NLB)", "info")
+        print_status("  \u2022 Amazon EC2 instances", "info")
+        print_status("  \u2022 AWS Elemental MediaPackage/MediaStore", "info")
+        print_status("  \u2022 Custom HTTP servers", "info")
+        print()
+        
         domain = urlparse(self.target).netloc.replace('.cloudfront.net', '')
+        
+        # Initialize results containers
+        s3_buckets = []
+        load_balancers = []
+        ec2_instances = []
+        media_services = []
+        custom_servers = []
+        backend_indicators = {}
+        
+        # ========== 1. S3 Bucket Detection ==========
+        print_status("Checking for S3 bucket origins...", "scanning")
         bucket_guesses = [
             f"{domain}-{suffix}" 
-            for suffix in ['prod', 'staging', 'backup', 'assets', 'static', 'dev']
+            for suffix in ['prod', 'staging', 'backup', 'assets', 'static', 'dev', 'media', 'cdn', 'content', 'files']
         ]
+        print_status(f"Testing {len(bucket_guesses)} bucket name variations...", "progress")
         
-        with GracefulErrorHandler("aws_recon", continue_on_error=True):
+        with GracefulErrorHandler("s3_recon", continue_on_error=True):
             for bucket in bucket_guesses:
                 try:
                     resp = safe_request(
@@ -276,26 +413,288 @@ class FullPentestChain:
                         s3_buckets.append({
                             'name': bucket,
                             'status': resp.status_code,
-                            'accessible': resp.status_code == 200
+                            'accessible': resp.status_code == 200,
+                            'type': 'S3'
                         })
+                        status_text = "ACCESSIBLE" if resp.status_code == 200 else "exists (private)"
+                        print_status(f"S3 bucket found: {bucket} - {status_text}", "found")
                         logger.info(f"Found S3 bucket: {bucket} ({resp.status_code})")
                 except Exception as e:
                     logger.debug(f"S3 check failed for {bucket}: {e}")
         
-        self.results['aws'] = {'s3_buckets': s3_buckets}
+        # ========== 2. Backend Header Analysis ==========
+        print_status("Analyzing response headers for backend fingerprinting...", "scanning")
+        with GracefulErrorHandler("header_analysis", continue_on_error=True):
+            try:
+                resp = safe_request(self.target, method='GET', timeout=10)
+                if resp:
+                    headers = {k.lower(): v for k, v in resp.headers.items()}
+                    backend_indicators = self._analyze_backend_headers(headers, resp.text)
+            except Exception as e:
+                logger.debug(f"Header analysis failed: {e}")
+        
+        # ========== 3. Elastic Load Balancer (ALB/NLB) Detection ==========
+        print_status("Checking for ELB/ALB/NLB origins...", "scanning")
+        elb_patterns = [
+            f"{domain}.elb.amazonaws.com",
+            f"{domain}.us-east-1.elb.amazonaws.com",
+            f"{domain}.us-west-2.elb.amazonaws.com",
+            f"{domain}.eu-west-1.elb.amazonaws.com",
+            f"{domain}-alb.us-east-1.elb.amazonaws.com",
+            f"{domain}-nlb.us-east-1.elb.amazonaws.com",
+        ]
+        
+        # Check for ELB indicators in headers
+        if backend_indicators.get('elb_detected'):
+            load_balancers.append({
+                'type': 'ELB/ALB/NLB',
+                'indicator': backend_indicators.get('elb_indicator', 'Header detection'),
+                'confidence': 'high'
+            })
+        
+        with GracefulErrorHandler("elb_recon", continue_on_error=True):
+            for elb_host in elb_patterns:
+                try:
+                    resp = safe_request(
+                        f"https://{elb_host}/",
+                        method='HEAD',
+                        timeout=5,
+                        verify=False
+                    )
+                    if resp and resp.status_code < 500:
+                        load_balancers.append({
+                            'hostname': elb_host,
+                            'status': resp.status_code,
+                            'type': 'ELB',
+                            'confidence': 'medium'
+                        })
+                        logger.info(f"Found potential ELB: {elb_host}")
+                except Exception as e:
+                    logger.debug(f"ELB check failed for {elb_host}: {e}")
+        
+        # ========== 4. EC2 Instance Detection ==========
+        print_status("Checking for EC2 instance origins...", "scanning")
+        ec2_regions = ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1']
+        
+        # Check for EC2 indicators in headers
+        if backend_indicators.get('ec2_detected'):
+            ec2_instances.append({
+                'type': 'EC2',
+                'indicator': backend_indicators.get('ec2_indicator', 'Header detection'),
+                'confidence': 'high'
+            })
+        
+        # EC2 public DNS patterns
+        ec2_patterns = [
+            f"ec2-{domain.replace('.', '-')}.compute-1.amazonaws.com",
+        ]
+        for region in ec2_regions:
+            ec2_patterns.append(f"ec2-{domain.replace('.', '-')}.{region}.compute.amazonaws.com")
+        
+        with GracefulErrorHandler("ec2_recon", continue_on_error=True):
+            for ec2_host in ec2_patterns[:5]:  # Limit checks
+                try:
+                    resp = safe_request(
+                        f"http://{ec2_host}/",
+                        method='HEAD',
+                        timeout=3,
+                        verify=False
+                    )
+                    if resp and resp.status_code < 500:
+                        ec2_instances.append({
+                            'hostname': ec2_host,
+                            'status': resp.status_code,
+                            'type': 'EC2',
+                            'confidence': 'medium'
+                        })
+                        logger.info(f"Found potential EC2: {ec2_host}")
+                except Exception as e:
+                    logger.debug(f"EC2 check failed for {ec2_host}: {e}")
+        
+        # ========== 5. AWS Elemental MediaPackage/MediaStore Detection ==========
+        print_status("Checking for MediaPackage/MediaStore origins...", "scanning")
+        media_patterns = [
+            f"{domain}.mediapackage.us-east-1.amazonaws.com",
+            f"{domain}.mediastore.us-east-1.amazonaws.com",
+            f"{domain}.data.mediastore.us-east-1.amazonaws.com",
+        ]
+        
+        # Check for Media Services indicators in headers
+        if backend_indicators.get('media_detected'):
+            media_services.append({
+                'type': backend_indicators.get('media_type', 'MediaServices'),
+                'indicator': backend_indicators.get('media_indicator', 'Header detection'),
+                'confidence': 'high'
+            })
+        
+        with GracefulErrorHandler("media_recon", continue_on_error=True):
+            for media_host in media_patterns:
+                try:
+                    resp = safe_request(
+                        f"https://{media_host}/",
+                        method='HEAD',
+                        timeout=5
+                    )
+                    if resp and resp.status_code in [200, 403, 401]:
+                        service_type = 'MediaPackage' if 'mediapackage' in media_host else 'MediaStore'
+                        media_services.append({
+                            'hostname': media_host,
+                            'status': resp.status_code,
+                            'type': service_type,
+                            'confidence': 'medium'
+                        })
+                        logger.info(f"Found potential {service_type}: {media_host}")
+                except Exception as e:
+                    logger.debug(f"Media service check failed for {media_host}: {e}")
+        
+        # ========== 6. Custom HTTP Server Detection ==========
+        print_status("Detecting custom HTTP server origins...", "scanning")
+        if backend_indicators.get('server_software'):
+            custom_servers.append({
+                'type': 'Custom HTTP Server',
+                'server': backend_indicators.get('server_software'),
+                'powered_by': backend_indicators.get('powered_by', 'Unknown'),
+                'confidence': 'high'
+            })
+            print_status(f"Server detected: {backend_indicators.get('server_software')}", "found")
+        
+        # ========== Compile Results ==========
+        self.results['aws'] = {
+            's3_buckets': s3_buckets,
+            'load_balancers': load_balancers,
+            'ec2_instances': ec2_instances,
+            'media_services': media_services,
+            'custom_servers': custom_servers,
+            'backend_indicators': backend_indicators
+        }
         
         # Save results
         try:
-            output_file = f"{self.output_dir}/s3_enum.json"
+            output_file = f"{self.output_dir}/backend_recon.json"
             with open(output_file, 'w') as f:
-                json.dump(s3_buckets, f, indent=2)
-            logger.info(f"Found {len(s3_buckets)} S3 buckets")
+                json.dump(self.results['aws'], f, indent=2)
+            logger.info(f"Backend recon results saved to {output_file}")
         except Exception as e:
-            logger.error(f"Failed to save S3 results: {e}")
+            logger.error(f"Failed to save recon results: {e}")
             self.errors.append({'phase': 'recon', 'error': f'Save failed: {str(e)}'})
         
-        print(f"    Found {len(s3_buckets)} S3 buckets")
+        # Print summary
+        total_findings = len(s3_buckets) + len(load_balancers) + len(ec2_instances) + len(media_services) + len(custom_servers)
+        print()
+        print_status("Backend Detection Summary:", "success")
+        print_status(f"  \u2022 S3 Buckets: {len(s3_buckets)}", "info")
+        print_status(f"  \u2022 Load Balancers (ALB/NLB): {len(load_balancers)}", "info")
+        print_status(f"  \u2022 EC2 Instances: {len(ec2_instances)}", "info")
+        print_status(f"  \u2022 MediaPackage/MediaStore: {len(media_services)}", "info")
+        print_status(f"  \u2022 Custom HTTP Servers: {len(custom_servers)}", "info")
+        print_status(f"Total backend origins detected: {total_findings}", "success" if total_findings > 0 else "info")
+        print_status(f"Results saved to {output_file}", "info")
+        
         return True
+
+    def _analyze_backend_headers(self, headers: Dict[str, str], body: str = "") -> Dict[str, Any]:
+        """
+        Analyze HTTP response headers to identify backend origin type
+        
+        Args:
+            headers: Response headers (lowercase keys)
+            body: Response body text
+        
+        Returns:
+            Dictionary with detected backend indicators
+        """
+        indicators = {}
+        
+        # S3 Detection
+        s3_headers = ['x-amz-request-id', 'x-amz-id-2', 'x-amz-bucket-region']
+        for h in s3_headers:
+            if h in headers:
+                indicators['s3_detected'] = True
+                indicators['s3_indicator'] = f"Header: {h}"
+                break
+        
+        if 'server' in headers and 'AmazonS3' in headers['server']:
+            indicators['s3_detected'] = True
+            indicators['s3_indicator'] = "Server: AmazonS3"
+        
+        # ELB/ALB/NLB Detection
+        elb_indicators = [
+            ('x-amzn-requestid', 'ALB/NLB'),
+            ('x-amzn-trace-id', 'ALB'),
+            ('x-amz-apigw-id', 'API Gateway + ALB'),
+        ]
+        for header, lb_type in elb_indicators:
+            if header in headers:
+                indicators['elb_detected'] = True
+                indicators['elb_indicator'] = f"Header: {header}"
+                indicators['elb_type'] = lb_type
+                break
+        
+        # Check for ELB in Via header
+        if 'via' in headers and 'elb' in headers['via'].lower():
+            indicators['elb_detected'] = True
+            indicators['elb_indicator'] = f"Via header: {headers['via']}"
+        
+        # EC2 Detection
+        ec2_headers = ['x-amz-meta-', 'x-amz-version-id']
+        for h in ec2_headers:
+            matching = [k for k in headers if h in k]
+            if matching:
+                indicators['ec2_detected'] = True
+                indicators['ec2_indicator'] = f"Header pattern: {h}"
+                break
+        
+        # Check Server header for common EC2 web servers
+        if 'server' in headers:
+            server = headers['server'].lower()
+            ec2_servers = ['apache', 'nginx', 'tomcat', 'iis', 'gunicorn', 'uvicorn', 'node']
+            for srv in ec2_servers:
+                if srv in server:
+                    indicators['ec2_detected'] = True
+                    indicators['ec2_indicator'] = f"Server: {headers['server']}"
+                    break
+        
+        # MediaPackage/MediaStore Detection
+        media_headers = ['x-mediapackage-request-id', 'x-mediastore-']
+        for h in media_headers:
+            matching = [k for k in headers if h in k]
+            if matching:
+                indicators['media_detected'] = True
+                indicators['media_indicator'] = f"Header: {matching[0]}"
+                indicators['media_type'] = 'MediaPackage' if 'mediapackage' in h else 'MediaStore'
+                break
+        
+        # Check Content-Type for streaming media
+        if 'content-type' in headers:
+            ct = headers['content-type'].lower()
+            media_types = ['application/x-mpegurl', 'video/mp4', 'application/dash+xml', 'video/mp2t']
+            for mt in media_types:
+                if mt in ct:
+                    indicators['media_content_detected'] = True
+                    indicators['media_content_type'] = ct
+                    break
+        
+        # Custom HTTP Server Detection
+        if 'server' in headers:
+            indicators['server_software'] = headers['server']
+        
+        if 'x-powered-by' in headers:
+            indicators['powered_by'] = headers['x-powered-by']
+        
+        # API Gateway Detection
+        if 'x-amz-apigw-id' in headers or 'x-amzn-requestid' in headers:
+            indicators['api_gateway_detected'] = True
+            indicators['api_gateway_indicator'] = 'API Gateway headers present'
+        
+        # Lambda@Edge / Lambda Detection
+        if 'x-amz-cf-id' in headers or 'x-cache' in headers:
+            indicators['cloudfront_confirmed'] = True
+        
+        if 'x-amz-function-error' in headers or 'x-amz-executed-version' in headers:
+            indicators['lambda_detected'] = True
+            indicators['lambda_indicator'] = 'Lambda execution headers'
+        
+        return indicators
 
     def phase5_report(self) -> bool:
         """
@@ -304,17 +703,34 @@ class FullPentestChain:
         Returns:
             True if report generated successfully, False otherwise
         """
-        print("[+] Phase 5: Report Generation")
+        print_phase_header(5, "Report Generation", "Compiling findings into comprehensive security report")
         logger.info("Starting Phase 5: Report Generation")
+        
+        print_status("Gathering scan results...", "progress")
         
         try:
             vulns = self.results.get('vulns', [])
-            s3 = self.results.get('aws', {}).get('s3_buckets', [])
+            aws_data = self.results.get('aws', {})
+            s3 = aws_data.get('s3_buckets', [])
+            load_balancers = aws_data.get('load_balancers', [])
+            ec2_instances = aws_data.get('ec2_instances', [])
+            media_services = aws_data.get('media_services', [])
+            custom_servers = aws_data.get('custom_servers', [])
+            backend_indicators = aws_data.get('backend_indicators', {})
             live_paths = self.results.get('live_paths', [])
             
-            # Calculate risk score
-            risk_score = len(self.bypasses) * 2 + len(vulns) * 5 + len([b for b in s3 if b.get('accessible')]) * 3
+            # Calculate risk score (updated to include all backend types)
+            risk_score = (
+                len(self.bypasses) * 2 + 
+                len(vulns) * 5 + 
+                len([b for b in s3 if b.get('accessible')]) * 3 +
+                len(load_balancers) * 1 +
+                len(ec2_instances) * 2
+            )
             risk_level = 'CRITICAL' if risk_score > 20 else 'HIGH' if risk_score > 10 else 'MEDIUM' if risk_score > 5 else 'LOW'
+            
+            # Total backend origins detected
+            total_backends = len(s3) + len(load_balancers) + len(ec2_instances) + len(media_services) + len(custom_servers)
             
             report = f"""# WAFPierce Penetration Test Report
 **Target:** {self.target}  
@@ -327,8 +743,12 @@ class FullPentestChain:
 | WAF Bypasses | {len(self.bypasses)} |
 | Live Paths | {len(live_paths)} |
 | Vulnerabilities | {len(vulns)} |
-| S3 Buckets Found | {len(s3)} |
-| Accessible S3 Buckets | {len([b for b in s3 if b.get('accessible')])} |
+| **Backend Origins Detected** | **{total_backends}** |
+| S3 Buckets | {len(s3)} |
+| Load Balancers (ALB/NLB) | {len(load_balancers)} |
+| EC2 Instances | {len(ec2_instances)} |
+| MediaPackage/MediaStore | {len(media_services)} |
+| Custom HTTP Servers | {len(custom_servers)} |
 
 ## 1. WAF Bypass Findings
 
@@ -350,14 +770,67 @@ class FullPentestChain:
             else:
                 report += "No vulnerabilities detected.\n"
             
-            # Add S3 findings
-            report += "\n## 3. AWS S3 Findings\n\n"
+            # Add Backend Origin Findings (expanded section)
+            report += "\n## 3. Backend Origin Detection\n\n"
+            
+            # S3 Buckets
+            report += "### 3.1 Amazon S3 Buckets\n\n"
             if s3:
                 for bucket in s3:
                     status = "✅ ACCESSIBLE" if bucket.get('accessible') else "🔒 Private"
                     report += f"- `{bucket['name']}` - {status}\n"
             else:
-                report += "No S3 buckets found.\n"
+                report += "No S3 buckets detected.\n"
+            
+            # Load Balancers
+            report += "\n### 3.2 Elastic Load Balancers (ALB/NLB)\n\n"
+            if load_balancers:
+                for lb in load_balancers:
+                    confidence = lb.get('confidence', 'unknown')
+                    hostname = lb.get('hostname', lb.get('indicator', 'N/A'))
+                    lb_type = lb.get('type', 'ELB')
+                    report += f"- `{hostname}` - Type: {lb_type} (Confidence: {confidence})\n"
+            else:
+                report += "No load balancers detected.\n"
+            
+            # EC2 Instances
+            report += "\n### 3.3 Amazon EC2 Instances\n\n"
+            if ec2_instances:
+                for ec2 in ec2_instances:
+                    confidence = ec2.get('confidence', 'unknown')
+                    hostname = ec2.get('hostname', ec2.get('indicator', 'N/A'))
+                    report += f"- `{hostname}` (Confidence: {confidence})\n"
+            else:
+                report += "No EC2 instances detected.\n"
+            
+            # MediaPackage/MediaStore
+            report += "\n### 3.4 AWS Elemental MediaPackage/MediaStore\n\n"
+            if media_services:
+                for media in media_services:
+                    media_type = media.get('type', 'MediaServices')
+                    hostname = media.get('hostname', media.get('indicator', 'N/A'))
+                    confidence = media.get('confidence', 'unknown')
+                    report += f"- `{hostname}` - Type: {media_type} (Confidence: {confidence})\n"
+            else:
+                report += "No MediaPackage/MediaStore services detected.\n"
+            
+            # Custom HTTP Servers
+            report += "\n### 3.5 Custom HTTP Servers\n\n"
+            if custom_servers:
+                for srv in custom_servers:
+                    server_name = srv.get('server', 'Unknown')
+                    powered_by = srv.get('powered_by', 'Unknown')
+                    report += f"- Server: `{server_name}`"
+                    if powered_by != 'Unknown':
+                        report += f" | Powered by: `{powered_by}`"
+                    report += "\n"
+            else:
+                report += "No custom HTTP servers detected.\n"
+            
+            # Backend Indicators Summary
+            if backend_indicators:
+                report += "\n### 3.6 Backend Indicators (Header Analysis)\n\n"
+                report += "```json\n" + json.dumps(backend_indicators, indent=2) + "\n```\n\n"
             
             # Add remediation
             report += f"""
@@ -376,18 +849,30 @@ class FullPentestChain:
 3. **S3 Security**: Review S3 bucket permissions
    {"- Restrict public access to: " + ", ".join([b['name'] for b in s3 if b.get('accessible')]) if any(b.get('accessible') for b in s3) else "- All buckets are properly secured"}
 
+4. **Backend Origin Security**:
+   - Ensure all backend origins (ELB, EC2, etc.) are only accessible via CloudFront
+   - Implement origin access controls
+   - Use security groups to restrict direct access to EC2/ELB origins
+   - Enable WAF on ALB if detected
+
 ### Medium Priority
 - Implement request signing
 - Add additional authentication layers
 - Review CloudFront distribution settings
 - Enable CloudFront access logs
+- Use AWS WAF on all detected load balancers
 
 ## 5. Testing Methodology
 This assessment used the following techniques:
 - WAF bypass testing (12 techniques)
 - Directory enumeration ({len(live_paths)} paths found)
 - Vulnerability scanning (XSS, injection)
-- AWS resource enumeration
+- AWS resource enumeration:
+  - S3 bucket discovery
+  - ELB/ALB/NLB detection
+  - EC2 instance fingerprinting
+  - MediaPackage/MediaStore detection
+  - HTTP server header analysis
 
 ## 6. Errors Encountered
 """
@@ -409,12 +894,15 @@ Handle findings responsibly and patch vulnerabilities promptly.
                 f.write(report)
             
             logger.info(f"Report generated: {report_file}")
-            print(f"    Report saved to {report_file}")
+            print()
+            print_status("Report generated successfully!", "success")
+            print_status(f"Risk Level: {risk_level} (Score: {risk_score})", "info")
+            print_status(f"Report saved to: {report_file}", "info")
             return True
         
         except Exception as e:
             logger.error(f"Report generation failed: {e}")
-            print(f"    [!] Error generating report: {e}")
+            print_status(f"Error generating report: {e}", "error")
             self.errors.append({'phase': 'report', 'error': str(e)})
             return False
 
@@ -425,6 +913,15 @@ Handle findings responsibly and patch vulnerabilities promptly.
         Returns:
             Exit code: 0 = success, 1 = failures occurred
         """
+        # Display banner and disclaimer
+        print_banner()
+        
+        print(f"{'='*78}")
+        print(f"  TARGET: {self.target}")
+        print(f"  OUTPUT: {self.output_dir}/")
+        print(f"  THREADS: {self.threads}")
+        print(f"{'='*78}")
+        
         logger.info(f"Starting full pentest chain for {self.target}")
         
         phases = [
@@ -456,15 +953,23 @@ Handle findings responsibly and patch vulnerabilities promptly.
                 # Continue with next phase
         
         # Final summary
-        print(f"\n{'='*60}")
-        print(f"[+] Pentest Complete")
-        print(f"    Completed: {completed_phases}/{len(phases)} phases")
+        print(f"\n{'\u2550'*78}")
+        print(f"\u2551  SCAN COMPLETE")
+        print(f"{'\u2550'*78}")
+        print(f"  \u2714 Phases completed: {completed_phases}/{len(phases)}")
         if failed_phases:
-            print(f"    Failed: {', '.join(failed_phases)}")
+            print(f"  \u2718 Phases failed: {', '.join(failed_phases)}")
         if self.errors:
-            print(f"    Errors: {len(self.errors)}")
-        print(f"    Output: {self.output_dir}/")
-        print(f"{'='*60}\n")
+            print(f"  \u26a0 Errors encountered: {len(self.errors)}")
+        print(f"  \ud83d\udcc1 Output directory: {self.output_dir}/")
+        print(f"  \ud83d\udcc4 Files generated:")
+        print(f"       - bypasses.json")
+        print(f"       - live_paths.json")
+        print(f"       - vulns.json")
+        print(f"       - backend_recon.json")
+        print(f"       - REPORT.md")
+        print(f"{'\u2550'*78}\n")
+        print("\ud83d\udd12 Remember: Use findings responsibly and report vulnerabilities ethically!\n")
         
         logger.info(f"Pentest complete: {completed_phases}/{len(phases)} phases successful")
         

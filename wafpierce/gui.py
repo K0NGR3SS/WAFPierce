@@ -376,11 +376,22 @@ class PierceGUI:
                     self._target_tmp_map[target] = tmp_path
                     self._tmp_result_paths.append(tmp_path)
 
-                    cmd = [sys.executable, '-m', 'wafpierce.pierce', target, '-t', str(threads), '-d', str(delay), '-o', tmp_path]
+                    # Use -u flag for unbuffered Python output to get real-time streaming
+                    cmd = [sys.executable, '-u', '-m', 'wafpierce.pierce', target, '-t', str(threads), '-d', str(delay), '-o', tmp_path]
                     env = os.environ.copy()
                     env['PYTHONIOENCODING'] = 'utf-8'
+                    env['PYTHONUNBUFFERED'] = '1'  # Force unbuffered output
                     try:
-                        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', env=env)
+                        proc = subprocess.Popen(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            encoding='utf-8',
+                            errors='replace',
+                            env=env,
+                            bufsize=1  # Line buffered
+                        )
                     except Exception as e:
                         self._queue.put(f"[!] Failed to start scanner for {target}: {e}\n")
                         last_status = 'Error'
@@ -608,7 +619,8 @@ class PierceGUI:
 
     def _poll_queue(self) -> None:
         try:
-            while True:
+            # Process up to 50 items per poll to stay responsive
+            for _ in range(50):
                 item = self._queue.get_nowait()
                 if isinstance(item, dict) and item.get('__finished__'):
                     self._scan_thread = None
@@ -630,7 +642,10 @@ class PierceGUI:
                 self._append_log(str(item))
         except queue.Empty:
             pass
-        self.root.after(100, self._poll_queue)
+        # Update GUI immediately after processing
+        self.root.update_idletasks()
+        # Poll more frequently (50ms) for real-time output
+        self.root.after(50, self._poll_queue)
 
     def _append_log(self, text: str) -> None:
         self.log.configure(state='normal')
@@ -828,11 +843,22 @@ def main() -> None:
                         except Exception:
                             pass
 
-                        cmd = [sys.executable, '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
+                        # Use -u flag for unbuffered Python output to get real-time streaming
+                        cmd = [sys.executable, '-u', '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
                         env = os.environ.copy()
                         env['PYTHONIOENCODING'] = 'utf-8'
+                        env['PYTHONUNBUFFERED'] = '1'  # Force unbuffered output
                         try:
-                            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', bufsize=1, env=env)
+                            proc = subprocess.Popen(
+                                cmd,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                text=True,
+                                encoding='utf-8',
+                                errors='replace',
+                                bufsize=1,  # Line buffered
+                                env=env
+                            )
                         except Exception as e:
                             self.log_line.emit(f"[!] Failed to start scanner for {target}: {e}\n")
                             last_status = 'Error'
