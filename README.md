@@ -178,6 +178,11 @@ This tool is designed for learning. Recommended resources:
 - [PortSwigger Web Security Academy](https://portswigger.net/web-security)
 - [Bug Bounty Platforms](https://www.hackerone.com/) (for authorized testing)
 
+## Authors
+
+- Nazariy Buryak
+- Marwan Fayad
+
 ## Legal Disclaimer
 
 **FOR AUTHORIZED SECURITY TESTING ONLY**
