@@ -1035,8 +1035,10 @@ class CloudFrontBypasser:
             if not detected_wafs:
                 print("  [*] No known WAF signatures detected")
                 
+        except requests.exceptions.ConnectionError:
+            print("  [!] WAF detection skipped: Target unreachable")
         except Exception as e:
-            logger.error(f"WAF detection error: {e}")
+            logger.debug(f"WAF detection error: {e}")
         
         return results
     
@@ -1430,8 +1432,10 @@ class CloudFrontBypasser:
             if not rate_limit_detected:
                 print("  [*] No rate limiting detected in burst of 10 requests")
                 
+        except requests.exceptions.ConnectionError:
+            print("  [!] Rate limit test skipped: Target unreachable")
         except Exception as e:
-            logger.error(f"Rate limit test error: {e}")
+            logger.debug(f"Rate limit test error: {e}")
         
         return results
 

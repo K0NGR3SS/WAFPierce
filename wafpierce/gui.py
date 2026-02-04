@@ -1673,7 +1673,7 @@ def main() -> None:
                 try:
                     done_count = len(per.get('done', [])) if per.get('done') is not None else 'Unknown'
                     errors = per.get('errors', [])
-                    header = f"Done: {done_count}\nErrors: {len(errors)}\n\n"
+                    header = f"Done (Exploits): {done_count}\nErrors: {len(errors)}\n\n"
                     if errors:
                         header += "Errors details:\n" + "\n".join(str(e) for e in errors) + "\n\n"
                 except Exception:
