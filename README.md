@@ -1,7 +1,7 @@
 # WAFPierce
 **CloudFront WAF Bypass & Penetration Testing Tool**
 
-![Version](https://img.shields.io/badge/version-1.1-blue)
+![Version](https://img.shields.io/badge/version-1.2-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -26,6 +26,42 @@ WAFPierce is a specialized penetration testing tool that identifies WAF (Web App
 - **Automated Reporting** - Generates detailed markdown reports
 - **GUI system** - Clean and efficient GUI system made for the users comfort  
 - **Optimized Performance** - Connection pooling, response caching, and parallel batch testing
+
+## Changelog
+
+### Version 1.2 (February 2026)
+
+#### GUI Enhancements
+- **Results Explorer** - New comprehensive results viewer with:
+  - Left panel showing all scanned sites with finding counts and severity indicators (🔴🟠🟡)
+  - "All Sites" option to view combined results across all targets
+  - Results grouped by category (API_DISCOVERY, DNS_HISTORY, etc.)
+  - Detailed view panel showing full result information when clicked
+  - **Sorting options**: Severity (High→Low, Low→High), Technique (A-Z, Z-A), Category, Bypass Status
+  - **Filtering options**: All Results, CRITICAL/HIGH/MEDIUM/LOW/INFO only, Bypasses only, Non-bypasses only
+  - Expand All / Collapse All buttons for quick navigation
+  - Export View button to save filtered results to JSON
+
+- **Pulsating Results Button** - The Results button now:
+  - Located at the bottom of the output area for better visibility
+  - Larger size (40px height) with 📊 icon
+  - Turns **green** and gently **pulsates** when scan completes with results
+  - Changes color on hover (darkens) for better interactivity
+  - Resets to default gray when results are cleared
+
+- **INFO-Level Results** - All scan results now appear in output, not just bypasses:
+  - LOW and INFO severity findings are now displayed
+  - Shows reason for blocked requests (e.g., "Blocked: 404")
+  - Complete visibility into all scan activity
+
+- **Target Tracking** - Results Explorer now shows actual target site names instead of "Unknown Target"
+
+#### Technical Improvements
+- Fixed result filtering to include all findings (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+- Added target URL injection into result objects for proper grouping
+- Improved URL parsing to extract clean domain names for display
+- Added QPropertyAnimation for smooth pulsating effects
+- Better stylesheet management with hover states
 
 ## Installation
 
@@ -158,3 +194,13 @@ By using this tool, you agree to:
 The authors assume **NO LIABILITY** for misuse. This software is provided "AS IS" without warranty of any kind.
 
 **If you don't have permission, don't use it.**
+
+
+
+
+
+
+
+
+
+######There are hidden things in this program, can you find them all?
