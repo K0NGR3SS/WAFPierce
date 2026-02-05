@@ -52,6 +52,7 @@ def _load_prefs() -> dict:
         'retry_failed': 0,
         'ui_density': 'comfortable',
         'last_targets': [],
+        'language': 'en',
     }
     try:
         if os.path.exists(path):
@@ -62,6 +63,448 @@ def _load_prefs() -> dict:
     except Exception:
         pass
     return defaults
+
+
+# ==================== TRANSLATIONS ====================
+TRANSLATIONS = {
+    'en': {
+        'window_title': 'WAFPierce - GUI (Qt)',
+        'target_url': 'Target URL:',
+        'add': 'Add',
+        'remove': 'Remove',
+        'settings': 'Settings',
+        'threads': 'Threads:',
+        'concurrent': 'Concurrent:',
+        'use_concurrent': 'Use concurrent targets',
+        'delay': 'Delay (s):',
+        'queued': 'Queued',
+        'running': 'Running',
+        'done': 'Done',
+        'error': 'Error',
+        'target': 'Target',
+        'status': 'Status',
+        'output': 'Output',
+        'results': '📊 Results',
+        'start': 'Start',
+        'stop': 'Stop',
+        'save': 'Save',
+        'clear': 'Clear',
+        'results_explorer': 'Results Explorer',
+        'sites': '🌐 Sites',
+        'all_sites': '📋 All Sites',
+        'findings': 'findings',
+        'total': 'Total',
+        'bypasses': 'Bypasses',
+        'sort_by': 'Sort by:',
+        'filter': 'Filter:',
+        'search': 'Search:',
+        'search_placeholder': 'Search techniques, categories...',
+        'severity_high_low': 'Severity (High to Low)',
+        'severity_low_high': 'Severity (Low to High)',
+        'technique_az': 'Technique (A-Z)',
+        'technique_za': 'Technique (Z-A)',
+        'category': 'Category',
+        'bypass_status': 'Bypass Status',
+        'all_results': 'All Results',
+        'critical_only': '🔴 CRITICAL only',
+        'high_only': '🟠 HIGH only',
+        'medium_only': '🟡 MEDIUM only',
+        'low_only': '🔵 LOW only',
+        'info_only': 'ℹ️ INFO only',
+        'bypasses_only': '✅ Bypasses only',
+        'non_bypasses_only': '❌ Non-bypasses only',
+        'expand_all': 'Expand All',
+        'collapse_all': 'Collapse All',
+        'technique': 'Technique',
+        'severity': 'Severity',
+        'reason': 'Reason',
+        'details': 'Details',
+        'export_view': 'Export View',
+        'close': 'Close',
+        'no_results': 'No Results',
+        'no_results_msg': 'No scan results available yet.',
+        'font_size': 'Font size (only in outputs):',
+        'show_watermark': 'Show watermark/logo',
+        'remember_targets': 'Remember last targets',
+        'retry_failed': 'Retry failed targets:',
+        'ui_density': 'UI density:',
+        'language': 'Language:',
+        'cancel': 'Cancel',
+        'saved': 'Saved',
+        'save_failed': 'Save failed',
+        'exported': 'Exported',
+        'export_failed': 'Export failed',
+        'missing_target': 'Missing target',
+        'add_target_msg': 'Please add at least one target',
+        'run_finished': '[+] Run finished',
+        'lang_restart_warning': '⚠️ Language will change after restart',
+        'restart_confirm': 'Restart Required',
+        'restart_confirm_msg': 'Language changed. Restart now to apply?',
+        'yes': 'Yes',
+        'no': 'No',
+        'legal_disclaimer_title': 'WAFPierce - Legal Disclaimer',
+        'legal_disclaimer_header': '⚠️ LEGAL DISCLAIMER ⚠️',
+        'i_agree': 'I Agree',
+        'i_decline': 'I Decline',
+        'clean': 'Clean',
+        'no_tmp_files': 'No temporary result files to remove',
+        'remove_files_confirm': 'Remove {count} files?',
+        'removed_files': 'Removed {count} file(s)',
+        'no_results_for': 'No results for {target}',
+        'results_for': 'Results — {target}',
+        'done_exploits': 'Done (Exploits)',
+        'errors_label': 'Errors',
+        'errors_details': 'Errors details',
+        'export_results_view': 'Export Results View',
+        'no_results_to_export': 'No results to export with current filters.',
+        'exported_results': 'Exported {count} results to {path}',
+        'stop_requested': 'Stop requested',
+        'compact': 'compact',
+        'comfortable': 'comfortable',
+        'spacious': 'spacious',
+        'description': 'Description',
+        'legal_disclaimer': """WAFPierce – Legal Disclaimer
+
+FOR AUTHORIZED SECURITY TESTING ONLY
+
+This tool is provided solely for legitimate security research and authorized penetration testing. You must obtain explicit, written permission from the system owner before testing any network, application, or device that you do not personally own.
+
+Unauthorized access to computer systems, networks, or data is illegal and may result in criminal and/or civil penalties under applicable laws, including but not limited to the Computer Fraud and Abuse Act (CFAA), the Computer Misuse Act, and similar legislation in your jurisdiction.
+
+By clicking "I Agree", you acknowledge and confirm that:
+
+• You will only test systems that you own or have explicit written authorization to test
+• You will comply with all applicable local, national, and international laws and regulations
+• You accept full responsibility for your actions and use of this tool
+• You understand that misuse of this tool may result in legal consequences
+
+Limitation of Liability:
+The developers, contributors, distributors, and owners of WAFPierce assume no liability for misuse, damage, legal consequences, data loss, service disruption, or any other harm resulting from the use or inability to use this tool. This software is provided "as is", without warranty of any kind, expressed or implied. You agree that you use this tool entirely at your own risk.""",
+    },
+    'ar': {
+        'window_title': 'WAFPierce - واجهة المستخدم',
+        'target_url': 'رابط الهدف:',
+        'add': 'إضافة',
+        'remove': 'إزالة',
+        'settings': 'الإعدادات',
+        'threads': 'الخيوط:',
+        'concurrent': 'متزامن:',
+        'use_concurrent': 'استخدام أهداف متزامنة',
+        'delay': 'التأخير (ث):',
+        'queued': 'في الانتظار',
+        'running': 'قيد التشغيل',
+        'done': 'مكتمل',
+        'error': 'خطأ',
+        'target': 'الهدف',
+        'status': 'الحالة',
+        'output': 'المخرجات',
+        'results': '📊 النتائج',
+        'start': 'بدء',
+        'stop': 'إيقاف',
+        'save': 'حفظ',
+        'clear': 'مسح',
+        'results_explorer': 'مستكشف النتائج',
+        'sites': '🌐 المواقع',
+        'all_sites': '📋 جميع المواقع',
+        'findings': 'نتيجة',
+        'total': 'المجموع',
+        'bypasses': 'الاختراقات',
+        'sort_by': 'ترتيب حسب:',
+        'filter': 'تصفية:',
+        'search': 'بحث:',
+        'search_placeholder': 'بحث في التقنيات والفئات...',
+        'severity_high_low': 'الخطورة (من الأعلى للأدنى)',
+        'severity_low_high': 'الخطورة (من الأدنى للأعلى)',
+        'technique_az': 'التقنية (أ-ي)',
+        'technique_za': 'التقنية (ي-أ)',
+        'category': 'الفئة',
+        'bypass_status': 'حالة الاختراق',
+        'all_results': 'جميع النتائج',
+        'critical_only': '🔴 حرج فقط',
+        'high_only': '🟠 عالي فقط',
+        'medium_only': '🟡 متوسط فقط',
+        'low_only': '🔵 منخفض فقط',
+        'info_only': 'ℹ️ معلومات فقط',
+        'bypasses_only': '✅ الاختراقات فقط',
+        'non_bypasses_only': '❌ غير المخترقة فقط',
+        'expand_all': 'توسيع الكل',
+        'collapse_all': 'طي الكل',
+        'technique': 'التقنية',
+        'severity': 'الخطورة',
+        'reason': 'السبب',
+        'details': 'التفاصيل',
+        'export_view': 'تصدير العرض',
+        'close': 'إغلاق',
+        'no_results': 'لا توجد نتائج',
+        'no_results_msg': 'لا توجد نتائج فحص متاحة بعد.',
+        'font_size': 'حجم الخط (في المخرجات فقط):',
+        'show_watermark': 'إظهار العلامة المائية/الشعار',
+        'remember_targets': 'تذكر الأهداف السابقة',
+        'retry_failed': 'إعادة المحاولة للأهداف الفاشلة:',
+        'ui_density': 'كثافة الواجهة:',
+        'language': 'اللغة:',
+        'cancel': 'إلغاء',
+        'saved': 'تم الحفظ',
+        'save_failed': 'فشل الحفظ',
+        'exported': 'تم التصدير',
+        'export_failed': 'فشل التصدير',
+        'missing_target': 'هدف مفقود',
+        'add_target_msg': 'الرجاء إضافة هدف واحد على الأقل',
+        'run_finished': '[+] انتهى الفحص',
+        'lang_restart_warning': '⚠️ سيتم تغيير اللغة بعد إعادة التشغيل',
+        'restart_confirm': 'إعادة التشغيل مطلوبة',
+        'restart_confirm_msg': 'تم تغيير اللغة. إعادة التشغيل الآن للتطبيق؟',
+        'yes': 'نعم',
+        'no': 'لا',
+        'legal_disclaimer_title': 'WAFPierce - إخلاء المسؤولية القانونية',
+        'legal_disclaimer_header': '⚠️ إخلاء المسؤولية القانونية ⚠️',
+        'i_agree': 'أوافق',
+        'i_decline': 'أرفض',
+        'clean': 'تنظيف',
+        'no_tmp_files': 'لا توجد ملفات نتائج مؤقتة للإزالة',
+        'remove_files_confirm': 'إزالة {count} ملفات؟',
+        'removed_files': 'تمت إزالة {count} ملف(ات)',
+        'no_results_for': 'لا توجد نتائج لـ {target}',
+        'results_for': 'النتائج — {target}',
+        'done_exploits': 'مكتمل (الثغرات)',
+        'errors_label': 'الأخطاء',
+        'errors_details': 'تفاصيل الأخطاء',
+        'export_results_view': 'تصدير عرض النتائج',
+        'no_results_to_export': 'لا توجد نتائج للتصدير مع الفلاتر الحالية.',
+        'exported_results': 'تم تصدير {count} نتيجة إلى {path}',
+        'stop_requested': 'تم طلب الإيقاف',
+        'compact': 'مضغوط',
+        'comfortable': 'مريح',
+        'spacious': 'واسع',
+        'description': 'الوصف',
+        'legal_disclaimer': """WAFPierce - إخلاء المسؤولية القانونية
+
+لاختبار الأمان المصرح به فقط
+
+تم توفير هذه الأداة فقط لأبحاث الأمان المشروعة واختبار الاختراق المصرح به. يجب عليك الحصول على إذن كتابي صريح من مالك النظام قبل اختبار أي شبكة أو تطبيق أو جهاز لا تملكه شخصياً.
+
+الوصول غير المصرح به إلى أنظمة الكمبيوتر أو الشبكات أو البيانات غير قانوني وقد يؤدي إلى عقوبات جنائية و/أو مدنية بموجب القوانين المعمول بها.
+
+بالنقر على "أوافق"، فإنك تقر وتؤكد أنك:
+
+• ستختبر فقط الأنظمة التي تملكها أو لديك إذن كتابي صريح لاختبارها
+• ستلتزم بجميع القوانين واللوائح المحلية والوطنية والدولية المعمول بها
+• تتحمل المسؤولية الكاملة عن أفعالك واستخدامك لهذه الأداة
+• تفهم أن سوء استخدام هذه الأداة قد يؤدي إلى عواقب قانونية
+
+حدود المسؤولية:
+لا يتحمل المطورون والمساهمون والموزعون وأصحاب WAFPierce أي مسؤولية عن سوء الاستخدام أو الضرر أو العواقب القانونية أو فقدان البيانات أو انقطاع الخدمة أو أي ضرر آخر ناتج عن استخدام هذه الأداة أو عدم القدرة على استخدامها. يتم توفير هذا البرنامج "كما هو" بدون أي ضمان من أي نوع. أنت توافق على أنك تستخدم هذه الأداة على مسؤوليتك الخاصة بالكامل.""",
+    },
+    'uk': {
+        'window_title': 'WAFPierce - Інтерфейс',
+        'target_url': 'URL цілі:',
+        'add': 'Додати',
+        'remove': 'Видалити',
+        'settings': 'Налаштування',
+        'threads': 'Потоки:',
+        'concurrent': 'Паралельно:',
+        'use_concurrent': 'Використовувати паралельні цілі',
+        'delay': 'Затримка (с):',
+        'queued': 'В черзі',
+        'running': 'Виконується',
+        'done': 'Завершено',
+        'error': 'Помилка',
+        'target': 'Ціль',
+        'status': 'Статус',
+        'output': 'Вивід',
+        'results': '📊 Результати',
+        'start': 'Старт',
+        'stop': 'Стоп',
+        'save': 'Зберегти',
+        'clear': 'Очистити',
+        'results_explorer': 'Провідник результатів',
+        'sites': '🌐 Сайти',
+        'all_sites': '📋 Всі сайти',
+        'findings': 'знахідок',
+        'total': 'Всього',
+        'bypasses': 'Обходи',
+        'sort_by': 'Сортувати:',
+        'filter': 'Фільтр:',
+        'search': 'Пошук:',
+        'search_placeholder': 'Пошук технік, категорій...',
+        'severity_high_low': 'Серйозність (Висока→Низька)',
+        'severity_low_high': 'Серйозність (Низька→Висока)',
+        'technique_az': 'Техніка (А-Я)',
+        'technique_za': 'Техніка (Я-А)',
+        'category': 'Категорія',
+        'bypass_status': 'Статус обходу',
+        'all_results': 'Всі результати',
+        'critical_only': '🔴 Тільки КРИТИЧНІ',
+        'high_only': '🟠 Тільки ВИСОКІ',
+        'medium_only': '🟡 Тільки СЕРЕДНІ',
+        'low_only': '🔵 Тільки НИЗЬКІ',
+        'info_only': 'ℹ️ Тільки ІНФО',
+        'bypasses_only': '✅ Тільки обходи',
+        'non_bypasses_only': '❌ Тільки без обходу',
+        'expand_all': 'Розгорнути все',
+        'collapse_all': 'Згорнути все',
+        'technique': 'Техніка',
+        'severity': 'Серйозність',
+        'reason': 'Причина',
+        'details': 'Деталі',
+        'export_view': 'Експорт',
+        'close': 'Закрити',
+        'no_results': 'Немає результатів',
+        'no_results_msg': 'Результати сканування ще недоступні.',
+        'font_size': 'Розмір шрифту (тільки у виводі):',
+        'show_watermark': 'Показати водяний знак/логотип',
+        'remember_targets': 'Запам\'ятати останні цілі',
+        'retry_failed': 'Повторити невдалі цілі:',
+        'ui_density': 'Щільність інтерфейсу:',
+        'language': 'Мова:',
+        'cancel': 'Скасувати',
+        'saved': 'Збережено',
+        'save_failed': 'Помилка збереження',
+        'exported': 'Експортовано',
+        'export_failed': 'Помилка експорту',
+        'missing_target': 'Ціль відсутня',
+        'add_target_msg': 'Будь ласка, додайте принаймні одну ціль',
+        'run_finished': '[+] Сканування завершено',
+        'lang_restart_warning': '⚠️ Мова зміниться після перезапуску',
+        'restart_confirm': 'Потрібен перезапуск',
+        'restart_confirm_msg': 'Мову змінено. Перезапустити зараз?',
+        'yes': 'Так',
+        'no': 'Ні',
+        'legal_disclaimer_title': 'WAFPierce - ЛЕГАЛЬНИЙ ДИСКЛЕЙМЕР',
+        'legal_disclaimer_header': '⚠️ ЛЕГАЛЬНИЙ ДИСКЛЕЙМЕР ⚠️',
+        'i_agree': 'Погоджуюсь',
+        'i_decline': 'Відхиляю',
+        'clean': 'Очистити',
+        'no_tmp_files': 'Немає тимчасових файлів результатів для видалення',
+        'remove_files_confirm': 'Видалити {count} файлів?',
+        'removed_files': 'Видалено {count} файл(ів)',
+        'no_results_for': 'Немає результатів для {target}',
+        'results_for': 'Результати — {target}',
+        'done_exploits': 'Завершено (Експлойти)',
+        'errors_label': 'Помилки',
+        'errors_details': 'Деталі помилок',
+        'export_results_view': 'Експорт перегляду результатів',
+        'no_results_to_export': 'Немає результатів для експорту з поточними фільтрами.',
+        'exported_results': 'Експортовано {count} результатів до {path}',
+        'stop_requested': 'Запит на зупинку',
+        'compact': 'компактний',
+        'comfortable': 'комфортний',
+        'spacious': 'просторий',
+        'description': 'Опис',
+        'legal_disclaimer': """WAFPierce – Юридична відмова
+
+ТІЛЬКИ ДЛЯ АВТОРИЗОВАНОГО ТЕСТУВАННЯ БЕЗПЕКИ
+
+Цей інструмент надається виключно для законних досліджень безпеки та авторизованого тестування на проникнення. Ви повинні отримати явний письмовий дозвіл від власника системи перед тестуванням будь-якої мережі, додатку або пристрою, яким ви особисто не володієте.
+
+Несанкціонований доступ до комп'ютерних систем, мереж або даних є незаконним і може призвести до кримінальної та/або цивільної відповідальності згідно з чинним законодавством.
+
+Натискаючи "Погоджуюсь", ви підтверджуєте, що:
+
+• Ви будете тестувати лише системи, якими володієте або маєте явний письмовий дозвіл на тестування
+• Ви будете дотримуватися всіх застосовних місцевих, національних та міжнародних законів і правил
+• Ви берете на себе повну відповідальність за свої дії та використання цього інструменту
+• Ви розумієте, що неправильне використання цього інструменту може призвести до юридичних наслідків
+
+Обмеження відповідальності:
+Розробники, учасники, дистриб'ютори та власники WAFPierce не несуть жодної відповідальності за неправильне використання, збитки, юридичні наслідки, втрату даних, переривання обслуговування або будь-яку іншу шкоду, що виникає внаслідок використання або неможливості використання цього інструменту. Це програмне забезпечення надається "як є" без будь-яких гарантій. Ви погоджуєтесь, що використовуєте цей інструмент повністю на власний ризик.""",
+    },
+}
+
+LANGUAGE_NAMES = {
+    'en': 'English',
+    'ar': 'العربية (Arabic)',
+    'uk': 'Українська (Ukrainian)',
+}
+
+# Exploit/technique descriptions for better identification
+EXPLOIT_DESCRIPTIONS = {
+    'SQL Injection': 'Attempts to inject malicious SQL code into database queries. Can lead to data theft, authentication bypass, or database manipulation.',
+    'SQL Injection (Union Based)': 'Uses UNION statements to combine results from injected queries with original query results to extract data.',
+    'SQL Injection (Error Based)': 'Exploits database error messages to extract information about the database structure and data.',
+    'SQL Injection (Blind)': 'Infers data through true/false responses when direct output is not visible. Time-consuming but effective.',
+    'SQL Injection (Time Based)': 'Uses time delays (SLEEP/WAITFOR) to infer data when no visible output is available.',
+    'XSS': 'Cross-Site Scripting - Injects malicious scripts into web pages viewed by other users.',
+    'XSS (Reflected)': 'Non-persistent XSS where malicious script is reflected off the web server in error messages or search results.',
+    'XSS (Stored)': 'Persistent XSS where malicious script is stored on the target server and executed when users view the page.',
+    'XSS (DOM Based)': 'XSS that occurs in the DOM rather than in the HTML. Payload is executed as a result of modifying the DOM.',
+    'Command Injection': 'Injects OS commands through vulnerable application inputs. Can lead to full system compromise.',
+    'OS Command Injection': 'Executes arbitrary operating system commands on the host server through vulnerable inputs.',
+    'Path Traversal': 'Attempts to access files outside the web root directory using ../ sequences.',
+    'Directory Traversal': 'Also known as dot-dot-slash attack. Accesses restricted directories and files on the server.',
+    'LFI': 'Local File Inclusion - Includes local files on the server through vulnerable include mechanisms.',
+    'RFI': 'Remote File Inclusion - Includes remote files from external servers, potentially executing malicious code.',
+    'SSRF': 'Server-Side Request Forgery - Makes the server perform requests to unintended locations.',
+    'XXE': 'XML External Entity - Exploits XML parsers to read files, perform SSRF, or cause DoS.',
+    'LDAP Injection': 'Manipulates LDAP queries to bypass authentication or extract directory information.',
+    'NoSQL Injection': 'Targets NoSQL databases (MongoDB, CouchDB) with specially crafted queries.',
+    'Template Injection': 'Injects malicious template directives that execute on the server (SSTI).',
+    'SSTI': 'Server-Side Template Injection - Executes code through template engines like Jinja2, Twig, Freemarker.',
+    'Header Injection': 'Injects malicious content into HTTP headers, potentially causing response splitting.',
+    'CRLF Injection': 'Injects carriage return and line feed characters to manipulate HTTP responses.',
+    'Log Injection': 'Injects fake log entries that may be used for log forging or exploiting log viewers.',
+    'Unicode Bypass': 'Uses Unicode encoding variations to bypass input filters and WAF rules.',
+    'Encoding Bypass': 'Uses various encoding schemes (URL, Base64, Hex) to evade security filters.',
+    'Case Variation': 'Alternates character cases to bypass case-sensitive security filters.',
+    'Comment Bypass': 'Uses SQL/code comments to break up malicious payloads and evade detection.',
+    'Whitespace Bypass': 'Uses alternative whitespace characters or removes spaces to evade pattern matching.',
+    'Null Byte Injection': 'Injects null bytes (%00) to truncate strings or bypass file extension checks.',
+    'Double Encoding': 'Encodes payloads twice to bypass filters that decode input once.',
+    'HTTP Parameter Pollution': 'Supplies multiple parameters with the same name to confuse the application.',
+    'Verb Tampering': 'Uses unexpected HTTP methods to bypass security controls.',
+    'Protocol Smuggling': 'Exploits differences in protocol parsing between security devices and servers.',
+    'WAF Bypass': 'Techniques specifically designed to evade Web Application Firewall detection.',
+    'Rate Limit Bypass': 'Attempts to circumvent request rate limiting mechanisms.',
+    'Authentication Bypass': 'Techniques to bypass login and authentication mechanisms.',
+    'Authorization Bypass': 'Attempts to access resources without proper authorization.',
+    'IDOR': 'Insecure Direct Object Reference - Accesses objects by manipulating reference values.',
+    'Mass Assignment': 'Exploits automatic parameter binding to modify unauthorized fields.',
+    'Deserialization': 'Exploits unsafe deserialization of user-controlled data.',
+    'JWT Attack': 'Attacks against JSON Web Token implementations (none algorithm, key confusion).',
+    'GraphQL Injection': 'Exploits GraphQL APIs through malicious queries or mutations.',
+    'WebSocket Injection': 'Injects malicious data through WebSocket connections.',
+    'Prototype Pollution': 'Manipulates JavaScript object prototypes to affect application behavior.',
+    'Buffer Overflow': 'Sends data exceeding buffer boundaries to potentially execute arbitrary code.',
+    'Format String': 'Exploits format string vulnerabilities in C-like languages.',
+    'Race Condition': 'Exploits timing vulnerabilities in multi-threaded applications.',
+    'Open Redirect': 'Redirects users to malicious sites through vulnerable redirect parameters.',
+    'CORS Bypass': 'Exploits misconfigured Cross-Origin Resource Sharing policies.',
+    'CSP Bypass': 'Techniques to bypass Content Security Policy restrictions.',
+    'Cache Poisoning': 'Manipulates cache systems to serve malicious content.',
+    'Host Header Injection': 'Manipulates the Host header for cache poisoning or password reset attacks.',
+}
+
+def _get_exploit_description(technique: str) -> str:
+    """Get detailed description for a technique/exploit."""
+    # Try exact match first
+    if technique in EXPLOIT_DESCRIPTIONS:
+        return EXPLOIT_DESCRIPTIONS[technique]
+    # Try partial match
+    technique_lower = technique.lower()
+    for key, desc in EXPLOIT_DESCRIPTIONS.items():
+        if key.lower() in technique_lower or technique_lower in key.lower():
+            return desc
+    # Check for common patterns
+    if 'sql' in technique_lower:
+        return EXPLOIT_DESCRIPTIONS.get('SQL Injection', 'SQL-based attack technique.')
+    if 'xss' in technique_lower:
+        return EXPLOIT_DESCRIPTIONS.get('XSS', 'Cross-site scripting attack.')
+    if 'inject' in technique_lower:
+        return 'Injection attack that attempts to insert malicious data into the application.'
+    if 'bypass' in technique_lower:
+        return 'Technique designed to circumvent security controls or filters.'
+    if 'traversal' in technique_lower or 'lfi' in technique_lower:
+        return EXPLOIT_DESCRIPTIONS.get('Path Traversal', 'File system access attack.')
+    return 'Security testing technique to identify potential vulnerabilities.'
+
+def _t(key: str, lang: str = None) -> str:
+    """Get translated text for a key."""
+    if lang is None:
+        try:
+            lang = _load_prefs().get('language', 'en')
+        except Exception:
+            lang = 'en'
+    return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, TRANSLATIONS['en'].get(key, key))
 
 
 def _save_prefs(prefs: dict) -> None:
@@ -126,16 +569,32 @@ def _show_disclaimer_qt(app) -> bool:
     from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
                                    QLabel, QPushButton, QTextEdit)
     from PySide6.QtCore import Qt
-    from PySide6.QtGui import QFont
+    from PySide6.QtGui import QFont, QFontDatabase
+    
+    # Get current language from prefs
+    lang = _load_prefs().get('language', 'en')
+    
+    # Find a font that supports Unicode (Arabic, Cyrillic, etc.)
+    try:
+        families = set(QFontDatabase.families())
+    except Exception:
+        try:
+            families = set(QFontDatabase().families())
+        except Exception:
+            families = set()
+    
+    # Fonts with good Unicode support (Arabic, Cyrillic, etc.)
+    unicode_fonts = ["Segoe UI", "Arial", "Noto Sans", "Tahoma", "Microsoft Sans Serif", "DejaVu Sans"]
+    selected_font = next((f for f in unicode_fonts if f in families), "")
     
     dialog = QDialog()
-    dialog.setWindowTitle('WAFPierce - Legal Disclaimer')
+    dialog.setWindowTitle(_t('legal_disclaimer_title', lang))
     dialog.setFixedSize(650, 520)
-    dialog.setStyleSheet("""
-        QDialog { background-color: #0f1112; }
-        QLabel { color: #d7e1ea; }
-        QTextEdit { background-color: #16181a; color: #d7e1ea; border: none; }
-        QPushButton { padding: 12px 30px; font-size: 12px; font-weight: bold; border-radius: 4px; }
+    dialog.setStyleSheet(f"""
+        QDialog {{ background-color: #0f1112; }}
+        QLabel {{ color: #d7e1ea; font-family: '{selected_font}'; }}
+        QTextEdit {{ background-color: #16181a; color: #d7e1ea; border: none; font-family: '{selected_font}'; }}
+        QPushButton {{ padding: 12px 30px; font-size: 12px; font-weight: bold; border-radius: 4px; font-family: '{selected_font}'; }}
     """)
     
     layout = QVBoxLayout(dialog)
@@ -143,28 +602,28 @@ def _show_disclaimer_qt(app) -> bool:
     layout.setContentsMargins(20, 20, 20, 20)
     
     # Header
-    header = QLabel('⚠️ LEGAL DISCLAIMER ⚠️')
+    header = QLabel(_t('legal_disclaimer_header', lang))
     header.setAlignment(Qt.AlignCenter)
-    header.setFont(QFont('', 14, QFont.Bold))
+    header.setFont(QFont(selected_font, 14, QFont.Bold))
     header.setStyleSheet('color: #ff6b6b;')
     layout.addWidget(header)
     
     # Text area
     text_edit = QTextEdit()
-    text_edit.setPlainText(LEGAL_DISCLAIMER)
+    text_edit.setPlainText(_t('legal_disclaimer', lang))
     text_edit.setReadOnly(True)
-    text_edit.setFont(QFont('', 10))
+    text_edit.setFont(QFont(selected_font, 10))
     layout.addWidget(text_edit)
     
     # Buttons
     btn_layout = QHBoxLayout()
     btn_layout.addStretch()
     
-    agree_btn = QPushButton('I Agree')
+    agree_btn = QPushButton(_t('i_agree', lang))
     agree_btn.setStyleSheet('background-color: #28a745; color: white;')
     agree_btn.setCursor(Qt.PointingHandCursor)
     
-    decline_btn = QPushButton('I Decline')
+    decline_btn = QPushButton(_t('i_decline', lang))
     decline_btn.setStyleSheet('background-color: #dc3545; color: white;')
     decline_btn.setCursor(Qt.PointingHandCursor)
     
@@ -377,7 +836,9 @@ def main() -> None:
     class PierceQtApp(QWidget):
         def __init__(self):
             super().__init__()
-            self.setWindowTitle('WAFPierce - GUI (Qt)')
+            # Get current language
+            self._lang = _load_prefs().get('language', 'en')
+            self.setWindowTitle(_t('window_title', self._lang))
 
             self._worker_thread = None
             self._worker = None
@@ -431,18 +892,18 @@ def main() -> None:
                 self.target_edit.textChanged.connect(self._check_easter_egg_input)
             except Exception:
                 pass
-            add_btn = QPushButton('Add')
+            add_btn = QPushButton(_t('add', self._lang))
             add_btn.clicked.connect(self.add_target)
-            remove_btn = QPushButton('Remove')
+            remove_btn = QPushButton(_t('remove', self._lang))
             remove_btn.clicked.connect(self.remove_selected)
-            top.addWidget(QLabel('Target URL:'))
+            top.addWidget(QLabel(_t('target_url', self._lang)))
             top.addWidget(self.target_edit)
             top.addWidget(add_btn)
             top.addWidget(remove_btn)
             # small compact settings button at the top-right
             try:
                 top.addStretch()
-                sbtn = QPushButton('Settings')
+                sbtn = QPushButton(_t('settings', self._lang))
                 sbtn.setFixedHeight(28)
                 sbtn.clicked.connect(self._open_qt_settings)
                 top.addWidget(sbtn)
@@ -473,18 +934,18 @@ def main() -> None:
             except Exception:
                 self.concurrent_spin.setValue(2)
             # default to sequential execution (one target at a time)
-            self.use_concurrent_chk = QCheckBox('Use concurrent targets')
+            self.use_concurrent_chk = QCheckBox(_t('use_concurrent', self._lang))
             try:
                 self.use_concurrent_chk.setChecked(bool(self._prefs.get('use_concurrent', False)))
             except Exception:
                 self.use_concurrent_chk.setChecked(False)
-            opts.addWidget(QLabel('Threads:'))
+            opts.addWidget(QLabel(_t('threads', self._lang)))
             opts.addWidget(self.threads_spin)
-            opts.addWidget(QLabel('Concurrent:'))
+            opts.addWidget(QLabel(_t('concurrent', self._lang)))
             opts.addWidget(self.concurrent_spin)
             opts.addWidget(self.use_concurrent_chk)
             opts.addSpacing(10)
-            opts.addWidget(QLabel('Delay (s):'))
+            opts.addWidget(QLabel(_t('delay', self._lang)))
             opts.addWidget(self.delay_spin)
             v.addLayout(opts)
 
@@ -498,10 +959,10 @@ def main() -> None:
                     lbl.setStyleSheet(f'background:{color}; padding:4px; color: white; border-radius:3px')
                     self._legend_labels[key] = lbl
                     return lbl
-                legend_h.addWidget(_legend_label('queued', 'Queued', '#2b2f33'))
-                legend_h.addWidget(_legend_label('running', 'Running', '#3b82f6'))
-                legend_h.addWidget(_legend_label('done', 'Done', '#163f19'))
-                legend_h.addWidget(_legend_label('error', 'Error', '#ff4d4d'))
+                legend_h.addWidget(_legend_label('queued', _t('queued', self._lang), '#2b2f33'))
+                legend_h.addWidget(_legend_label('running', _t('running', self._lang), '#3b82f6'))
+                legend_h.addWidget(_legend_label('done', _t('done', self._lang), '#163f19'))
+                legend_h.addWidget(_legend_label('error', _t('error', self._lang), '#ff4d4d'))
                 v.addLayout(legend_h)
             except Exception:
                 pass
@@ -511,7 +972,7 @@ def main() -> None:
             self._layout_middle = middle
             self.tree = QTreeWidget()
             self.tree.setColumnCount(2)
-            self.tree.setHeaderLabels(['Target', 'Status'])
+            self.tree.setHeaderLabels([_t('target', self._lang), _t('status', self._lang)])
             try:
                 header = self.tree.header()
                 header.setStretchLastSection(False)
@@ -570,10 +1031,10 @@ def main() -> None:
                         )
             except Exception:
                 pass
-            right_v.addWidget(QLabel('Output'))
+            right_v.addWidget(QLabel(_t('output', self._lang)))
             right_v.addWidget(self.log, 1)
             # Results button at bottom of output area
-            self.results_btn = QPushButton('📊 Results')
+            self.results_btn = QPushButton(_t('results', self._lang))
             self.results_btn.setEnabled(False)
             self.results_btn.setFixedHeight(40)
             self._results_btn_base_style = '''
@@ -634,16 +1095,16 @@ def main() -> None:
             # bottom controls
             bottom = QHBoxLayout()
             self._layout_bottom = bottom
-            self.start_btn = QPushButton('Start')
+            self.start_btn = QPushButton(_t('start', self._lang))
             self.start_btn.clicked.connect(self.start_scan)
-            self.stop_btn = QPushButton('Stop')
+            self.stop_btn = QPushButton(_t('stop', self._lang))
             self.stop_btn.setEnabled(False)
             self.stop_btn.clicked.connect(self.stop_scan)
-            self.save_btn = QPushButton('Save')
+            self.save_btn = QPushButton(_t('save', self._lang))
             self.save_btn.setEnabled(False)
             self.save_btn.clicked.connect(self.save_results)
             # cleanup button: clear temp files and also clear the UI
-            self.clean_btn = QPushButton('Clear')
+            self.clean_btn = QPushButton(_t('clear', self._lang))
             # when clicked by user from the UI, also clear the site list and outputs
             try:
                 self.clean_btn.clicked.connect(lambda: self.clean_tmp_files(False, True))
@@ -936,7 +1397,7 @@ def main() -> None:
                 if t:
                     targets = [t]
             if not targets:
-                QMessageBox.warning(self, 'Missing target', 'Please add at least one target')
+                QMessageBox.warning(self, _t('missing_target', self._lang), _t('add_target_msg', self._lang))
                 return
             threads = int(self.threads_spin.value())
             delay = float(self.delay_spin.value())
@@ -985,7 +1446,7 @@ def main() -> None:
             if self._worker:
                 self._worker.abort()
             self.stop_btn.setEnabled(False)
-            self.append_log('[!] Stop requested')
+            self.append_log('[!] ' + _t('stop_requested', self._lang))
 
         def _on_target_update(self, target, status, extra):
             # update tree row matching target
@@ -1044,7 +1505,12 @@ def main() -> None:
                         counts['error'] += 1
                     else:
                         counts['queued'] += 1
-                mapping = {'queued': 'Queued', 'running': 'Running', 'done': 'Done', 'error': 'Error'}
+                mapping = {
+                    'queued': _t('queued', self._lang),
+                    'running': _t('running', self._lang),
+                    'done': _t('done', self._lang),
+                    'error': _t('error', self._lang)
+                }
                 for k, v in counts.items():
                     lbl = self._legend_labels.get(k)
                     if not lbl:
@@ -1078,7 +1544,7 @@ def main() -> None:
                 pass
 
         def _on_finished(self):
-            self.append_log('[+] Run finished')
+            self.append_log(_t('run_finished', self._lang))
             self.start_btn.setEnabled(True)
             self.stop_btn.setEnabled(False)
             try:
@@ -1112,7 +1578,7 @@ def main() -> None:
         def _open_qt_settings(self):
             try:
                 dlg = QtWidgets.QDialog(self)
-                dlg.setWindowTitle('Settings')
+                dlg.setWindowTitle(_t('settings', self._lang))
                 layout = QtWidgets.QVBoxLayout(dlg)
 
                 try:
@@ -1122,7 +1588,7 @@ def main() -> None:
 
                 # font size
                 h2 = QtWidgets.QHBoxLayout()
-                h2.addWidget(QLabel('Font size (only in outputs):'))
+                h2.addWidget(QLabel(_t('font_size', self._lang)))
                 font_spin = QSpinBox()
                 font_spin.setRange(8, 20)
                 try:
@@ -1133,7 +1599,7 @@ def main() -> None:
                 layout.addLayout(h2)
 
                 # watermark
-                wm_chk = QCheckBox('Show watermark/logo')
+                wm_chk = QCheckBox(_t('show_watermark', self._lang))
                 try:
                     wm_chk.setChecked(bool(prefs.get('watermark', True)))
                 except Exception:
@@ -1141,7 +1607,7 @@ def main() -> None:
                 layout.addWidget(wm_chk)
 
                 # remember targets
-                remember_chk = QCheckBox('Remember last targets')
+                remember_chk = QCheckBox(_t('remember_targets', self._lang))
                 try:
                     remember_chk.setChecked(bool(prefs.get('remember_targets', True)))
                 except Exception:
@@ -1150,7 +1616,7 @@ def main() -> None:
 
                 # retry failed
                 retry_layout = QtWidgets.QHBoxLayout()
-                retry_layout.addWidget(QLabel('Retry failed targets:'))
+                retry_layout.addWidget(QLabel(_t('retry_failed', self._lang)))
                 retry_spin = QSpinBox()
                 retry_spin.setRange(0, 5)
                 try:
@@ -1162,33 +1628,86 @@ def main() -> None:
 
                 # UI density
                 density_layout = QtWidgets.QHBoxLayout()
-                density_layout.addWidget(QLabel('UI density:'))
+                density_layout.addWidget(QLabel(_t('ui_density', self._lang)))
                 density_combo = QtWidgets.QComboBox()
-                density_combo.addItems(['compact', 'comfortable', 'spacious'])
+                density_combo.addItems([_t('compact', self._lang), _t('comfortable', self._lang), _t('spacious', self._lang)])
                 try:
-                    density_combo.setCurrentText(prefs.get('ui_density', 'comfortable'))
+                    current_density = prefs.get('ui_density', 'comfortable')
+                    density_map = {'compact': 0, 'comfortable': 1, 'spacious': 2}
+                    density_combo.setCurrentIndex(density_map.get(current_density, 1))
                 except Exception:
                     pass
                 density_layout.addWidget(density_combo)
                 layout.addLayout(density_layout)
 
+                # Language selection
+                lang_layout = QtWidgets.QHBoxLayout()
+                lang_layout.addWidget(QLabel(_t('language')))
+                lang_combo = QtWidgets.QComboBox()
+                for code, name in LANGUAGE_NAMES.items():
+                    lang_combo.addItem(name, code)
+                try:
+                    current_lang = prefs.get('language', 'en')
+                    idx = list(LANGUAGE_NAMES.keys()).index(current_lang)
+                    lang_combo.setCurrentIndex(idx)
+                except Exception:
+                    lang_combo.setCurrentIndex(0)
+                lang_layout.addWidget(lang_combo)
+                layout.addLayout(lang_layout)
+                
+                # Note about language change - updates dynamically when language selection changes
+                lang_note = QLabel(_t('lang_restart_warning'))
+                lang_note.setStyleSheet('color: #888; font-size: 10px;')
+                layout.addWidget(lang_note)
+                
+                # Update warning text when language selection changes
+                def _update_lang_warning():
+                    selected_lang = lang_combo.currentData()
+                    lang_note.setText(_t('lang_restart_warning', selected_lang))
+                
+                lang_combo.currentIndexChanged.connect(_update_lang_warning)
+
                 btn_h = QtWidgets.QHBoxLayout()
-                save_btn = QPushButton('Save')
-                cancel_btn = QPushButton('Cancel')
+                save_btn = QPushButton(_t('save'))
+                cancel_btn = QPushButton(_t('cancel'))
                 btn_h.addWidget(save_btn)
                 btn_h.addWidget(cancel_btn)
                 layout.addLayout(btn_h)
 
                 def _save_qt():
                     try:
+                        old_lang = prefs.get('language', 'en')
+                        new_lang = lang_combo.currentData()
+                        
                         prefs['font_size'] = int(font_spin.value())
                         prefs['watermark'] = bool(wm_chk.isChecked())
                         prefs['remember_targets'] = bool(remember_chk.isChecked())
                         prefs['retry_failed'] = int(retry_spin.value())
-                        prefs['ui_density'] = density_combo.currentText()
+                        # Map density index back to key
+                        density_keys = ['compact', 'comfortable', 'spacious']
+                        prefs['ui_density'] = density_keys[density_combo.currentIndex()]
+                        prefs['language'] = new_lang
                         _save_prefs(prefs)
                         self._prefs = prefs
                         self._apply_qt_prefs(prefs)
+                        
+                        # If language changed, ask to restart
+                        if old_lang != new_lang:
+                            dlg.accept()
+                            reply = QMessageBox.question(
+                                self,
+                                _t('restart_confirm', new_lang),
+                                _t('restart_confirm_msg', new_lang),
+                                QMessageBox.Yes | QMessageBox.No,
+                                QMessageBox.Yes
+                            )
+                            if reply == QMessageBox.Yes:
+                                # Restart the application
+                                import sys
+                                import os
+                                python = sys.executable
+                                os.execl(python, python, *sys.argv)
+                            return
                     except Exception:
                         pass
                     try:
@@ -1316,21 +1835,21 @@ def main() -> None:
                 return None
 
         def save_results(self):
-            path, _ = QFileDialog.getSaveFileName(self, 'Save results', filter='JSON (*.json)')
+            path, _ = QFileDialog.getSaveFileName(self, _t('save', self._lang), filter='JSON (*.json)')
             if not path:
                 return
             try:
                 with open(path, 'w', encoding='utf-8') as f:
                     json.dump(self._results, f, indent=2)
-                QMessageBox.information(self, 'Saved', f'Results saved to {path}')
+                QMessageBox.information(self, _t('saved', self._lang), f'{_t("saved", self._lang)}: {path}')
                 # auto-clean removed; do not clean automatically after save
             except Exception as e:
-                QMessageBox.critical(self, 'Save failed', str(e))
+                QMessageBox.critical(self, _t('save_failed', self._lang), str(e))
 
         def show_results_summary(self):
             """Show results organized by severity and target in a separate dialog with site list."""
             if not self._results:
-                QMessageBox.information(self, 'No Results', 'No scan results available yet.')
+                QMessageBox.information(self, _t('no_results', self._lang), _t('no_results_msg', self._lang))
                 return
             
             # Constants
@@ -1360,7 +1879,7 @@ def main() -> None:
                 by_target[target].append(r)
             
             dlg = QtWidgets.QDialog(self)
-            dlg.setWindowTitle('Results Explorer')
+            dlg.setWindowTitle(_t('results_explorer', self._lang))
             dlg.resize(1100, 700)
             dlg.setStyleSheet("""
                 QDialog { background-color: #0f1112; }
@@ -1389,7 +1908,7 @@ def main() -> None:
             left_panel.setSpacing(10)
             
             # Header
-            sites_header = QLabel('\U0001F310 Sites')
+            sites_header = QLabel(_t('sites', self._lang))
             sites_header.setFont(QFont('', 12, QFont.Bold))
             sites_header.setStyleSheet('color: #d7e1ea; padding: 5px;')
             left_panel.addWidget(sites_header)
@@ -1399,7 +1918,7 @@ def main() -> None:
             site_list.setFixedWidth(280)
             
             # Add "All Sites" first
-            all_item = QtWidgets.QListWidgetItem(f'\U0001F4CB All Sites ({len(self._results)} findings)')
+            all_item = QtWidgets.QListWidgetItem(f'{_t("all_sites", self._lang)} ({len(self._results)} {_t("findings", self._lang)})')
             all_item.setData(256, '__ALL__')  # Qt.UserRole = 256
             site_list.addItem(all_item)
             
@@ -1432,7 +1951,7 @@ def main() -> None:
             stats_label = QLabel()
             total = len(self._results)
             bypasses = len([r for r in self._results if r.get('bypass', False)])
-            stats_label.setText(f'Total: {total} | Bypasses: {bypasses}')
+            stats_label.setText(f'{_t("total", self._lang)}: {total} | {_t("bypasses", self._lang)}: {bypasses}')
             stats_label.setStyleSheet('color: #808080; padding: 5px;')
             left_panel.addWidget(stats_label)
             
@@ -1446,53 +1965,80 @@ def main() -> None:
             controls = QHBoxLayout()
             
             # Sort options
-            sort_label = QLabel('Sort by:')
+            sort_label = QLabel(_t('sort_by', self._lang))
             sort_combo = QtWidgets.QComboBox()
             sort_combo.addItems([
-                'Severity (High to Low)',
-                'Severity (Low to High)',
-                'Technique (A-Z)',
-                'Technique (Z-A)',
-                'Category',
-                'Bypass Status'
+                _t('severity_high_low', self._lang),
+                _t('severity_low_high', self._lang),
+                _t('technique_az', self._lang),
+                _t('technique_za', self._lang),
+                _t('category', self._lang),
+                _t('bypass_status', self._lang)
             ])
-            sort_combo.setFixedWidth(180)
+            sort_combo.setFixedWidth(200)
             controls.addWidget(sort_label)
             controls.addWidget(sort_combo)
             
             controls.addSpacing(20)
             
             # Filter options
-            filter_label = QLabel('Filter:')
+            filter_label = QLabel(_t('filter', self._lang))
             filter_combo = QtWidgets.QComboBox()
             filter_combo.addItems([
-                'All Results',
-                '\U0001F534 CRITICAL only',
-                '\U0001F7E0 HIGH only',
-                '\U0001F7E1 MEDIUM only',
-                '\U0001F535 LOW only',
-                '\u2139\ufe0f INFO only',
-                '\u2705 Bypasses only',
-                '\u274C Non-bypasses only'
+                _t('all_results', self._lang),
+                _t('critical_only', self._lang),
+                _t('high_only', self._lang),
+                _t('medium_only', self._lang),
+                _t('low_only', self._lang),
+                _t('info_only', self._lang),
+                _t('bypasses_only', self._lang),
+                _t('non_bypasses_only', self._lang)
             ])
-            filter_combo.setFixedWidth(160)
+            filter_combo.setFixedWidth(180)
             controls.addWidget(filter_label)
             controls.addWidget(filter_combo)
             
-            controls.addStretch()
+            right_panel.addLayout(controls)
+            
+            # Search bar row
+            search_row = QHBoxLayout()
+            search_label = QLabel('🔍 ' + _t('search', self._lang))
+            search_edit = QLineEdit()
+            search_edit.setPlaceholderText(_t('search_placeholder', self._lang))
+            search_edit.setStyleSheet('''
+                QLineEdit {
+                    background-color: #16181a;
+                    color: #d7e1ea;
+                    border: 1px solid #2b2f33;
+                    border-radius: 4px;
+                    padding: 6px 10px;
+                }
+                QLineEdit:focus {
+                    border: 1px solid #3b82f6;
+                }
+            ''')
+            search_clear_btn = QPushButton('✕')
+            search_clear_btn.setFixedWidth(30)
+            search_clear_btn.setStyleSheet('QPushButton { padding: 4px; }')
+            search_clear_btn.clicked.connect(lambda: search_edit.clear())
+            
+            search_row.addWidget(search_label)
+            search_row.addWidget(search_edit, 1)
+            search_row.addWidget(search_clear_btn)
+            search_row.addSpacing(20)
             
             # Expand/Collapse buttons
-            expand_btn = QPushButton('Expand All')
-            collapse_btn = QPushButton('Collapse All')
-            controls.addWidget(expand_btn)
-            controls.addWidget(collapse_btn)
+            expand_btn = QPushButton(_t('expand_all', self._lang))
+            collapse_btn = QPushButton(_t('collapse_all', self._lang))
+            search_row.addWidget(expand_btn)
+            search_row.addWidget(collapse_btn)
             
-            right_panel.addLayout(controls)
+            right_panel.addLayout(search_row)
             
             # Results tree
             results_tree = QTreeWidget()
             results_tree.setColumnCount(4)
-            results_tree.setHeaderLabels(['Technique', 'Severity', 'Category', 'Reason'])
+            results_tree.setHeaderLabels([_t('technique', self._lang), _t('severity', self._lang), _t('category', self._lang), _t('reason', self._lang)])
             results_tree.setAlternatingRowColors(True)
             results_tree.setSortingEnabled(False)  # We'll handle sorting manually
             
@@ -1508,11 +2054,11 @@ def main() -> None:
             right_panel.addWidget(results_tree, 1)
             
             # Details section
-            details_group = QtWidgets.QGroupBox('Details')
+            details_group = QtWidgets.QGroupBox(_t('details', self._lang))
             details_layout = QVBoxLayout(details_group)
             details_text = QTextEdit()
             details_text.setReadOnly(True)
-            details_text.setMaximumHeight(120)
+            details_text.setMaximumHeight(200)
             details_text.setStyleSheet('background-color: #16181a; border: none;')
             details_layout.addWidget(details_text)
             right_panel.addWidget(details_group)
@@ -1520,12 +2066,23 @@ def main() -> None:
             main_layout.addLayout(right_panel, 1)
             
             # === LOGIC FUNCTIONS ===
-            def get_filtered_sorted_results(target_key, sort_idx, filter_idx):
-                """Get results for a target with sorting and filtering applied."""
+            def get_filtered_sorted_results(target_key, sort_idx, filter_idx, search_text=''):
+                """Get results for a target with sorting, filtering, and search applied."""
                 if target_key == '__ALL__':
                     results = list(self._results)
                 else:
                     results = list(by_target.get(target_key, []))
+                
+                # Apply search filter
+                if search_text:
+                    search_lower = search_text.lower()
+                    results = [r for r in results if 
+                        search_lower in r.get('technique', '').lower() or
+                        search_lower in r.get('category', '').lower() or
+                        search_lower in r.get('reason', '').lower() or
+                        search_lower in r.get('target', '').lower() or
+                        search_lower in r.get('severity', '').lower()
+                    ]
                 
                 # Apply filter
                 if filter_idx == 1:  # CRITICAL only
@@ -1560,7 +2117,7 @@ def main() -> None:
                 return results
             
             def update_results_tree():
-                """Update the results tree based on current selection and filters."""
+                """Update the results tree based on current selection, filters, and search."""
                 results_tree.clear()
                 
                 # Get selected site
@@ -1571,8 +2128,9 @@ def main() -> None:
                 
                 sort_idx = sort_combo.currentIndex()
                 filter_idx = filter_combo.currentIndex()
+                search_text = search_edit.text().strip()
                 
-                results = get_filtered_sorted_results(target_key, sort_idx, filter_idx)
+                results = get_filtered_sorted_results(target_key, sort_idx, filter_idx, search_text)
                 
                 # Group by category for better organization
                 by_category = {}
@@ -1627,18 +2185,25 @@ def main() -> None:
                 if not r:
                     return
                 
-                # Build details HTML
+                # Build details HTML with exploit description
                 bypass_status = '\u2705 BYPASS SUCCESSFUL' if r.get('bypass', False) else '\u274C No bypass'
                 sev = r.get('severity', 'INFO')
+                technique = r.get('technique', 'Unknown')
+                
+                # Get detailed exploit description
+                exploit_desc = _get_exploit_description(technique)
                 
                 details_html = f"""
                 <div style='color: #d7e1ea; font-size: 12px;'>
-                    <b>Technique:</b> {r.get('technique', 'Unknown')}<br>
-                    <b>Severity:</b> <span style='color: {severity_colors.get(sev, "#808080")};'>{severity_icons.get(sev, '')} {sev}</span><br>
-                    <b>Status:</b> {bypass_status}<br>
-                    <b>Category:</b> {r.get('category', 'Other')}<br>
-                    <b>Target:</b> {r.get('target', 'N/A')}<br>
-                    <b>Reason:</b> {r.get('reason', 'N/A')}<br>
+                    <b>{_t('technique', self._lang)}:</b> {technique}<br>
+                    <b>{_t('severity', self._lang)}:</b> <span style='color: {severity_colors.get(sev, "#808080")};'>{severity_icons.get(sev, '')} {sev}</span><br>
+                    <b>{_t('status', self._lang)}:</b> {bypass_status}<br>
+                    <b>{_t('category', self._lang)}:</b> {r.get('category', 'Other')}<br>
+                    <b>{_t('target', self._lang)}:</b> {r.get('target', 'N/A')}<br>
+                    <b>{_t('reason', self._lang)}:</b> {r.get('reason', 'N/A')}<br>
+                    <hr style='border: 1px solid #2b2f33; margin: 8px 0;'>
+                    <b>📖 {_t('description', self._lang)}:</b><br>
+                    <span style='color: #a0aab5; font-style: italic;'>{exploit_desc}</span>
                 </div>
                 """
                 details_text.setHtml(details_html)
@@ -1653,6 +2218,7 @@ def main() -> None:
             site_list.currentItemChanged.connect(on_site_selected)
             sort_combo.currentIndexChanged.connect(lambda: update_results_tree())
             filter_combo.currentIndexChanged.connect(lambda: update_results_tree())
+            search_edit.textChanged.connect(lambda: update_results_tree())
             results_tree.currentItemChanged.connect(on_result_selected)
             expand_btn.clicked.connect(expand_all)
             collapse_btn.clicked.connect(collapse_all)
@@ -1664,15 +2230,16 @@ def main() -> None:
             bottom_layout = QHBoxLayout()
             bottom_layout.addStretch()
             
-            export_btn = QPushButton('Export View')
+            export_btn = QPushButton(_t('export_view', self._lang))
             export_btn.clicked.connect(lambda: self._export_results_view(get_filtered_sorted_results(
                 site_list.currentItem().data(256) if site_list.currentItem() else '__ALL__',
                 sort_combo.currentIndex(),
-                filter_combo.currentIndex()
+                filter_combo.currentIndex(),
+                search_edit.text().strip()
             )))
             bottom_layout.addWidget(export_btn)
             
-            close_btn = QPushButton('Close')
+            close_btn = QPushButton(_t('close', self._lang))
             close_btn.clicked.connect(dlg.accept)
             bottom_layout.addWidget(close_btn)
             
@@ -1684,24 +2251,24 @@ def main() -> None:
         def _export_results_view(self, results):
             """Export the current filtered/sorted view to JSON."""
             if not results:
-                QMessageBox.information(self, 'No Results', 'No results to export with current filters.')
+                QMessageBox.information(self, _t('no_results', self._lang), _t('no_results_to_export', self._lang))
                 return
-            path, _ = QFileDialog.getSaveFileName(self, 'Export Results View', filter='JSON (*.json)')
+            path, _ = QFileDialog.getSaveFileName(self, _t('export_results_view', self._lang), filter='JSON (*.json)')
             if not path:
                 return
             try:
                 with open(path, 'w', encoding='utf-8') as f:
                     json.dump(results, f, indent=2)
-                QMessageBox.information(self, 'Exported', f'Exported {len(results)} results to {path}')
+                QMessageBox.information(self, _t('exported', self._lang), _t('exported_results', self._lang).format(count=len(results), path=path))
             except Exception as e:
-                QMessageBox.critical(self, 'Export failed', str(e))
+                QMessageBox.critical(self, _t('export_failed', self._lang), str(e))
 
         def show_target_details(self, item, col=None):
             target = item.text(0)
             tmp = self._target_tmp_map.get(target)
             per = self._per_target_results.get(target, {})
             if not tmp or not os.path.exists(tmp):
-                QMessageBox.information(self, 'No results', f'No results for {target}')
+                QMessageBox.information(self, _t('no_results', self._lang), _t('no_results_for', self._lang).format(target=target))
                 return
             try:
                 with open(tmp, 'r', encoding='utf-8') as f:
@@ -1715,14 +2282,14 @@ def main() -> None:
             try:
                 done_count = len(per.get('done', [])) if per.get('done') is not None else 'Unknown'
                 errors = per.get('errors', [])
-                header = f"Done (Exploits): {done_count}\nErrors: {len(errors)}\n\n"
+                header = f"{_t('done_exploits', self._lang)}: {done_count}\n{_t('errors_label', self._lang)}: {len(errors)}\n\n"
                 if errors:
-                    header += "Errors details:\n" + "\n".join(str(e) for e in errors) + "\n\n"
+                    header += _t('errors_details', self._lang) + ":\n" + "\n".join(str(e) for e in errors) + "\n\n"
             except Exception:
                 header = ''
 
             dlg = QtWidgets.QDialog(self)
-            dlg.setWindowTitle(f'Results — {target}')
+            dlg.setWindowTitle(_t('results_for', self._lang).format(target=target))
             dlg.resize(800, 480)
             layout = QtWidgets.QVBoxLayout(dlg)
             te = QTextEdit()
@@ -1756,7 +2323,7 @@ def main() -> None:
                     unique.append(p)
             if not unique:
                 if not silent:
-                    QMessageBox.information(self, 'Clean', 'No temporary result files to remove')
+                    QMessageBox.information(self, _t('clear', self._lang), _t('no_tmp_files', self._lang))
                 # still clear targets/logs if requested
                 if clear_targets:
                     try:
@@ -1791,7 +2358,7 @@ def main() -> None:
                     pass
                 return
             if not silent:
-                if QMessageBox.question(self, 'Clean', f'Remove {len(unique)} files?') != QMessageBox.Yes:
+                if QMessageBox.question(self, _t('clear', self._lang), _t('remove_files_confirm', self._lang).format(count=len(unique))) != QMessageBox.Yes:
                     return
             removed = 0
             for p in unique:
@@ -1806,7 +2373,7 @@ def main() -> None:
                     self._target_tmp_map.pop(t, None)
             self._tmp_result_paths = [p for p in self._tmp_result_paths if os.path.exists(p)]
             if not silent:
-                QMessageBox.information(self, 'Clean', f'Removed {removed} file(s)')
+                QMessageBox.information(self, _t('clear', self._lang), _t('removed_files', self._lang).format(count=removed))
             # If requested also clear targets and outputs
             if clear_targets:
                 try:
