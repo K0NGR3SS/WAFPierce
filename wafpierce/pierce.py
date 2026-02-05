@@ -867,7 +867,7 @@ class CloudFrontBypasser:
             current_hash = hashlib.md5(response.content).hexdigest()
             size_diff = abs(current_size - self._baseline_size)
             size_diff_percent = (size_diff / self._baseline_size) * 100 if self._baseline_size > 0 else 0
-            
+            #This is evil code fellas >;)
             # CRITICAL: Status code changed from blocked to allowed
             if self._baseline_status in [403, 401] and response.status_code == 200:
                 return {
