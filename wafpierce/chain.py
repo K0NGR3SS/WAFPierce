@@ -1,5 +1,5 @@
 """
-Full Pentest Chain: Bypass → Enum → Scan → Recon → Report
+Full Pentest Chain: Bypass -> Enum -> Scan -> Recon -> Report
 With comprehensive error handling and graceful degradation
 """
 import os
@@ -13,6 +13,10 @@ from typing import List, Dict, Any, Optional
 from .pierce import CloudFrontBypasser
 from .exceptions import (
     WAFPierceError,
+    InvalidTargetError,
+    BaselineFailedError,
+    TargetUnreachableError,
+    ScanInterruptedError,
     WordlistNotFoundError,
     OutputDirectoryError,
     NoBypassFoundError,
@@ -23,9 +27,66 @@ from .error_handler import (
     setup_logging,
 )
 
+def supports_unicode() -> bool:
+    """Check if the terminal supports Unicode"""
+    try:
+        if hasattr(sys.stdout, 'encoding'):
+            encoding = sys.stdout.encoding or 'ascii'
+            '📁'.encode(encoding)
+            return True
+    except (UnicodeEncodeError, LookupError, AttributeError):
+        return False
+    return False
+
+# Set at module level
+USE_EMOJIS = supports_unicode()
+
+def get_icon(icon_type: str) -> str:
+    """Get icon based on terminal capabilities"""
+    if USE_EMOJIS:
+        icons = {
+            'info': '📁',
+            'progress': '🔍',
+            'success': '✓',
+            'warning': '⚠',
+            'error': '✗',
+            'found': '✓',
+            'scanning': '⚡',
+            'folder': '📁',
+            'file': '📄',
+            'lock': '🔒',
+        }
+    else:
+        icons = {
+            'info': '[*]',
+            'progress': '[~]',
+            'success': '[+]',
+            'warning': '[!]',
+            'error': '[!]',
+            'found': '[+]',
+            'scanning': '[~]',
+            'folder': '[*]',
+            'file': '[*]',
+            'lock': '[!]',
+        }
+    return icons.get(icon_type, '[*]' if not USE_EMOJIS else '📁')
+
+def safe_print(text: str):
+    """Print with automatic encoding fallback"""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # Strip emojis and retry
+        emoji_map = {
+            '📁': '[*]', '📄': '[*]', '⚠': '[!]', '🔒': '[!]',
+            '✓': '[+]', '✗': '[!]', '🔍': '[~]', '⚡': '[~]',
+            '═': '=', '─': '-',
+        }
+        for emoji, ascii_char in emoji_map.items():
+            text = text.replace(emoji, ascii_char)
+        print(text)
 
 logger = logging.getLogger(__name__)
-
 
 DISCLAIMER_BANNER = """
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -71,27 +132,17 @@ def print_banner():
 
 def print_phase_header(phase_num: int, phase_name: str, description: str = ""):
     """Print a formatted phase header"""
-    print(f"\n{'─'*60}")
-    print(f"▶ PHASE {phase_num}: {phase_name.upper()}")
+    border = '═' if USE_EMOJIS else '='
+    safe_print(f"\n{border*60}")
+    safe_print(f"  PHASE {phase_num}: {phase_name.upper()}")
     if description:
-        print(f"  {description}")
-    print(f"{'─'*60}")
-
+        safe_print(f"  {description}")
+    safe_print(f"{border*60}")
 
 def print_status(message: str, status_type: str = "info"):
     """Print a formatted status message"""
-    icons = {
-        'info': '○',
-        'progress': '◐',
-        'success': '●',
-        'warning': '⚠',
-        'error': '✗',
-        'found': '✓',
-        'scanning': '↻',
-    }
-    icon = icons.get(status_type, '○')
-    print(f"    [{icon}] {message}")
-
+    icon = get_icon(status_type)
+    safe_print(f"  {icon} {message}")
 
 class FullPentestChain:
     def __init__(self, target: str, output_dir: str = "pentest_results", threads: int = 10):
@@ -903,7 +954,6 @@ Handle findings responsibly and patch vulnerabilities promptly.
             print_status(f"Error generating report: {e}", "error")
             self.errors.append({'phase': 'report', 'error': str(e)})
             return False
-
     def run(self) -> int:
         """
         Execute full penetration test chain
@@ -914,11 +964,12 @@ Handle findings responsibly and patch vulnerabilities promptly.
         # Display banner and disclaimer
         print_banner()
         
-        print(f"{'='*78}")
-        print(f"  TARGET: {self.target}")
-        print(f"  OUTPUT: {self.output_dir}/")
-        print(f"  THREADS: {self.threads}")
-        print(f"{'='*78}")
+        border = '═' if USE_EMOJIS else '='
+        safe_print(f"{border*78}")
+        safe_print(f"  TARGET: {self.target}")
+        safe_print(f"  OUTPUT: {self.output_dir}/")
+        safe_print(f"  THREADS: {self.threads}")
+        safe_print(f"{border*78}")
         
         logger.info(f"Starting full pentest chain for {self.target}")
         
@@ -942,37 +993,36 @@ Handle findings responsibly and patch vulnerabilities promptly.
                     logger.warning(f"Phase {phase_name} completed with limited results")
             except KeyboardInterrupt:
                 logger.warning(f"Pentest interrupted during {phase_name}")
-                print(f"\n[!] Interrupted during {phase_name} phase")
+                safe_print(f"\n[!] Interrupted during {phase_name} phase")
                 break
             except Exception as e:
                 logger.error(f"Phase {phase_name} failed: {e}")
-                print(f"    [!] Error in {phase_name}: {e}")
+                safe_print(f"    [!] Error in {phase_name}: {e}")
                 failed_phases.append(phase_name)
                 # Continue with next phase
         
         # Final summary
-        print(f"\n{'\u2550'*78}")
-        print(f"\u2551  SCAN COMPLETE")
-        print(f"{'\u2550'*78}")
-        print(f"  \u2714 Phases completed: {completed_phases}/{len(phases)}")
+        safe_print(f"\n{border*78}")
+        safe_print(f"{border[0]}  SCAN COMPLETE")
+        safe_print(f"{border*78}")
+        safe_print(f"  {get_icon('success')} Phases completed: {completed_phases}/{len(phases)}")
         if failed_phases:
-            print(f"  \u2718 Phases failed: {', '.join(failed_phases)}")
+            safe_print(f"  {get_icon('error')} Phases failed: {', '.join(failed_phases)}")
         if self.errors:
-            print(f"  \u26a0 Errors encountered: {len(self.errors)}")
-        print(f"  \ud83d\udcc1 Output directory: {self.output_dir}/")
-        print(f"  \ud83d\udcc4 Files generated:")
-        print(f"       - bypasses.json")
-        print(f"       - live_paths.json")
-        print(f"       - vulns.json")
-        print(f"       - backend_recon.json")
-        print(f"       - REPORT.md")
-        print(f"{'\u2550'*78}\n")
-        print("\ud83d\udd12 Remember: Use findings responsibly and report vulnerabilities ethically!\n")
+            safe_print(f"  {get_icon('warning')} Errors encountered: {len(self.errors)}")
+        safe_print(f"  {get_icon('folder')} Output directory: {self.output_dir}/")
+        safe_print(f"  {get_icon('file')} Files generated:")
+        safe_print(f"       - bypasses.json")
+        safe_print(f"       - live_paths.json")
+        safe_print(f"       - vulns.json")
+        safe_print(f"       - backend_recon.json")
+        safe_print(f"       - REPORT.md")
+        safe_print(f"{border*78}\n")
+        safe_print(f"{get_icon('lock')} Remember: Use findings responsibly and report vulnerabilities ethically!\n")
         
         logger.info(f"Pentest complete: {completed_phases}/{len(phases)} phases successful")
         
         return 0 if completed_phases == len(phases) else 1
-
 
 def main():
     """Main entry point with comprehensive error handling"""
