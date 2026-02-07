@@ -9,7 +9,9 @@
 
 ## What is WAFPierce?
 
-WAFPierce is a specialized penetration testing tool that identifies WAF (Web Application Firewall) bypass techniques specifically for AWS CloudFront distributions. It automates the discovery of misconfigurations and bypass vectors that could expose backend applications.
+WAFPierce is a WAF/CDN assessment and bypass validation tool for penetration testing and security research.
+It fingerprints 17+ WAF vendors and 12+ CDN providers, then tests 35+ bypass/evasion techniques using baseline + heuristic comparisons (status codes, response size, hashes) to confirm real bypasses—even when defenses return  OK.
+It also supports rate-limit detection, API endpoint and directory discovery, protocol-level testing (request smuggling, HTTP/2 downgrade, WebSocket tunneling), injection payload testing (SQLi, XSS, SSRF, traversal, command injection), AWS recon (related S3 buckets), a clean GUI, optimized parallel performance, and automated Markdown reporting.
 
 **Key Features:**
 - **WAF Detection & Fingerprinting** - Identifies 17+ WAF vendors (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, and more)
