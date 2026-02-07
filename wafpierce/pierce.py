@@ -867,7 +867,7 @@ class CloudFrontBypasser:
             current_hash = hashlib.md5(response.content).hexdigest()
             size_diff = abs(current_size - self._baseline_size)
             size_diff_percent = (size_diff / self._baseline_size) * 100 if self._baseline_size > 0 else 0
-            #This is evil code fellas >;)
+            
             # CRITICAL: Status code changed from blocked to allowed
             if self._baseline_status in [403, 401] and response.status_code == 200:
                 return {
@@ -1668,11 +1668,190 @@ class CloudFrontBypasser:
             results.append(r)
             
         return results
-
-    # ============================================================================
-    # EXTENDED DETECTION & SCANNING
-    # ============================================================================
     
+    def _enumerate_subdomains(self) -> List[Dict[str, Any]]:
+        """Basic subdomain enumeration"""
+        print("  [*] Enumerating subdomains...")
+        results = []
+        
+        common_subdomains = [
+            "www", "api", "dev", "staging", "test", "admin", "portal",
+            "app", "mail", "ftp", "blog", "shop", "store", "mobile"
+        ]
+        
+        found_subdomains = []
+        
+        for subdomain in common_subdomains:
+            fqdn = f"{subdomain}.{self.domain}"
+            try:
+                socket.gethostbyname(fqdn)
+                found_subdomains.append(fqdn)
+            except socket.gaierror:
+                pass
+        
+        if found_subdomains:
+            result = {
+                'technique': 'Subdomain Enumeration',
+                'bypass': False,
+                'status': 0,
+                'reason': f'Found {len(found_subdomains)} subdomains',
+                'severity': 'INFO',
+                'category': 'RECONNAISSANCE',
+                'details': {'subdomains': found_subdomains}
+            }
+            results.append(result)
+            print(f"    Found subdomains: {', '.join(found_subdomains[:5])}")
+        
+        return results
+
+    def _historical_dns_lookup(self) -> List[Dict[str, Any]]:
+        """Discover old IP addresses via DNS history"""
+        print("  [*] Checking historical DNS records...")
+        results = []
+        
+        try:
+            current_ips = set()
+            try:
+                addr_info = socket.getaddrinfo(self.domain, 443)
+                for info in addr_info:
+                    current_ips.add(info[4][0])
+            except Exception as e:
+                logger.debug(f"DNS lookup error: {e}")
+                return results
+            
+            result = {
+                'technique': 'Historical DNS Lookup',
+                'bypass': False,
+                'status': 0,
+                'reason': f'Current IPs: {", ".join(current_ips)}',
+                'severity': 'INFO',
+                'category': 'RECONNAISSANCE'
+            }
+            results.append(result)
+            print(f"    Current IP(s): {', '.join(current_ips)}")
+            
+        except Exception as e:
+            logger.debug(f"Historical DNS lookup error: {e}")
+        
+        return results
+
+    def _certificate_transparency_lookup(self) -> List[Dict[str, Any]]:
+        """Enumerate subdomains via certificate transparency logs"""
+        print("  [*] Checking certificate transparency logs...")
+        results = []
+        
+        try:
+            context = ssl.create_default_context()
+            with socket.create_connection((self.domain, 443), timeout=self.timeout) as sock:
+                with context.wrap_socket(sock, server_hostname=self.domain) as ssock:
+                    cert = ssock.getpeercert()
+                    
+                    san_list = []
+                    if 'subjectAltName' in cert:
+                        san_list = [alt[1] for alt in cert['subjectAltName'] if alt[0] == 'DNS']
+                    
+                    result = {
+                        'technique': 'Certificate Transparency',
+                        'bypass': False,
+                        'status': 0,
+                        'reason': f'Found {len(san_list)} domains in certificate',
+                        'severity': 'INFO',
+                        'category': 'RECONNAISSANCE',
+                        'details': {'subdomains': san_list[:10]}
+                    }
+                    results.append(result)
+                    print(f"    Found {len(san_list)} domains in certificate")
+                    
+        except Exception as e:
+            logger.debug(f"Certificate transparency lookup error: {e}")
+        
+        return results
+
+    def _test_cloud_metadata_enumeration(self) -> List[Dict[str, Any]]:
+        """Test access to cloud provider metadata endpoints"""
+        print("  [*] Testing cloud metadata enumeration...")
+        results = []
+        
+        metadata_tests = [
+            ("169.254.169.254", "/latest/meta-data/", "AWS Metadata"),
+            ("169.254.169.254", "/latest/user-data", "AWS User Data"),
+            ("169.254.169.254", "/computeMetadata/v1/", "GCP Metadata"),
+        ]
+        
+        for host, path, cloud_type in metadata_tests:
+            test_cases = [
+                {'headers': {'X-Forwarded-Host': host}, 'path': path, 'technique': f'Cloud Meta {cloud_type}'},
+                {'headers': {'Host': host}, 'path': path, 'technique': f'Cloud Host: {cloud_type}'},
+            ]
+            
+            batch_results = self._batch_test(test_cases, verbose=False)
+            for r in batch_results:
+                if r.get('bypass'):
+                    r['severity'] = 'CRITICAL'
+                    r['category'] = 'CLOUDMETADATA'
+                    results.append(r)
+                    print(f"    [✓] CRITICAL: {cloud_type} accessible!")
+        
+        return results
+
+    def _fingerprint_technology_stack(self) -> List[Dict[str, Any]]:
+        """Fingerprint backend technology stack"""
+        print("  [*] Fingerprinting technology stack...")
+        results = []
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            tech_headers = {
+                'X-Powered-By': 'Backend Technology',
+                'X-AspNet-Version': 'ASP.NET',
+                'Server': 'Web Server',
+                'X-Generator': 'CMS/Framework',
+            }
+            
+            for header, tech_type in tech_headers.items():
+                if header.lower() in [h.lower() for h in resp.headers]:
+                    value = resp.headers.get(header, "")
+                    result = {
+                        'technique': f'Tech Stack: {tech_type}',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': f'Detected: {value}',
+                        'severity': 'INFO',
+                        'category': 'TECHFINGERPRINT'
+                    }
+                    results.append(result)
+                    print(f"    Detected: {tech_type} = {value}")
+            
+            framework_paths = [
+                ("/.env", "Environment File"),
+                ("/composer.json", "PHP Composer"),
+                ("/package.json", "Node.js"),
+                ("/.git/config", "Git Repository"),
+            ]
+            
+            for path, tech in framework_paths:
+                test_resp = safe_request(f"{self.target}{path}", timeout=self.timeout)
+                if test_resp and test_resp.status_code in [200, 403]:
+                    result = {
+                        'technique': f'Tech Discovery: {tech}',
+                        'bypass': test_resp.status_code == 200,
+                        'status': test_resp.status_code,
+                        'reason': f'{tech} accessible at {path}',
+                        'severity': 'MEDIUM' if test_resp.status_code == 200 else 'LOW',
+                        'category': 'TECHFINGERPRINT'
+                    }
+                    results.append(result)
+                    if test_resp.status_code == 200:
+                        print(f"    [✓] Found: {tech}")
+            
+        except Exception as e:
+            logger.debug(f"Tech fingerprinting error: {e}")
+        
+        return results
+
     def _detect_waf_rule_version(self) -> List[Dict[str, Any]]:
         """Detect WAF rule set versions (OWASP CRS, etc.)"""
         results = []

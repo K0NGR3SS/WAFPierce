@@ -27,8 +27,6 @@ from .error_handler import (
 logger = logging.getLogger(__name__)
 
 
-# ============= Banner and Disclaimer =============
-
 DISCLAIMER_BANNER = """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
@@ -43,7 +41,7 @@ DISCLAIMER_BANNER = """
 ║                                                                              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║  ⚠️  LEGAL DISCLAIMER - READ BEFORE PROCEEDING ⚠️                             ║
+║  ⚠️  LEGAL DISCLAIMER - READ BEFORE PROCEEDING ⚠️                              ║
 ║                                                                              ║
 ║  This tool is designed for AUTHORIZED security testing ONLY.                 ║
 ║                                                                              ║
@@ -60,7 +58,7 @@ DISCLAIMER_BANNER = """
 ║  • Computer Misuse Act - UK                                                  ║
 ║  • Similar laws in your jurisdiction                                         ║
 ║                                                                              ║
-║  🔒 USE RESPONSIBLY • TEST ETHICALLY • REPORT VULNERABILITIES 🔒             ║
+║  🔒 USE RESPONSIBLY • TEST ETHICALLY • REPORT VULNERABILITIES 🔒              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
