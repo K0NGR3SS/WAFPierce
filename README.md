@@ -103,6 +103,7 @@ wafpierce https://target.cloudfront.net -o my_results
 # Run just the bypass scanner
 python3 -m wafpierce.pierce https://target.cloudfront.net -t 10
 ```
+
 ## Bypass Techniques
 
 WAFPierce tests the following bypass methods:
@@ -131,29 +132,43 @@ WAFPierce tests the following bypass methods:
 17. **HTTP Pipelining** - Connection keep-alive abuse
 18. **Chunked Transfer** - Split payloads across chunks
 19. **HTTP Method Bypass** - Tests non-standard methods (TRACE, OPTIONS, PUT, DELETE)
+20. **HTTP Method Override** - X-HTTP-Method-Override header manipulation
+21. **Advanced Request Smuggling** - H2.CL, H2.TE, TE.TE variations, HTTP/3 downgrade attempts
 
 ### Cache & Control
-20. **Cache-Control** - Cache directive manipulation
-21. **Cache Poisoning** - Unkeyed header injection
-22. **Range Header** - Partial content bypasses
+22. **Cache-Control** - Cache directive manipulation
+23. **Cache Poisoning** - Unkeyed header injection (X-Forwarded-Host, X-Original-URL)
+24. **Range Header** - Partial content bypasses
 
 ### Payload Evasion
-23. **SQLi Bypass** - WAF-evading SQL injection payloads (comment obfuscation, case variation, encoding)
-24. **XSS Bypass** - Cross-site scripting evasion (tag manipulation, event handlers, encoding)
-25. **Command Injection Bypass** - OS command injection evasion (IFS, encoding, chaining)
-26. **Path Traversal Bypass** - Directory traversal evasion (encoding, null bytes, normalization)
-27. **SSRF Bypass** - Server-side request forgery evasion (IP formats, DNS rebinding, protocol smuggling)
-28. **HTTP Parameter Pollution** - Duplicate parameters to confuse parsing
+25. **SQLi Bypass** - WAF-evading SQL injection payloads (comment obfuscation, case variation, encoding)
+26. **XSS Bypass** - Cross-site scripting evasion (tag manipulation, event handlers, encoding)
+27. **Command Injection Bypass** - OS command injection evasion (IFS, encoding, chaining)
+28. **Path Traversal Bypass** - Directory traversal evasion (encoding, null bytes, normalization)
+29. **SSRF Bypass** - Server-side request forgery evasion (IP formats, DNS rebinding, protocol smuggling)
+30. **HTTP Parameter Pollution** - Duplicate parameters to confuse parsing
+31. **Polyglot Payloads** - Multi-context payloads (XSS+SQLi, SSTI+XSS, universal escapes)
+32. **Payload Mutation Engine** - Automated payload variations (case, encoding, unicode, whitespace)
+33. **GraphQL Bypass** - GraphQL introspection, batching, and complexity abuse
+34. **JWT/OAuth Bypass** - Token manipulation (algorithm confusion, null signature, KID injection, scope escalation)
+35. **Time-Based Blind Detection** - Response timing analysis for SQL injection and WAF processing delays
+36. **Race Condition Testing** - Concurrent requests to exploit timing windows
 
 ### Detection & Reconnaissance
-29. **WAF Fingerprinting** - Identifies WAF vendor and version (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, Barracuda, Fortinet, and more)
-30. **CDN Detection** - Identifies CDN provider (CloudFront, Akamai, Fastly, Cloudflare, etc.)
-31. **Rate Limit Detection** - Identifies request thresholds
-32. **Bot Detection Evasion** - User-Agent rotation, browser fingerprint simulation
-33. **API Endpoint Discovery** - Finds unprotected /api/, /graphql, /swagger, /actuator endpoints
-34. **IPv6 Bypass** - Direct IPv6 connection attempts
-35. **Content-Type Bypass** - MIME type confusion attacks
-
+37. **WAF Fingerprinting** - Identifies WAF vendor and version (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, Barracuda, Fortinet, and 20+ more)
+38. **WAF Rule Version Detection** - Identifies OWASP CRS version and active rule IDs
+39. **JavaScript WAF Detection** - Detects client-side protection (PerimeterX, DataDome, HUMAN Security, Kasada, Shape Security, Distil)
+40. **CDN Detection** - Identifies CDN provider (CloudFront, Akamai, Fastly, Cloudflare, etc.)
+41. **Rate Limit Detection** - Identifies request thresholds and rate limiting headers
+42. **Bot Detection Evasion** - User-Agent rotation, browser fingerprint simulation (Googlebot, legitimate browsers)
+43. **API Endpoint Discovery** - Finds unprotected /api/, /graphql, /swagger, /actuator, /health endpoints
+44. **IPv6 Bypass** - Direct IPv6 connection attempts to bypass IPv4-only WAF rules
+45. **Content-Type Bypass** - MIME type confusion attacks
+46. **Subdomain Enumeration** - Discovers subdomains (www, api, dev, staging, admin) via DNS resolution
+47. **Certificate Transparency Lookup** - Extracts domains from SSL certificate SANs
+48. **Historical DNS Lookup** - Finds origin IPs via DNS history to bypass CDN/WAF
+49. **Cloud Metadata Enumeration** - Tests SSRF to cloud IMDS endpoints (AWS, GCP, Azure) for credential exposure
+50. **Technology Stack Fingerprinting** - Identifies frameworks (Django, Rails, Laravel), CMS (WordPress, Drupal), servers (nginx, Apache), and exposed config files
 
 
 ## Requirements
@@ -208,4 +223,4 @@ The authors assume **NO LIABILITY** for misuse. This software is provided "AS IS
 
 
 
-######There are hidden things in this program, can you find them all?
+####There are hidden things in this program, can you find them all?
