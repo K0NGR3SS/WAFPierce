@@ -197,8 +197,8 @@ This tool is designed for learning. Recommended resources:
 
 ## Authors
 
-- Nazariy Buryak
-- Marwan Fayad
+- [Nazariy Buryak](https://github.com/K0NGR3SS)
+- [Marwan Fayad](https://github.com/Marwan-verse)
 
 ## Legal Disclaimer
 
