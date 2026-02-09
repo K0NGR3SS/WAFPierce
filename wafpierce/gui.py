@@ -312,6 +312,8 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'target': 'Ціль',
         'status': 'Статус',
         'output': 'Вивід',
+        'Done': 'Завершено',
+        'Queued': 'В черзі',
         'results': '📊 Результати',
         'start': 'Старт',
         'stop': 'Стоп',
@@ -391,7 +393,7 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'comfortable': 'комфортний',
         'spacious': 'просторий',
         'description': 'Опис',
-        'legal_disclaimer': """WAFPierce – Юридична відмова
+        'legal_disclaimer': """WAFPierce – Юридична відомість
 
 ТІЛЬКИ ДЛЯ АВТОРИЗОВАНОГО ТЕСТУВАННЯ БЕЗПЕКИ
 
