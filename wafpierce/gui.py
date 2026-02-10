@@ -1198,7 +1198,7 @@ def main() -> None:
                 elif lower == 'whoami':
                     self._trigger_whoami_easter_egg()
                     self.target_edit.clear()
-                elif lower == '1337':
+                elif lower == 'syria':
                     self._trigger_leet_easter_egg()
                     self.target_edit.clear()
             except Exception:
@@ -1287,16 +1287,18 @@ def main() -> None:
                 pass
 
         def _trigger_leet_easter_egg(self):
-            """1337 speak mode."""
+            """syria -> 5yr14 """
             try:
                 self.append_log('\n' + '='*50)
-                self.append_log('1337 H4X0R M0D3 4C71V473D!')
+                self.append_log('syria -> 5yr14')
                 self.append_log('='*50)
-                self.append_log('  Y0U 4R3 N0W 4 7RU3 H4CK3R!')
-                self.append_log('  R3M3MB3R: W17H GR347 P0W3R...')
-                self.append_log('  C0M35 GR347 R35P0N51B1L17Y!')
+                self.append_log('   ')
+                self.append_log('  im a cyber student and im from syria')
+                self.append_log('  i live through a war and i want to be a penetration tester')
                 self.append_log('='*50)
-                self.append_log('  PR0 71P: Try "hack the planet" 😉')
+                self.append_log('  threw out the years i have learned a lot and i want to share my knowledge with the world')
+                self.append_log('  i started on a shitty laptop in syria with a slow internet connection and now im here with a cool gui for my tool')
+                self.append_log('  threw out the years i have learned a lot and i want to share my knowledge with the world')
                 self.append_log('='*50 + '\n')
             except Exception:
                 pass
@@ -2474,4 +2476,4 @@ if __name__ == '__main__':
 #           ||w--||     \|/
 #       \|/
 # there are 5 easter eggs hidden in this codebase
-# can you find them all?
+# can you find them all ?

