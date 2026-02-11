@@ -72,7 +72,7 @@ TRANSLATIONS = {
         'target_url': 'Target URL:',
         'add': 'Add',
         'remove': 'Remove',
-        'settings': 'Settings',
+        'settings': 'Settings ⚙️',
         'threads': 'Threads:',
         'concurrent': 'Concurrent:',
         'use_concurrent': 'Use concurrent targets',
@@ -163,6 +163,25 @@ TRANSLATIONS = {
         'comfortable': 'comfortable',
         'spacious': 'spacious',
         'description': 'Description',
+        'select_scan_types': 'Select Scan Types',
+        'select_all': 'Select All',
+        'deselect_all': 'Deselect All',
+        'start_scan': 'Start Scan',
+        'header_manipulation': 'Header Manipulation',
+        'encoding_obfuscation': 'Encoding & Obfuscation',
+        'protocol_level': 'Protocol-Level Attacks',
+        'cache_control': 'Cache & Control',
+        'injection_testing': 'Injection Testing',
+        'security_misconfig': 'Security Misconfigurations',
+        'business_logic': 'Business Logic & Authorization',
+        'jwt_auth': 'JWT & Authentication Attacks',
+        'graphql_attacks': 'GraphQL Attacks',
+        'ssrf_advanced': 'SSRF Advanced',
+        'pdf_document': 'PDF/Document Attacks',
+        'cloud_security': 'Cloud Security',
+        'advanced_payloads': 'Advanced Payloads',
+        'info_disclosure': 'Information Disclosure',
+        'detection_recon': 'Detection & Reconnaissance',
         'legal_disclaimer': """WAFPierce – Legal Disclaimer
 
 FOR AUTHORIZED SECURITY TESTING ONLY
@@ -186,7 +205,7 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'target_url': 'رابط الهدف:',
         'add': 'إضافة',
         'remove': 'إزالة',
-        'settings': 'الإعدادات',
+        'settings': 'الإعدادات ⚙️',
         'threads': 'الخيوط:',
         'concurrent': 'متزامن:',
         'use_concurrent': 'استخدام أهداف متزامنة',
@@ -277,6 +296,25 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'comfortable': 'مريح',
         'spacious': 'واسع',
         'description': 'الوصف',
+        'select_scan_types': 'اختر أنواع الفحص',
+        'select_all': 'تحديد الكل',
+        'deselect_all': 'إلغاء تحديد الكل',
+        'start_scan': 'بدء الفحص',
+        'header_manipulation': 'معالجة الترويسات',
+        'encoding_obfuscation': 'الترميز والتشويش',
+        'protocol_level': 'هجمات مستوى البروتوكول',
+        'cache_control': 'التخزين المؤقت والتحكم',
+        'injection_testing': 'اختبار الحقن',
+        'security_misconfig': 'أخطاء التكوين الأمني',
+        'business_logic': 'منطق الأعمال والترخيص',
+        'jwt_auth': 'هجمات JWT والمصادقة',
+        'graphql_attacks': 'هجمات GraphQL',
+        'ssrf_advanced': 'SSRF متقدم',
+        'pdf_document': 'هجمات PDF/المستندات',
+        'cloud_security': 'أمان السحابة',
+        'advanced_payloads': 'حمولات متقدمة',
+        'info_disclosure': 'كشف المعلومات',
+        'detection_recon': 'الكشف والاستطلاع',
         'legal_disclaimer': """WAFPierce - إخلاء المسؤولية القانونية
 
 لاختبار الأمان المصرح به فقط
@@ -300,7 +338,7 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'target_url': 'URL цілі:',
         'add': 'Додати',
         'remove': 'Видалити',
-        'settings': 'Налаштування',
+        'settings': 'Налаштування ⚙️',
         'threads': 'Потоки:',
         'concurrent': 'Паралельно:',
         'use_concurrent': 'Використовувати паралельні цілі',
@@ -393,6 +431,25 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'comfortable': 'комфортний',
         'spacious': 'просторий',
         'description': 'Опис',
+        'select_scan_types': 'Виберіть типи сканування',
+        'select_all': 'Вибрати все',
+        'deselect_all': 'Зняти все',
+        'start_scan': 'Почати сканування',
+        'header_manipulation': 'Маніпуляції з заголовками',
+        'encoding_obfuscation': 'Кодування та обфускація',
+        'protocol_level': 'Атаки на рівні протоколу',
+        'cache_control': 'Кеш та контроль',
+        'injection_testing': 'Тестування ін\'єкцій',
+        'security_misconfig': 'Помилки конфігурації безпеки',
+        'business_logic': 'Бізнес-логіка та авторизація',
+        'jwt_auth': 'Атаки JWT та автентифікації',
+        'graphql_attacks': 'Атаки GraphQL',
+        'ssrf_advanced': 'Розширений SSRF',
+        'pdf_document': 'Атаки PDF/документів',
+        'cloud_security': 'Хмарна безпека',
+        'advanced_payloads': 'Розширені навантаження',
+        'info_disclosure': 'Розкриття інформації',
+        'detection_recon': 'Виявлення та розвідка',
         'legal_disclaimer': """WAFPierce – Юридична відомість
 
 ТІЛЬКИ ДЛЯ АВТОРИЗОВАНОГО ТЕСТУВАННЯ БЕЗПЕКИ
@@ -566,6 +623,71 @@ def _show_missing_packages_error():
     sys.exit(1)
 
 
+# ==================== SCAN CATEGORIES FOR GUI ====================
+SCAN_CATEGORIES_GUI = {
+    'header_manipulation': {
+        'name_key': 'header_manipulation',
+        'description': 'Tests for header-based bypass techniques including Host header injection, X-Forwarded-For spoofing, and custom header fuzzing.',
+    },
+    'encoding_obfuscation': {
+        'name_key': 'encoding_obfuscation',
+        'description': 'Tests for encoding-based WAF bypass including double encoding, Unicode normalization, case manipulation, and comment injection.',
+    },
+    'protocol_level': {
+        'name_key': 'protocol_level',
+        'description': 'Tests for protocol-level vulnerabilities including HTTP/2 attacks, WebSocket security, request smuggling, and chunked transfer.',
+    },
+    'cache_control': {
+        'name_key': 'cache_control',
+        'description': 'Tests for cache-based attacks including cache poisoning, cache control bypass, and web cache deception.',
+    },
+    'injection_testing': {
+        'name_key': 'injection_testing',
+        'description': 'Tests for various injection vulnerabilities including SQL, XSS, command injection, SSTI, XXE, and more.',
+    },
+    'security_misconfig': {
+        'name_key': 'security_misconfig',
+        'description': 'Tests for security misconfigurations including CORS, security headers, cookie security, and clickjacking.',
+    },
+    'business_logic': {
+        'name_key': 'business_logic',
+        'description': 'Tests for business logic flaws including IDOR, mass assignment, API versioning bypass, and authorization issues.',
+    },
+    'jwt_auth': {
+        'name_key': 'jwt_auth',
+        'description': 'Tests for JWT vulnerabilities and authentication bypass techniques.',
+    },
+    'graphql_attacks': {
+        'name_key': 'graphql_attacks',
+        'description': 'Tests for GraphQL-specific vulnerabilities including introspection, batching attacks, and injection.',
+    },
+    'ssrf_advanced': {
+        'name_key': 'ssrf_advanced',
+        'description': 'Tests for Server-Side Request Forgery including protocol smuggling and DNS rebinding.',
+    },
+    'pdf_document': {
+        'name_key': 'pdf_document',
+        'description': 'Tests for PDF and document-based attack vectors.',
+    },
+    'cloud_security': {
+        'name_key': 'cloud_security',
+        'description': 'Tests for cloud-specific vulnerabilities including S3, Azure Blob, GCP bucket enumeration, and serverless functions.',
+    },
+    'advanced_payloads': {
+        'name_key': 'advanced_payloads',
+        'description': 'Advanced attack payloads including time-based detection, buffer limits, and integer overflow.',
+    },
+    'info_disclosure': {
+        'name_key': 'info_disclosure',
+        'description': 'Tests for information disclosure including API key exposure, error-based disclosure, and timing-based discovery.',
+    },
+    'detection_recon': {
+        'name_key': 'detection_recon',
+        'description': 'WAF detection, fingerprinting, and reconnaissance including subdomain enumeration and DNS lookups.',
+    },
+}
+
+
 def _show_disclaimer_qt(app) -> bool:
     """Show legal disclaimer using PySide6/Qt. Returns True if user agrees, False otherwise."""
     from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
@@ -664,7 +786,7 @@ def main() -> None:
         # emit per-target summary: target, done_list, errors_list
         target_summary = Signal(str, object, object)
 
-        def __init__(self, targets, threads, delay, concurrent=1, use_concurrent=True, retry_failed=0, parent=None):
+        def __init__(self, targets, threads, delay, concurrent=1, use_concurrent=True, retry_failed=0, selected_categories=None, parent=None):
             super().__init__(parent)
             self.targets = targets
             self.threads = threads
@@ -672,6 +794,7 @@ def main() -> None:
             self.concurrent = concurrent
             self.use_concurrent = use_concurrent
             self.retry_failed = int(retry_failed)
+            self.selected_categories = selected_categories  # List of category keys or None for all
             self._abort = False
             # track running subprocesses so abort() can terminate them
             self._running_procs = {}
@@ -724,6 +847,9 @@ def main() -> None:
 
                     # Use -u flag for unbuffered Python output to get real-time streaming
                     cmd = [sys.executable, '-u', '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
+                    # Add categories if specified
+                    if self.selected_categories and len(self.selected_categories) > 0:
+                        cmd.extend(['-c', ','.join(self.selected_categories)])
                     env = os.environ.copy()
                     env['PYTHONIOENCODING'] = 'utf-8'
                     env['PYTHONUNBUFFERED'] = '1'  # Force unbuffered output
@@ -1403,6 +1529,13 @@ def main() -> None:
             if not targets:
                 QMessageBox.warning(self, _t('missing_target', self._lang), _t('add_target_msg', self._lang))
                 return
+            
+            # Show scan category selection dialog
+            selected_categories = self._show_scan_selection_dialog()
+            if selected_categories is None:
+                # User cancelled
+                return
+            
             threads = int(self.threads_spin.value())
             delay = float(self.delay_spin.value())
             # reset
@@ -1426,7 +1559,7 @@ def main() -> None:
                 self._prefs = prefs
             except Exception:
                 pass
-            self._worker = QtWorker(targets, threads, delay, concurrent_val, use_concurrent, retry_failed)
+            self._worker = QtWorker(targets, threads, delay, concurrent_val, use_concurrent, retry_failed, selected_categories)
             self._worker_thread = QtCore.QThread()
             self._worker.moveToThread(self._worker_thread)
             self._worker.log_line.connect(self.append_log)
@@ -1445,6 +1578,210 @@ def main() -> None:
                 self.delay_spin.setEnabled(False)
             except Exception:
                 pass
+
+        def _show_scan_selection_dialog(self):
+            """Show dialog for selecting scan categories. Returns list of selected category keys or None if cancelled."""
+            try:
+                from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QScrollArea,
+                                               QLabel, QPushButton, QCheckBox, QWidget, QGridLayout)
+                from PySide6.QtCore import Qt
+                from PySide6.QtGui import QFont, QCursor, QFontDatabase
+                
+                # Find a font that supports Unicode (Arabic, Cyrillic, etc.)
+                try:
+                    families = set(QFontDatabase.families())
+                except Exception:
+                    try:
+                        families = set(QFontDatabase().families())
+                    except Exception:
+                        families = set()
+                
+                unicode_fonts = ["Segoe UI", "Arial", "Noto Sans", "Tahoma", "Microsoft Sans Serif", "DejaVu Sans"]
+                selected_font = next((f for f in unicode_fonts if f in families), "")
+                
+                dialog = QDialog(self)
+                dialog.setWindowTitle(_t('select_scan_types', self._lang))
+                dialog.setFixedSize(1020, 320)
+                dialog.setStyleSheet(f"""
+                    QDialog {{ background-color: #0d1117; border: 1px solid #30363d; font-family: '{selected_font}'; }}
+                    QLabel {{ color: #e6edf3; font-family: '{selected_font}'; }}
+                    QCheckBox {{ 
+                        color: #e6edf3; 
+                        spacing: 8px;
+                        padding: 6px 10px;
+                        border-radius: 6px;
+                        background-color: transparent;
+                        font-family: '{selected_font}';
+                    }}
+                    QCheckBox:hover {{ background-color: #161b22; }}
+                    QCheckBox::indicator {{ width: 16px; height: 16px; border-radius: 4px; }}
+                    QCheckBox::indicator:unchecked {{ 
+                        background-color: #21262d; 
+                        border: 1px solid #30363d; 
+                    }}
+                    QCheckBox::indicator:checked {{ 
+                        background-color: #238636; 
+                        border: 1px solid #238636;
+                        image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiPjxwb2x5bGluZSBwb2ludHM9IjIwIDYgOSAxNyA0IDEyIj48L3BvbHlsaW5lPjwvc3ZnPg==);
+                    }}
+                    QPushButton {{ 
+                        padding: 6px 14px; 
+                        font-size: 12px; 
+                        font-weight: 600; 
+                        border-radius: 6px;
+                        border: 1px solid #30363d;
+                        background-color: #21262d;
+                        color: #e6edf3;
+                        font-family: '{selected_font}';
+                    }}
+                    QPushButton:hover {{ background-color: #30363d; border-color: #8b949e; }}
+                    QScrollArea {{ 
+                        background-color: transparent; 
+                        border: 1px solid #30363d; 
+                        border-radius: 8px;
+                    }}
+                    QScrollArea > QWidget > QWidget {{ background-color: transparent; }}
+                    QScrollBar:vertical {{
+                        background-color: #0d1117;
+                        width: 8px;
+                        border-radius: 4px;
+                    }}
+                    QScrollBar::handle:vertical {{
+                        background-color: #30363d;
+                        border-radius: 4px;
+                        min-height: 20px;
+                    }}
+                    QScrollBar::handle:vertical:hover {{ background-color: #484f58; }}
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+                """)
+                
+                layout = QVBoxLayout(dialog)
+                layout.setSpacing(12)
+                layout.setContentsMargins(16, 16, 16, 16)
+                
+                # Header row with title and action buttons
+                header_row = QHBoxLayout()
+                header = QLabel(_t('select_scan_types', self._lang))
+                header.setFont(QFont(selected_font, 13, QFont.Bold))
+                header.setStyleSheet(f"color: #58a6ff; font-family: '{selected_font}';")
+                header_row.addWidget(header)
+                header_row.addStretch()
+                
+                select_all_btn = QPushButton(_t('select_all', self._lang))
+                select_all_btn.setCursor(QCursor(Qt.PointingHandCursor))
+                select_all_btn.setStyleSheet('QPushButton { background-color: #238636; border-color: #238636; color: white; } QPushButton:hover { background-color: #2ea043; }')
+                deselect_all_btn = QPushButton(_t('deselect_all', self._lang))
+                deselect_all_btn.setCursor(QCursor(Qt.PointingHandCursor))
+                header_row.addWidget(select_all_btn)
+                header_row.addWidget(deselect_all_btn)
+                layout.addLayout(header_row)
+                
+                # Scroll area for categories
+                scroll = QScrollArea()
+                scroll.setWidgetResizable(True)
+                scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                
+                scroll_widget = QWidget()
+                scroll_widget.setStyleSheet('background-color: #0d1117;')
+                grid = QGridLayout(scroll_widget)
+                grid.setSpacing(4)
+                grid.setContentsMargins(8, 8, 8, 8)
+                
+                # Store checkboxes for each category
+                category_checkboxes = {}
+                
+                # Category icons (emoji for visual appeal)
+                cat_icons = {
+                    'header_manipulation': '🔧',
+                    'encoding_obfuscation': '🔐',
+                    'protocol_level': '📡',
+                    'cache_control': '💾',
+                    'injection_testing': '💉',
+                    'security_misconfig': '⚙️',
+                    'business_logic': '🏢',
+                    'jwt_auth': '🔑',
+                    'graphql_attacks': '📊',
+                    'ssrf_advanced': '🌐',
+                    'pdf_document': '📄',
+                    'cloud_security': '☁️',
+                    'advanced_payloads': '🚀',
+                    'info_disclosure': '🔍',
+                    'detection_recon': '🎯',
+                }
+                
+                row, col = 0, 0
+                for cat_key, cat_info in SCAN_CATEGORIES_GUI.items():
+                    icon = cat_icons.get(cat_key, '•')
+                    cb = QCheckBox(f"{icon}  {_t(cat_info['name_key'], self._lang)}")
+                    cb.setChecked(True)
+                    cb.setToolTip(cat_info['description'])
+                    cb.setCursor(QCursor(Qt.PointingHandCursor))
+                    cb.setFont(QFont(selected_font, 10))
+                    category_checkboxes[cat_key] = cb
+                    grid.addWidget(cb, row, col)
+                    
+                    col += 1
+                    if col > 3:  # 2 columns
+                        col = 0
+                        row += 1
+                
+                grid.setRowStretch(row + 1, 1)
+                scroll.setWidget(scroll_widget)
+                layout.addWidget(scroll, 1)
+                
+                # Selected count label
+                count_label = QLabel(f"✓ {len(category_checkboxes)} / {len(category_checkboxes)} selected")
+                count_label.setStyleSheet('color: #8b949e; font-size: 11px;')
+                
+                def update_count():
+                    selected = sum(1 for cb in category_checkboxes.values() if cb.isChecked())
+                    count_label.setText(f"✓ {selected} / {len(category_checkboxes)} selected")
+                
+                for cb in category_checkboxes.values():
+                    cb.stateChanged.connect(update_count)
+                
+                # Connect Select All / Deselect All
+                def select_all():
+                    for cb in category_checkboxes.values():
+                        cb.setChecked(True)
+                
+                def deselect_all():
+                    for cb in category_checkboxes.values():
+                        cb.setChecked(False)
+                
+                select_all_btn.clicked.connect(select_all)
+                deselect_all_btn.clicked.connect(deselect_all)
+                
+                # Bottom row
+                bottom_layout = QHBoxLayout()
+                bottom_layout.addWidget(count_label)
+                bottom_layout.addStretch()
+                
+                cancel_btn = QPushButton(_t('cancel', self._lang))
+                cancel_btn.setCursor(QCursor(Qt.PointingHandCursor))
+                cancel_btn.clicked.connect(dialog.reject)
+                
+                start_btn = QPushButton(f"▶  {_t('start_scan', self._lang)}")
+                start_btn.setCursor(QCursor(Qt.PointingHandCursor))
+                start_btn.setStyleSheet('QPushButton { background-color: #238636; border-color: #238636; color: white; padding: 8px 20px; } QPushButton:hover { background-color: #2ea043; }')
+                start_btn.clicked.connect(dialog.accept)
+                
+                bottom_layout.addWidget(cancel_btn)
+                bottom_layout.addWidget(start_btn)
+                layout.addLayout(bottom_layout)
+                
+                # Show dialog
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    selected = [key for key, cb in category_checkboxes.items() if cb.isChecked()]
+                    if len(selected) == len(SCAN_CATEGORIES_GUI):
+                        return []
+                    return selected if selected else []
+                else:
+                    return None
+                    
+            except Exception as e:
+                print(f"[!] Error showing scan selection dialog: {e}")
+                return []
 
         def stop_scan(self):
             if self._worker:
@@ -1582,7 +1919,7 @@ def main() -> None:
         def _open_qt_settings(self):
             try:
                 dlg = QtWidgets.QDialog(self)
-                dlg.setWindowTitle(_t('settings', self._lang))
+                dlg.setWindowTitle(_t('settings ⚙️', self._lang))
                 layout = QtWidgets.QVBoxLayout(dlg)
 
                 try:

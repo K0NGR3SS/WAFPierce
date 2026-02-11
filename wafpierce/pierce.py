@@ -288,6 +288,205 @@ TECHNOLOGY_SIGNATURES = {
     },
 }
 
+# ==================== SCAN CATEGORIES ====================
+# Organized categories for GUI selection
+SCAN_CATEGORIES = {
+    'header_manipulation': {
+        'name': 'Header Manipulation',
+        'description': 'Tests for header-based bypass techniques including Host header injection, X-Forwarded-For spoofing, and custom header fuzzing.',
+        'techniques': [
+            '_test_host_header_injection',
+            '_test_x_forwarded_for',
+            '_test_x_forwarded_host',
+            '_test_x_original_url',
+            '_test_header_injection',
+            '_test_origin_header_bypass',
+            '_test_custom_header_fuzzing',
+            '_test_ip_spoofing_headers',
+            '_test_host_header_attacks',
+        ]
+    },
+    'encoding_obfuscation': {
+        'name': 'Encoding & Obfuscation',
+        'description': 'Tests for encoding-based WAF bypass including double encoding, Unicode normalization, case manipulation, and comment injection.',
+        'techniques': [
+            '_test_encoding_bypass',
+            '_test_double_encoding',
+            '_test_case_manipulation',
+            '_test_comment_injection',
+            '_test_whitespace_manipulation',
+            '_test_unicode_normalization',
+            '_test_payload_mutation',
+            '_test_polyglot_payloads',
+            '_test_path_normalization_extended',
+        ]
+    },
+    'protocol_level': {
+        'name': 'Protocol-Level Attacks',
+        'description': 'Tests for protocol-level vulnerabilities including HTTP/2 attacks, WebSocket security, request smuggling, and chunked transfer.',
+        'techniques': [
+            '_test_method_bypass',
+            '_test_http_method_override',
+            '_test_content_type_bypass',
+            '_test_http_parameter_pollution',
+            '_test_transfer_encoding_smuggling',
+            '_test_http2_downgrade',
+            '_test_http2_specific_attacks',
+            '_test_websocket_upgrade',
+            '_test_websocket_security',
+            '_test_chunked_transfer',
+            '_test_http_pipelining',
+            '_test_request_smuggling_v2',
+            '_test_http_desync',
+            '_test_verb_tampering_extended',
+            '_test_multipart_bypass',
+        ]
+    },
+    'cache_control': {
+        'name': 'Cache & Control',
+        'description': 'Tests for cache-based attacks including cache poisoning, cache control bypass, and web cache deception.',
+        'techniques': [
+            '_test_cache_control',
+            '_test_range_header',
+            '_test_cache_poisoning',
+            '_test_web_cache_deception',
+            '_test_range_header_attacks',
+        ]
+    },
+    'injection_testing': {
+        'name': 'Injection Testing',
+        'description': 'Tests for various injection vulnerabilities including SQL, XSS, command injection, SSTI, XXE, and more.',
+        'techniques': [
+            '_test_sqli_bypass',
+            '_test_xss_bypass',
+            '_test_command_injection_bypass',
+            '_test_path_traversal_bypass',
+            '_test_nosql_injection',
+            '_test_ldap_injection',
+            '_test_ssti_detection',
+            '_test_xxe_detection',
+            '_test_crlf_injection',
+            '_test_prototype_pollution',
+            '_test_json_injection',
+            '_test_deserialization',
+            '_test_ssi_injection',
+            '_test_log4shell_patterns',
+            '_test_dangling_markup',
+            '_test_css_injection',
+            '_test_xslt_injection',
+        ]
+    },
+    'security_misconfig': {
+        'name': 'Security Misconfigurations',
+        'description': 'Tests for security misconfigurations including CORS, security headers, cookie security, and clickjacking.',
+        'techniques': [
+            '_test_cors_misconfiguration',
+            '_test_open_redirect',
+            '_test_security_headers',
+            '_test_cookie_security',
+            '_test_clickjacking',
+            '_test_content_sniffing',
+            '_test_response_splitting',
+        ]
+    },
+    'business_logic': {
+        'name': 'Business Logic & Authorization',
+        'description': 'Tests for business logic flaws including IDOR, mass assignment, API versioning bypass, and authorization issues.',
+        'techniques': [
+            '_test_api_versioning_bypass',
+            '_test_mass_assignment',
+            '_test_idor_detection',
+            '_test_business_logic_flaws',
+            '_test_email_header_injection',
+            '_test_file_upload_bypass',
+            '_test_rate_limit_detection',
+            '_test_race_condition',
+        ]
+    },
+    'jwt_auth': {
+        'name': 'JWT & Authentication Attacks',
+        'description': 'Tests for JWT vulnerabilities and authentication bypass techniques.',
+        'techniques': [
+            '_test_jwt_oauth_bypass',
+            '_test_jwt_attacks',
+        ]
+    },
+    'graphql_attacks': {
+        'name': 'GraphQL Attacks',
+        'description': 'Tests for GraphQL-specific vulnerabilities including introspection, batching attacks, and injection.',
+        'techniques': [
+            '_test_graphql_bypass',
+            '_test_graphql_deep_testing',
+        ]
+    },
+    'ssrf_advanced': {
+        'name': 'SSRF Advanced',
+        'description': 'Tests for Server-Side Request Forgery including protocol smuggling and DNS rebinding.',
+        'techniques': [
+            '_test_ssrf_bypass',
+            '_test_ssrf_protocol_smuggling',
+            '_test_dns_rebinding',
+        ]
+    },
+    'pdf_document': {
+        'name': 'PDF/Document Attacks',
+        'description': 'Tests for PDF and document-based attack vectors.',
+        'techniques': [
+            '_test_pdf_injection',
+            '_test_postmessage_vulnerabilities',
+            '_test_rpo_attack',
+        ]
+    },
+    'cloud_security': {
+        'name': 'Cloud Security',
+        'description': 'Tests for cloud-specific vulnerabilities including S3, Azure Blob, GCP bucket enumeration, and serverless functions.',
+        'techniques': [
+            '_test_azure_blob_enumeration',
+            '_test_gcp_bucket_discovery',
+            '_test_serverless_functions',
+            '_test_kubernetes_api',
+            '_test_cloud_provider_detection',
+            '_test_cloud_metadata_enumeration',
+        ]
+    },
+    'advanced_payloads': {
+        'name': 'Advanced Payloads',
+        'description': 'Advanced attack payloads including time-based detection, buffer limits, and integer overflow.',
+        'techniques': [
+            '_test_time_based_detection',
+            '_test_buffer_limits',
+            '_test_integer_overflow',
+            '_test_bot_detection_evasion',
+            '_test_ipv6_bypass',
+        ]
+    },
+    'info_disclosure': {
+        'name': 'Information Disclosure',
+        'description': 'Tests for information disclosure including API key exposure, error-based disclosure, and timing-based discovery.',
+        'techniques': [
+            '_test_information_disclosure',
+            '_test_subdomain_takeover',
+            '_test_api_key_exposure',
+            '_test_timing_based_discovery',
+            '_test_error_based_disclosure',
+        ]
+    },
+    'detection_recon': {
+        'name': 'Detection & Reconnaissance',
+        'description': 'WAF detection, fingerprinting, and reconnaissance including subdomain enumeration and DNS lookups.',
+        'techniques': [
+            '_detect_waf_rule_version',
+            '_detect_javascript_waf',
+            '_test_api_endpoint_discovery',
+            '_test_dns_zone_transfer',
+            '_enumerate_subdomains',
+            '_historical_dns_lookup',
+            '_certificate_transparency_lookup',
+            '_fingerprint_technology_stack',
+        ]
+    },
+}
+
 # CDN Signatures
 CDN_SIGNATURES = {
     'cloudflare': {
@@ -501,9 +700,12 @@ class CloudFrontBypasser:
                 details={'timeout': timeout}
             )
     
-    def scan(self) -> List[Dict[str, Any]]:
+    def scan(self, selected_categories: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
-        Run all bypass techniques
+        Run bypass techniques based on selected categories
+        
+        Args:
+            selected_categories: List of category keys to run, or None for all
         
         Returns:
             List of successful bypass results
@@ -562,152 +764,133 @@ class CloudFrontBypasser:
         
         print("\n[*] Phase 2: Testing bypass techniques...")
         
-        # Define all techniques - organized by category
-        techniques = [
-            # === Header-Based Bypass Scans ===
-            self._test_host_header_injection,
-            self._test_x_forwarded_for,
-            self._test_x_forwarded_host,
-            self._test_x_original_url,
-            self._test_header_injection,
-            self._test_origin_header_bypass,
-            self._test_custom_header_fuzzing,
-            self._test_ip_spoofing_headers,
-            
-            # === Encoding Bypass Scans ===
-            self._test_encoding_bypass,
-            self._test_double_encoding,
-            self._test_case_manipulation,
-            self._test_comment_injection,
-            self._test_whitespace_manipulation,
-            self._test_unicode_normalization,
-            
-            # === HTTP Method & Protocol Scans ===
-            self._test_method_bypass,
-            self._test_http_method_override,
-            self._test_content_type_bypass,
-            self._test_http_parameter_pollution,
-            
-            # === Protocol-Level Scans ===
-            self._test_transfer_encoding_smuggling,
-            self._test_http2_downgrade,
-            self._test_http2_specific_attacks,
-            self._test_websocket_upgrade,
-            self._test_websocket_security,
-            self._test_chunked_transfer,
-            self._test_http_pipelining,
-            
-            # === Cache & Control Scans ===
-            self._test_cache_control,
-            self._test_range_header,
-            self._test_cache_poisoning,
-            
-            # === Payload-Based Bypass Scans ===
-            self._test_sqli_bypass,
-            self._test_xss_bypass,
-            self._test_command_injection_bypass,
-            self._test_path_traversal_bypass,
-            self._test_ssrf_bypass,
-            
-            # === NEW: Injection Tests ===
-            self._test_nosql_injection,
-            self._test_ldap_injection,
-            self._test_ssti_detection,
-            self._test_xxe_detection,
-            self._test_crlf_injection,
-            self._test_prototype_pollution,
-            self._test_json_injection,
-            self._test_deserialization,
-            
-            # === Rate Limit & Threshold Testing ===
-            self._test_rate_limit_detection,
-            
-            # === Miscellaneous Scans ===
-            self._test_ipv6_bypass,
-            self._test_bot_detection_evasion,
-            self._test_api_endpoint_discovery,
-            
-            # === Extended Detection & Scanning ===
-            self._detect_waf_rule_version,
-            self._detect_javascript_waf,
-            self._test_graphql_bypass,
-            self._test_jwt_oauth_bypass,
-            
-            # === Advanced Attack Techniques ===
-            self._test_request_smuggling_v2,
-            self._test_payload_mutation,
-            self._test_polyglot_payloads,
-            self._test_time_based_detection,
-            self._test_race_condition,
-            
-            # === NEW: Security Misconfiguration ===
-            self._test_cors_misconfiguration,
-            self._test_open_redirect,
-            self._test_security_headers,
-            self._test_cookie_security,
-            self._test_clickjacking,
-            
-            # === NEW: Information Disclosure ===
-            self._test_information_disclosure,
-            self._test_subdomain_takeover,
-            
-            # === NEW: Business Logic ===
-            self._test_api_versioning_bypass,
-            self._test_mass_assignment,
-            self._test_idor_detection,
-            self._test_business_logic_flaws,
-            self._test_email_header_injection,
-            self._test_file_upload_bypass,
-            self._test_response_splitting,
-            
-            # === NEW: Cloud-Specific ===
-            self._test_azure_blob_enumeration,
-            self._test_gcp_bucket_discovery,
-            self._test_serverless_functions,
-            self._test_kubernetes_api,
-            self._test_cloud_provider_detection,
-            
-            # === v1.4: Advanced Protocol Attacks ===
-            self._test_graphql_deep_testing,
-            self._test_jwt_attacks,
-            self._test_web_cache_deception,
-            self._test_log4shell_patterns,
-            self._test_ssrf_protocol_smuggling,
-            
-            # === v1.5: Extended Security Tests ===
-            self._test_host_header_attacks,
-            self._test_ssi_injection,
-            self._test_api_key_exposure,
-            self._test_dns_zone_transfer,
-            self._test_verb_tampering_extended,
-            self._test_range_header_attacks,
-            self._test_multipart_bypass,
-            
-            # === v1.6: Advanced Discovery ===
-            self._test_dns_rebinding,
-            self._test_timing_based_discovery,
-            self._test_error_based_disclosure,
-            self._test_path_normalization_extended,
-            self._test_content_sniffing,
-            self._test_buffer_limits,
-            
-            # === v1.7: Dangerous Attack Vectors ===
-            self._test_http_desync,
-            self._test_dangling_markup,
-            self._test_css_injection,
-            self._test_xslt_injection,
-            self._test_pdf_injection,
-            self._test_postmessage_vulnerabilities,
-            self._test_rpo_attack,
-            self._test_integer_overflow,
-            
-            # === Reconnaissance Features ===
-            self._enumerate_subdomains,
-            self._historical_dns_lookup,
-            self._certificate_transparency_lookup,
-            self._test_cloud_metadata_enumeration,
-            self._fingerprint_technology_stack,
-        ]
+        # Build technique list based on selected categories
+        techniques = []
+        
+        # If no categories selected, run all
+        if selected_categories is None or len(selected_categories) == 0:
+            selected_categories = list(SCAN_CATEGORIES.keys())
+        
+        # Map of technique name to method
+        technique_map = {
+            '_test_host_header_injection': self._test_host_header_injection,
+            '_test_x_forwarded_for': self._test_x_forwarded_for,
+            '_test_x_forwarded_host': self._test_x_forwarded_host,
+            '_test_x_original_url': self._test_x_original_url,
+            '_test_header_injection': self._test_header_injection,
+            '_test_origin_header_bypass': self._test_origin_header_bypass,
+            '_test_custom_header_fuzzing': self._test_custom_header_fuzzing,
+            '_test_ip_spoofing_headers': self._test_ip_spoofing_headers,
+            '_test_host_header_attacks': self._test_host_header_attacks,
+            '_test_encoding_bypass': self._test_encoding_bypass,
+            '_test_double_encoding': self._test_double_encoding,
+            '_test_case_manipulation': self._test_case_manipulation,
+            '_test_comment_injection': self._test_comment_injection,
+            '_test_whitespace_manipulation': self._test_whitespace_manipulation,
+            '_test_unicode_normalization': self._test_unicode_normalization,
+            '_test_payload_mutation': self._test_payload_mutation,
+            '_test_polyglot_payloads': self._test_polyglot_payloads,
+            '_test_path_normalization_extended': self._test_path_normalization_extended,
+            '_test_method_bypass': self._test_method_bypass,
+            '_test_http_method_override': self._test_http_method_override,
+            '_test_content_type_bypass': self._test_content_type_bypass,
+            '_test_http_parameter_pollution': self._test_http_parameter_pollution,
+            '_test_transfer_encoding_smuggling': self._test_transfer_encoding_smuggling,
+            '_test_http2_downgrade': self._test_http2_downgrade,
+            '_test_http2_specific_attacks': self._test_http2_specific_attacks,
+            '_test_websocket_upgrade': self._test_websocket_upgrade,
+            '_test_websocket_security': self._test_websocket_security,
+            '_test_chunked_transfer': self._test_chunked_transfer,
+            '_test_http_pipelining': self._test_http_pipelining,
+            '_test_request_smuggling_v2': self._test_request_smuggling_v2,
+            '_test_http_desync': self._test_http_desync,
+            '_test_verb_tampering_extended': self._test_verb_tampering_extended,
+            '_test_multipart_bypass': self._test_multipart_bypass,
+            '_test_cache_control': self._test_cache_control,
+            '_test_range_header': self._test_range_header,
+            '_test_cache_poisoning': self._test_cache_poisoning,
+            '_test_web_cache_deception': self._test_web_cache_deception,
+            '_test_range_header_attacks': self._test_range_header_attacks,
+            '_test_sqli_bypass': self._test_sqli_bypass,
+            '_test_xss_bypass': self._test_xss_bypass,
+            '_test_command_injection_bypass': self._test_command_injection_bypass,
+            '_test_path_traversal_bypass': self._test_path_traversal_bypass,
+            '_test_nosql_injection': self._test_nosql_injection,
+            '_test_ldap_injection': self._test_ldap_injection,
+            '_test_ssti_detection': self._test_ssti_detection,
+            '_test_xxe_detection': self._test_xxe_detection,
+            '_test_crlf_injection': self._test_crlf_injection,
+            '_test_prototype_pollution': self._test_prototype_pollution,
+            '_test_json_injection': self._test_json_injection,
+            '_test_deserialization': self._test_deserialization,
+            '_test_ssi_injection': self._test_ssi_injection,
+            '_test_log4shell_patterns': self._test_log4shell_patterns,
+            '_test_dangling_markup': self._test_dangling_markup,
+            '_test_css_injection': self._test_css_injection,
+            '_test_xslt_injection': self._test_xslt_injection,
+            '_test_cors_misconfiguration': self._test_cors_misconfiguration,
+            '_test_open_redirect': self._test_open_redirect,
+            '_test_security_headers': self._test_security_headers,
+            '_test_cookie_security': self._test_cookie_security,
+            '_test_clickjacking': self._test_clickjacking,
+            '_test_content_sniffing': self._test_content_sniffing,
+            '_test_response_splitting': self._test_response_splitting,
+            '_test_api_versioning_bypass': self._test_api_versioning_bypass,
+            '_test_mass_assignment': self._test_mass_assignment,
+            '_test_idor_detection': self._test_idor_detection,
+            '_test_business_logic_flaws': self._test_business_logic_flaws,
+            '_test_email_header_injection': self._test_email_header_injection,
+            '_test_file_upload_bypass': self._test_file_upload_bypass,
+            '_test_rate_limit_detection': self._test_rate_limit_detection,
+            '_test_race_condition': self._test_race_condition,
+            '_test_jwt_oauth_bypass': self._test_jwt_oauth_bypass,
+            '_test_jwt_attacks': self._test_jwt_attacks,
+            '_test_graphql_bypass': self._test_graphql_bypass,
+            '_test_graphql_deep_testing': self._test_graphql_deep_testing,
+            '_test_ssrf_bypass': self._test_ssrf_bypass,
+            '_test_ssrf_protocol_smuggling': self._test_ssrf_protocol_smuggling,
+            '_test_dns_rebinding': self._test_dns_rebinding,
+            '_test_pdf_injection': self._test_pdf_injection,
+            '_test_postmessage_vulnerabilities': self._test_postmessage_vulnerabilities,
+            '_test_rpo_attack': self._test_rpo_attack,
+            '_test_azure_blob_enumeration': self._test_azure_blob_enumeration,
+            '_test_gcp_bucket_discovery': self._test_gcp_bucket_discovery,
+            '_test_serverless_functions': self._test_serverless_functions,
+            '_test_kubernetes_api': self._test_kubernetes_api,
+            '_test_cloud_provider_detection': self._test_cloud_provider_detection,
+            '_test_cloud_metadata_enumeration': self._test_cloud_metadata_enumeration,
+            '_test_time_based_detection': self._test_time_based_detection,
+            '_test_buffer_limits': self._test_buffer_limits,
+            '_test_integer_overflow': self._test_integer_overflow,
+            '_test_bot_detection_evasion': self._test_bot_detection_evasion,
+            '_test_ipv6_bypass': self._test_ipv6_bypass,
+            '_test_information_disclosure': self._test_information_disclosure,
+            '_test_subdomain_takeover': self._test_subdomain_takeover,
+            '_test_api_key_exposure': self._test_api_key_exposure,
+            '_test_timing_based_discovery': self._test_timing_based_discovery,
+            '_test_error_based_disclosure': self._test_error_based_disclosure,
+            '_detect_waf_rule_version': self._detect_waf_rule_version,
+            '_detect_javascript_waf': self._detect_javascript_waf,
+            '_test_api_endpoint_discovery': self._test_api_endpoint_discovery,
+            '_test_dns_zone_transfer': self._test_dns_zone_transfer,
+            '_enumerate_subdomains': self._enumerate_subdomains,
+            '_historical_dns_lookup': self._historical_dns_lookup,
+            '_certificate_transparency_lookup': self._certificate_transparency_lookup,
+            '_fingerprint_technology_stack': self._fingerprint_technology_stack,
+        }
+        
+        # Build technique list from selected categories
+        added_techniques = set()
+        for category_key in selected_categories:
+            if category_key in SCAN_CATEGORIES:
+                category = SCAN_CATEGORIES[category_key]
+                print(f"[*] Loading category: {category['name']}")
+                for technique_name in category['techniques']:
+                    if technique_name in technique_map and technique_name not in added_techniques:
+                        techniques.append(technique_map[technique_name])
+                        added_techniques.add(technique_name)
+        
+        print(f"[*] Running {len(techniques)} techniques from {len(selected_categories)} categories\n")
         
         # Execute techniques with error handling
         error_count = 0
@@ -2757,15 +2940,15 @@ class CloudFrontBypasser:
             # Common framework params
             ('?config[__proto__][polluted]=true', 'config proto'),
             ('?settings[__proto__][polluted]=true', 'settings proto'),
-            # JSON body pollution
+            # JSON body pollution 
         ]
         
         test_cases = [
             {'headers': {}, 'path': path, 'technique': f'Proto Pollution: {technique}'}
-            for path, technique in pollution_payloads
+            for path, technique in pollution_payloads # test cases for query string pollution
         ]
         
-        batch_results = self._batch_test(test_cases)
+        batch_results = self._batch_test(test_cases) # test cases for query string pollution
         
         # Also test JSON body pollution
         json_payloads = [
@@ -2774,7 +2957,7 @@ class CloudFrontBypasser:
             {'a': {'__proto__': {'polluted': True}}},
         ]
         
-        for json_payload in json_payloads:
+        for json_payload in json_payloads: # test cases for JSON body pollution
             try:
                 import json
                 resp = self._session.post(
@@ -7469,7 +7652,22 @@ def main():
     parser.add_argument('--log-level', default='INFO', 
                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                        help='Logging level')
+    parser.add_argument('-c', '--categories', help='Comma-separated list of scan categories to run (default: all)')
     args = parser.parse_args()
+    
+    # Parse categories if provided
+    selected_categories = None
+    if args.categories:
+        selected_categories = [c.strip() for c in args.categories.split(',') if c.strip()]
+        # Validate categories
+        valid_categories = list(SCAN_CATEGORIES.keys())
+        invalid = [c for c in selected_categories if c not in valid_categories]
+        if invalid:
+            print(f"[!] Warning: Unknown categories ignored: {', '.join(invalid)}")
+            selected_categories = [c for c in selected_categories if c in valid_categories]
+        if not selected_categories:
+            print("[!] No valid categories specified, running all scans")
+            selected_categories = None
     
     # Setup logging
     setup_logging(args.log_file, args.log_level)
@@ -7478,8 +7676,8 @@ def main():
         # Initialize scanner
         scanner = CloudFrontBypasser(args.target, args.threads, args.delay, args.timeout)
         
-        # Run scan
-        results = scanner.scan()
+        # Run scan with selected categories
+        results = scanner.scan(selected_categories)
         
         # Display results
         print(f"\n{'='*60}")

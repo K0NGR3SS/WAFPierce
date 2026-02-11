@@ -1,0 +1,49 @@
+WAFPierce Scan Categories
+=========================
+
+The following scan categories are available for selection in the GUI:
+
+Header Manipulation (header_manipulation)
+- Host header injection, X-Forwarded-For spoofing, custom header fuzzing
+
+Encoding & Obfuscation (encoding_obfuscation)
+- Double encoding, Unicode normalization, case manipulation, comment injection
+
+Protocol-Level Attacks (protocol_level)
+- HTTP/2 attacks, WebSocket security, request smuggling, chunked transfer
+
+Cache & Control (cache_control)
+- Cache poisoning, cache control bypass, web cache deception
+
+Injection Testing (injection_testing)
+- SQL, XSS, command injection, SSTI, XXE, CRLF, and more
+
+Security Misconfigurations (security_misconfig)
+- CORS, security headers, cookie security, clickjacking
+
+Business Logic & Authorization (business_logic)
+- IDOR, mass assignment, API versioning bypass, authorization issues
+
+JWT & Authentication Attacks (jwt_auth)
+- JWT vulnerabilities and authentication bypass techniques
+
+GraphQL Attacks (graphql_attacks)
+- GraphQL introspection, batching attacks, and injection
+
+SSRF Advanced (ssrf_advanced)
+- Server-Side Request Forgery, protocol smuggling, DNS rebinding
+
+PDF/Document Attacks (pdf_document)
+- PDF and document-based attack vectors
+
+Cloud Security (cloud_security)
+- S3, Azure Blob, GCP bucket enumeration, serverless functions
+
+Advanced Payloads (advanced_payloads)
+- Time-based detection, buffer limits, integer overflow
+
+Information Disclosure (info_disclosure)
+- API key exposure, error-based disclosure, timing-based discovery
+
+Detection & Reconnaissance (detection_recon)
+- WAF detection, fingerprinting, subdomain enumeration, DNS lookups

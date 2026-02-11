@@ -106,6 +106,8 @@ It also supports rate-limit detection, API endpoint and directory discovery, pro
 - **HTTP Response Splitting** - Header injection via parameters
 - **Clickjacking** - Frame-busting bypass verification
 
+## GUI IMPROVEMENTS 
+
 ### Version 1.2 (February 2026)
 
 #### GUI Enhancements
