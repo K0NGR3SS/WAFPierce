@@ -182,6 +182,11 @@ TRANSLATIONS = {
         'advanced_payloads': 'Advanced Payloads',
         'info_disclosure': 'Information Disclosure',
         'detection_recon': 'Detection & Reconnaissance',
+        'os_detection': 'OS Detection',
+        'os_detected_linux': 'Target OS detected: Linux/Unix',
+        'os_detected_windows': 'Target OS detected: Windows',
+        'os_detected_unknown': 'Target OS: Unknown (using universal exploits)',
+        'os_filtering': 'Filtering exploits for detected OS',
         'legal_disclaimer': """WAFPierce – Legal Disclaimer
 
 FOR AUTHORIZED SECURITY TESTING ONLY
@@ -315,6 +320,11 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'advanced_payloads': 'حمولات متقدمة',
         'info_disclosure': 'كشف المعلومات',
         'detection_recon': 'الكشف والاستطلاع',
+        'os_detection': 'كشف نظام التشغيل',
+        'os_detected_linux': 'نظام التشغيل المكتشف: لينكس/يونكس',
+        'os_detected_windows': 'نظام التشغيل المكتشف: ويندوز',
+        'os_detected_unknown': 'نظام التشغيل: غير معروف (استخدام الثغرات العالمية)',
+        'os_filtering': 'تصفية الثغرات لنظام التشغيل المكتشف',
         'legal_disclaimer': """WAFPierce - إخلاء المسؤولية القانونية
 
 لاختبار الأمان المصرح به فقط
@@ -450,6 +460,11 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'advanced_payloads': 'Розширені навантаження',
         'info_disclosure': 'Розкриття інформації',
         'detection_recon': 'Виявлення та розвідка',
+        'os_detection': 'Виявлення ОС',
+        'os_detected_linux': 'Виявлена ОС цілі: Linux/Unix',
+        'os_detected_windows': 'Виявлена ОС цілі: Windows',
+        'os_detected_unknown': 'ОС цілі: Невідома (використовуються універсальні експлойти)',
+        'os_filtering': 'Фільтрація експлойтів для виявленої ОС',
         'legal_disclaimer': """WAFPierce – Юридична відомість
 
 ТІЛЬКИ ДЛЯ АВТОРИЗОВАНОГО ТЕСТУВАННЯ БЕЗПЕКИ
