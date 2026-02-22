@@ -10,6 +10,12 @@ import subprocess
 import sys
 import os
 
+# Fix encoding for Windows console
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 def main():
     print("=" * 60)
     print("WAFPierce Executable Builder")
@@ -18,18 +24,18 @@ def main():
     # Check if PyInstaller is installed
     try:
         import PyInstaller
-        print(f"✓ PyInstaller found (version {PyInstaller.__version__})")
+        print(f"[OK] PyInstaller found (version {PyInstaller.__version__})")
     except ImportError:
-        print("✗ PyInstaller not found. Installing...")
+        print("[X] PyInstaller not found. Installing...")
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pyinstaller'])
-        print("✓ PyInstaller installed")
+        print("[OK] PyInstaller installed")
     
     # Install project dependencies
     print("\nInstalling project dependencies...")
     requirements_file = os.path.join(os.path.dirname(__file__), 'requirements.txt')
     if os.path.exists(requirements_file):
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', requirements_file])
-        print("✓ Dependencies installed")
+        print("[OK] Dependencies installed")
     
     # Build the executable
     print("\nBuilding executable...")
@@ -46,11 +52,11 @@ def main():
     
     if result.returncode == 0:
         print("-" * 60)
-        print("\n✓ Build successful!")
+        print("\n[OK] Build successful!")
         print(f"\nExecutable location: {os.path.join(os.path.dirname(__file__), 'dist', 'WAFPierce.exe')}")
         print("\nYou can distribute this single .exe file to users.")
     else:
-        print("\n✗ Build failed. Check the output above for errors.")
+        print("\n[X] Build failed. Check the output above for errors.")
         sys.exit(1)
 
 if __name__ == '__main__':

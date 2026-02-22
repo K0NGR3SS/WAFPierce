@@ -5,6 +5,12 @@ This file is used by PyInstaller to create the executable.
 """
 import sys
 import os
+import multiprocessing
+
+# CRITICAL: Must be called at the very start for frozen Windows executables
+# This prevents the exe from spawning infinite GUI instances
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
 
 # When running as a PyInstaller bundle, update paths for bundled resources
 if getattr(sys, 'frozen', False):
@@ -12,9 +18,13 @@ if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS
     # Update working directory to bundle location
     os.chdir(bundle_dir)
+    # Set environment variable so GUI knows we're frozen
+    os.environ['WAFPIERCE_FROZEN'] = '1'
+    os.environ['WAFPIERCE_BUNDLE_DIR'] = bundle_dir
 else:
     # Running as script
     bundle_dir = os.path.dirname(os.path.abspath(__file__))
+    os.environ['WAFPIERCE_FROZEN'] = '0'
 
 # Add the bundle directory to path
 if bundle_dir not in sys.path:

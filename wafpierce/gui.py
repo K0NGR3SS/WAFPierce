@@ -18,6 +18,10 @@ import os
 import time
 import concurrent.futures
 from typing import Optional
+import io
+
+# Check if we're running as a frozen executable
+IS_FROZEN = getattr(sys, 'frozen', False) or os.environ.get('WAFPIERCE_FROZEN') == '1'
 
 # path to bundled logo (used for watermark/icon)
 LOGO_PATH = os.path.join(os.path.dirname(__file__), 'logo_Temp', 'logo_wafpierce.png')
@@ -860,6 +864,86 @@ def main() -> None:
                     except Exception:
                         pass
 
+                    log_lines = []
+                    
+                    # When running as a frozen executable, run the scanner in-process
+                    # to avoid spawning another instance of the GUI
+                    if IS_FROZEN:
+                        try:
+                            self.log_line.emit(f"[*] Running scan in-process (frozen mode)\n")
+                            from wafpierce.pierce import CloudFrontBypasser
+                            
+                            # Custom print capture for real-time logging
+                            class LogCapture:
+                                def __init__(self, emit_fn, lines_list):
+                                    self._emit = emit_fn
+                                    self._lines = lines_list
+                                    self._buffer = ''
+                                    
+                                def write(self, text):
+                                    self._buffer += text
+                                    while '\n' in self._buffer:
+                                        line, self._buffer = self._buffer.split('\n', 1)
+                                        line_with_nl = line + '\n'
+                                        self._lines.append(line_with_nl)
+                                        try:
+                                            self._emit(line_with_nl)
+                                        except:
+                                            pass
+                                            
+                                def flush(self):
+                                    if self._buffer:
+                                        self._lines.append(self._buffer)
+                                        try:
+                                            self._emit(self._buffer)
+                                        except:
+                                            pass
+                                        self._buffer = ''
+                            
+                            # Capture stdout during scan
+                            old_stdout = sys.stdout
+                            old_stderr = sys.stderr
+                            log_capture = LogCapture(self.log_line.emit, log_lines)
+                            sys.stdout = log_capture
+                            sys.stderr = log_capture
+                            
+                            try:
+                                scanner = CloudFrontBypasser(target, self.threads, self.delay, 5)
+                                results = scanner.scan(self.selected_categories if self.selected_categories else None)
+                                
+                                # Write results to temp file
+                                with open(tmp_path, 'w', encoding='utf-8') as f:
+                                    json.dump(results, f, indent=2)
+                                
+                                success = True
+                                done_count = len(results) if results else 0
+                                last_status = 'Done'
+                                
+                                # Emit results
+                                if results:
+                                    for item in results:
+                                        if isinstance(item, dict) and 'target' not in item:
+                                            item['target'] = target
+                                    self.log_line.emit(f"[+] Scan complete: {len(results)} result(s)\n")
+                                    try:
+                                        self.results_emitted.emit(results)
+                                        self.target_summary.emit(target, results, [])
+                                    except Exception:
+                                        pass
+                                    break  # Success, exit retry loop
+                                    
+                            except Exception as scan_err:
+                                self.log_line.emit(f"[!] Scan error: {scan_err}\n")
+                                last_status = 'Error'
+                            finally:
+                                sys.stdout = old_stdout
+                                sys.stderr = old_stderr
+                                
+                        except Exception as e:
+                            self.log_line.emit(f"[!] Failed to run in-process scan: {e}\n")
+                            last_status = 'Error'
+                        continue  # Move to next attempt or finish
+
                     # Use -u flag for unbuffered Python output to get real-time streaming
                     cmd = [sys.executable, '-u', '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
                     # Add categories if specified
@@ -886,7 +970,6 @@ def main() -> None:
 
                     self._running_procs[target] = proc
 
-                    log_lines = []
                     try:
                         if proc.stdout is not None:
                             for line in proc.stdout:

@@ -13,6 +13,9 @@ WAFPierce is a WAF/CDN assessment and bypass validation tool for penetration tes
 It fingerprints 17+ WAF vendors and 12+ CDN providers, then tests **100+ bypass/evasion techniques** using baseline + heuristic comparisons (status codes, response size, hashes) to confirm real bypasses—even when defenses return OK.
 It also supports rate-limit detection, API endpoint and directory discovery, protocol-level testing (request smuggling, HTTP/2 downgrade, WebSocket tunneling), comprehensive injection testing (SQLi, XSS, SSRF, NoSQL, LDAP, XXE, SSTI, Log4Shell), cloud-specific tests, a clean GUI, optimized parallel performance, and automated Markdown reporting.
 
+**Trailer**
+
+
 **Key Features:**
 - **WAF Detection & Fingerprinting** - Identifies 17+ WAF vendors (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, and more)
 - **CDN Detection** - Detects 12+ CDN providers (CloudFront, Akamai, Fastly, Cloudflare, etc.)
