@@ -22,6 +22,27 @@ datas = [
     (os.path.join(project_root, 'categories.txt'), '.'),
 ]
 
+# Try to find and include PySide6 plugins for proper styling
+try:
+    import PySide6
+    pyside6_dir = os.path.dirname(PySide6.__file__)
+    plugins_dir = os.path.join(pyside6_dir, 'plugins')
+    if os.path.exists(plugins_dir):
+        # Include platform plugins (essential for Qt to work)
+        platforms_dir = os.path.join(plugins_dir, 'platforms')
+        if os.path.exists(platforms_dir):
+            datas.append((platforms_dir, os.path.join('PySide6', 'plugins', 'platforms')))
+        # Include style plugins (for proper app appearance)
+        styles_dir = os.path.join(plugins_dir, 'styles')
+        if os.path.exists(styles_dir):
+            datas.append((styles_dir, os.path.join('PySide6', 'plugins', 'styles')))
+        # Include imageformats for icons
+        imageformats_dir = os.path.join(plugins_dir, 'imageformats')
+        if os.path.exists(imageformats_dir):
+            datas.append((imageformats_dir, os.path.join('PySide6', 'plugins', 'imageformats')))
+except ImportError:
+    pass
+
 # Hidden imports that PyInstaller might miss
 hidden_imports = [
     # PySide6 core modules - only include what we actually use

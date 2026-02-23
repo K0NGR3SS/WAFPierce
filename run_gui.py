@@ -21,6 +21,22 @@ if getattr(sys, 'frozen', False):
     # Set environment variable so GUI knows we're frozen
     os.environ['WAFPIERCE_FROZEN'] = '1'
     os.environ['WAFPIERCE_BUNDLE_DIR'] = bundle_dir
+    
+    # Set Qt plugin paths for frozen executable
+    # This ensures Qt can find its plugins (styles, platforms, etc.)
+    qt_plugin_path = os.path.join(bundle_dir, 'PySide6', 'plugins')
+    if os.path.exists(qt_plugin_path):
+        os.environ['QT_PLUGIN_PATH'] = qt_plugin_path
+    
+    # Ensure Qt uses the bundled platform plugins
+    platform_path = os.path.join(bundle_dir, 'PySide6', 'plugins', 'platforms')
+    if os.path.exists(platform_path):
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = platform_path
+    
+    # Set style plugin path
+    styles_path = os.path.join(bundle_dir, 'PySide6', 'plugins', 'styles')
+    if os.path.exists(styles_path):
+        os.environ['QT_STYLE_OVERRIDE'] = ''  # Let Qt choose the best available style
 else:
     # Running as script
     bundle_dir = os.path.dirname(os.path.abspath(__file__))

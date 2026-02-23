@@ -373,6 +373,9 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'clear': 'Очистити',
         'results_explorer': 'Провідник результатів',
         'sites': '🌐 Сайти',
+        'findings': 'знахідки',
+        'languages': 'мови',
+        'servers': 'сервери',
         'all_sites': '📋 Всі сайти',
         'findings': 'знахідок',
         'total': 'Всього',
@@ -617,6 +620,22 @@ def _show_missing_packages_error():
     """Show an error message when PySide6 is not installed."""
     import webbrowser
     
+    # For frozen executables, PySide6 should be bundled - show a GUI error if possible
+    if IS_FROZEN:
+        # Try to show a native message box on Windows
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(
+                0,
+                "WAFPierce failed to start.\n\nThe application bundle appears to be corrupted or incomplete.\nPlease re-download the application.",
+                "WAFPierce - Error",
+                0x10  # MB_ICONERROR
+            )
+        except Exception:
+            pass
+        sys.exit(1)
+    
+    # For non-frozen (development) mode, show console message
     print("\n" + "="*70)
     print("❌ MISSING REQUIRED PACKAGES")
     print("="*70)
@@ -630,13 +649,14 @@ def _show_missing_packages_error():
     print("  • Documentation: https://doc.qt.io/qtforpython-6/")
     print("\n" + "="*70)
     
-    # Try to open the PyPI page in browser
+    # Try to open the PyPI page in browser (only if stdin available)
     try:
-        user_input = input("\nWould you like to open the PySide6 package page in your browser? (y/n): ")
-        if user_input.lower().strip() in ['y', 'yes']:
-            webbrowser.open('https://pypi.org/project/PySide6/')
-            print("Opening browser...")
-    except (EOFError, KeyboardInterrupt):
+        if sys.stdin and sys.stdin.isatty():
+            user_input = input("\nWould you like to open the PySide6 package page in your browser? (y/n): ")
+            if user_input.lower().strip() in ['y', 'yes']:
+                webbrowser.open('https://pypi.org/project/PySide6/')
+                print("Opening browser...")
+    except (EOFError, KeyboardInterrupt, RuntimeError, OSError):
         pass
     
     sys.exit(1)
@@ -2144,8 +2164,25 @@ def main() -> None:
                                 # Restart the application
                                 import sys
                                 import os
-                                python = sys.executable
-                                os.execl(python, python, *sys.argv)
+                                import subprocess
+                                
+                                if IS_FROZEN:
+                                    # For frozen exe, use the actual executable path
+                                    # sys.executable points to the exe itself when frozen
+                                    exe_path = sys.executable
+                                    # Use subprocess.Popen to start a new instance, then exit
+                                    try:
+                                        subprocess.Popen([exe_path], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0)
+                                    except Exception:
+                                        # Fallback: just try to run it
+                                        subprocess.Popen([exe_path])
+                                    # Close the current application cleanly
+                                    QApplication.instance().quit()
+                                    sys.exit(0)
+                                else:
+                                    # For non-frozen (development), use execl
+                                    python = sys.executable
+                                    os.execl(python, python, *sys.argv)
                             return
                     except Exception:
                         pass
