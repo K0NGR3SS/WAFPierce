@@ -204,14 +204,6 @@ TRANSLATIONS = {
         'import_json': 'JSON File',
         'import_burp': 'Burp Suite Export',
         'imported_targets': 'Imported {count} targets',
-        'templates': 'Templates',
-        'save_template': 'Save as Template',
-        'load_template': 'Load Template',
-        'template_name': 'Template Name:',
-        'template_saved': 'Template saved: {name}',
-        'template_loaded': 'Template loaded: {name}',
-        'delete_template': 'Delete Template',
-        'no_templates': 'No templates saved yet',
         'scheduled_scans': 'Scheduled Scans',
         'schedule_scan': 'Schedule Scan',
         'schedule_time': 'Schedule Time:',
@@ -494,14 +486,6 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'import_json': 'ملف JSON',
         'import_burp': 'تصدير Burp Suite',
         'imported_targets': 'تم استيراد {count} هدف',
-        'templates': 'القوالب',
-        'save_template': 'حفظ كقالب',
-        'load_template': 'تحميل قالب',
-        'template_name': 'اسم القالب:',
-        'template_saved': 'تم حفظ القالب: {name}',
-        'template_loaded': 'تم تحميل القالب: {name}',
-        'delete_template': 'حذف القالب',
-        'no_templates': 'لا توجد قوالب محفوظة بعد',
         'scheduled_scans': 'الفحوصات المجدولة',
         'schedule_scan': 'جدولة فحص',
         'schedule_time': 'وقت الجدولة:',
@@ -750,6 +734,7 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'comfortable': 'комфортний',
         'spacious': 'просторий',
         'description': 'Опис',
+        'actions': 'Дії',
         'select_scan_types': 'Виберіть типи сканування',
         'select_all': 'Вибрати все',
         'deselect_all': 'Зняти все',
@@ -785,14 +770,6 @@ The developers, contributors, distributors, and owners of WAFPierce assume no li
         'import_json': 'Файл JSON',
         'import_burp': 'Експорт Burp Suite',
         'imported_targets': 'Імпортовано {count} цілей',
-        'templates': 'Шаблони',
-        'save_template': 'Зберегти як шаблон',
-        'load_template': 'Завантажити шаблон',
-        'template_name': 'Назва шаблону:',
-        'template_saved': 'Шаблон збережено: {name}',
-        'template_loaded': 'Шаблон завантажено: {name}',
-        'delete_template': 'Видалити шаблон',
-        'no_templates': 'Ще немає збережених шаблонів',
         'scheduled_scans': 'Заплановані сканування',
         'schedule_scan': 'Запланувати сканування',
         'schedule_time': 'Час планування:',
@@ -1424,123 +1401,24 @@ def main() -> None:
 
                     log_lines = []
                     
-                    # When running as a frozen executable, run the scanner in-process
-                    # to avoid spawning another instance of the GUI
-                    if IS_FROZEN:
-                        try:
-                            self.log_line.emit(f"[*] Running scan in-process (frozen mode)\n")
-                            # Frozen builds can miss charset_normalizer.md while md__mypyc exists.
-                            # Add a runtime shim so requests import works.
-                            try:
-                                import charset_normalizer.md  # noqa: F401
-                            except ModuleNotFoundError:
-                                try:
-                                    import charset_normalizer.md__mypyc as _cn_md  # type: ignore
-                                    sys.modules['charset_normalizer.md'] = _cn_md
-                                except Exception:
-                                    pass
-                            from wafpierce.pierce import CloudFrontBypasser
-                            
-                            # Custom print capture for real-time logging
-                            class LogCapture:
-                                def __init__(self, emit_fn, lines_list, progress_fn):
-                                    self._emit = emit_fn
-                                    self._lines = lines_list
-                                    self._progress_fn = progress_fn
-                                    self._buffer = ''
-                                    
-                                def write(self, text):
-                                    self._buffer += text
-                                    while '\n' in self._buffer:
-                                        line, self._buffer = self._buffer.split('\n', 1)
-                                        line_with_nl = line + '\n'
-                                        self._lines.append(line_with_nl)
-                                        try:
-                                            self._emit(line_with_nl)
-                                            self._progress_fn(line_with_nl)
-                                        except:
-                                            pass
-                                            
-                                def flush(self):
-                                    if self._buffer:
-                                        self._lines.append(self._buffer)
-                                        try:
-                                            self._emit(self._buffer)
-                                            self._progress_fn(self._buffer)
-                                        except:
-                                            pass
-                                        self._buffer = ''
-                            
-                            # Capture stdout during scan
-                            old_stdout = sys.stdout
-                            old_stderr = sys.stderr
-                            log_capture = LogCapture(self.log_line.emit, log_lines, update_progress_from_line)
-                            sys.stdout = log_capture
-                            sys.stderr = log_capture
-                            
-                            try:
-                                scanner = CloudFrontBypasser(target, self.threads, self.delay, 5, proxy_config=self.proxy_config, enable_http_logging=self.enable_http_logging, enable_ssl_analysis=self.enable_ssl_analysis)
-                                
-                                # Perform SSL/TLS analysis if enabled
-                                if self.enable_ssl_analysis:
-                                    self.log_line.emit("[*] Analyzing SSL/TLS configuration...\n")
-                                    ssl_info = scanner.analyze_ssl_tls()
-                                    try:
-                                        self.ssl_info_ready.emit(ssl_info)
-                                    except Exception:
-                                        pass
-                                
-                                results = scanner.scan(self.selected_categories if self.selected_categories else None)
-                                
-                                # Emit HTTP log if enabled
-                                if self.enable_http_logging:
-                                    http_log = scanner.get_http_log()
-                                    if http_log:
-                                        self.log_line.emit(f"[+] HTTP Log: {len(http_log)} requests captured\n")
-                                        try:
-                                            self.http_log_ready.emit(http_log)
-                                        except Exception:
-                                            pass
-                                
-                                # Write results to temp file
-                                with open(tmp_path, 'w', encoding='utf-8') as f:
-                                    json.dump(results, f, indent=2)
-                                
-                                success = True
-                                done_count = len(results) if results else 0
-                                last_status = 'Done'
-                                self.progress_update.emit(target, 100)
-                                
-                                # Emit results
-                                if results:
-                                    for item in results:
-                                        if isinstance(item, dict) and 'target' not in item:
-                                            item['target'] = target
-                                    self.log_line.emit(f"[+] Scan complete: {len(results)} result(s)\n")
-                                    try:
-                                        self.results_emitted.emit(results)
-                                        self.target_summary.emit(target, results, [])
-                                    except Exception:
-                                        pass
-                                    break  # Success, exit retry loop
-                                    
-                            except Exception as scan_err:
-                                self.log_line.emit(f"[!] Scan error: {scan_err}\n")
-                                last_status = 'Error'
-                            finally:
-                                sys.stdout = old_stdout
-                                sys.stderr = old_stderr
-                                
-                        except Exception as e:
-                            self.log_line.emit(f"[!] Failed to run in-process scan: {e}\n")
-                            last_status = 'Error'
-                        continue  # Move to next attempt or finish
-
                     # Use -u flag for unbuffered Python output to get real-time streaming
-                    cmd = [sys.executable, '-u', '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
+                    if IS_FROZEN:
+                        cmd = [
+                            sys.executable,
+                            '--scan-worker',
+                            '--target', target,
+                            '--threads', str(self.threads),
+                            '--delay', str(self.delay),
+                            '--output', tmp_path,
+                        ]
+                    else:
+                        cmd = [sys.executable, '-u', '-m', 'wafpierce.pierce', target, '-t', str(self.threads), '-d', str(self.delay), '-o', tmp_path]
                     # Add categories if specified
                     if self.selected_categories and len(self.selected_categories) > 0:
-                        cmd.extend(['-c', ','.join(self.selected_categories)])
+                        if IS_FROZEN:
+                            cmd.extend(['--categories', ','.join(self.selected_categories)])
+                        else:
+                            cmd.extend(['-c', ','.join(self.selected_categories)])
                     env = os.environ.copy()
                     env['PYTHONIOENCODING'] = 'utf-8'
                     env['PYTHONUNBUFFERED'] = '1'  # Force unbuffered output
@@ -1678,6 +1556,7 @@ def main() -> None:
 
             self._worker_thread = None
             self._worker = None
+            self._stop_requested = False
             self._results = []
             self._tmp_result_paths = []
             self._target_tmp_map = {}
@@ -2466,23 +2345,67 @@ def main() -> None:
                 progress_bar.setTextVisible(True)
                 progress_bar.setFormat('%p%')
                 progress_bar.setFixedHeight(20)
-                progress_bar.setStyleSheet('''
-                    QProgressBar {
-                        border: 1px solid #30363d;
-                        border-radius: 5px;
-                        background-color: #21262d;
-                        text-align: center;
-                        color: #d7e1ea;
-                        font-size: 11px;
-                    }
-                    QProgressBar::chunk {
-                        background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                            stop:0 #238636, stop:1 #2ea043);
-                        border-radius: 4px;
-                    }
-                ''')
+                progress_bar.setStyleSheet(self._target_progress_default_style())
                 self.tree.setItemWidget(item, 2, progress_bar)
                 self._progress_bars[target] = progress_bar
+            except Exception:
+                pass
+
+        def _target_progress_default_style(self):
+            return '''
+                QProgressBar {
+                    border: 1px solid #30363d;
+                    border-radius: 5px;
+                    background-color: #21262d;
+                    text-align: center;
+                    color: #d7e1ea;
+                    font-size: 11px;
+                }
+                QProgressBar::chunk {
+                    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #238636, stop:1 #2ea043);
+                    border-radius: 4px;
+                }
+            '''
+
+        def _total_progress_default_style(self):
+            return '''
+                QProgressBar {
+                    border: 1px solid #30363d;
+                    border-radius: 5px;
+                    background-color: #21262d;
+                    text-align: center;
+                    color: #d7e1ea;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+                QProgressBar::chunk {
+                    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #2563eb, stop:1 #3b82f6);
+                    border-radius: 4px;
+                }
+            '''
+
+        def _reset_progress_after_stop(self):
+            """Normalize progress UI after a user-initiated stop."""
+            try:
+                for i in range(self.tree.topLevelItemCount()):
+                    it = self.tree.topLevelItem(i)
+                    target = it.data(0, 256) or it.text(0)
+                    status = (it.text(1) or '').lower()
+                    if 'running' in status or 'aborted' in status:
+                        it.setText(1, 'Queued')
+                        try:
+                            it.setBackground(0, QBrush())
+                        except Exception:
+                            pass
+                    if target in self._progress_bars:
+                        pb = self._progress_bars[target]
+                        pb.setValue(0)
+                        pb.setStyleSheet(self._target_progress_default_style())
+
+                self._total_progress_bar.setValue(0)
+                self._total_progress_bar.setStyleSheet(self._total_progress_default_style())
             except Exception:
                 pass
         
@@ -2685,6 +2608,7 @@ def main() -> None:
         def start_scan(self):
             if self._worker_thread is not None:
                 return
+            self._stop_requested = False
             # Get actual URLs from data, fallback to text if not set
             targets = []
             for i in range(self.tree.topLevelItemCount()):
@@ -2711,22 +2635,7 @@ def main() -> None:
             # Reset total progress bar
             try:
                 self._total_progress_bar.setValue(0)
-                self._total_progress_bar.setStyleSheet('''
-                    QProgressBar {
-                        border: 1px solid #30363d;
-                        border-radius: 5px;
-                        background-color: #21262d;
-                        text-align: center;
-                        color: #d7e1ea;
-                        font-size: 12px;
-                        font-weight: bold;
-                    }
-                    QProgressBar::chunk {
-                        background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                            stop:0 #2563eb, stop:1 #3b82f6);
-                        border-radius: 4px;
-                    }
-                ''')
+                self._total_progress_bar.setStyleSheet(self._total_progress_default_style())
                 # Reset individual progress bars and ensure all targets have progress bars
                 for i in range(self.tree.topLevelItemCount()):
                     item = self.tree.topLevelItem(i)
@@ -3063,7 +2972,13 @@ def main() -> None:
 
         def stop_scan(self):
             if self._worker:
+                self._stop_requested = True
                 self._worker.abort()
+                # Reflect stop immediately in UI; final normalization happens in _on_finished.
+                for i in range(self.tree.topLevelItemCount()):
+                    it = self.tree.topLevelItem(i)
+                    if 'running' in (it.text(1) or '').lower():
+                        it.setText(1, 'Aborted')
             self.stop_btn.setEnabled(False)
             self.append_log('[!] ' + _t('stop_requested', self._lang))
 
@@ -3217,6 +3132,15 @@ def main() -> None:
                     self._start_results_pulse()
             except Exception:
                 pass
+
+            if self._stop_requested:
+                self._reset_progress_after_stop()
+                try:
+                    self.clean_tmp_files(silent=True, clear_targets=False)
+                except Exception:
+                    pass
+                self._stop_requested = False
+
             # auto-clean removed; no automatic cleanup on finish
             # clean up worker thread
             try:
@@ -5682,15 +5606,46 @@ PLUGIN_CLASS = MyCustomBypass
                     if not filename.endswith('.py'):
                         filename += '.py'
                     filename = os.path.basename(filename)
-                    new_path = os.path.join(plugins_dir, filename)
+
+                    # Never overwrite existing plugin files: auto-increment as name(1).py, name(2).py, ...
+                    base_name, ext = os.path.splitext(filename)
+                    ext = ext or '.py'
+                    candidate_name = f"{base_name}{ext}"
+                    new_path = os.path.join(plugins_dir, candidate_name)
+                    counter = 1
+                    while os.path.exists(new_path):
+                        candidate_name = f"{base_name}({counter}){ext}"
+                        new_path = os.path.join(plugins_dir, candidate_name)
+                        counter += 1
 
                     template = code_example.toPlainText().strip()
                     if not template:
                         QMessageBox.warning(dlg, 'Missing Code', 'Plugin code cannot be empty.')
                         return
+
+                    # If user kept the default template values, make metadata unique so it appears distinctly in the list.
+                    if 'name = "My Custom Bypass"' in template:
+                        display_name = base_name.replace('_', ' ').replace('-', ' ').strip().title() or 'Custom Plugin'
+                        template = template.replace('name = "My Custom Bypass"', f'name = "{display_name}"', 1)
+
+                    if 'class MyCustomBypass(BypassPlugin):' in template and 'PLUGIN_CLASS = MyCustomBypass' in template:
+                        import re
+                        class_base = re.sub(r'[^0-9a-zA-Z]+', ' ', base_name).title().replace(' ', '')
+                        if not class_base:
+                            class_base = 'CustomPlugin'
+                        if class_base[0].isdigit():
+                            class_base = f'Plugin{class_base}'
+                        class_name = f"{class_base}Plugin"
+                        template = template.replace('class MyCustomBypass(BypassPlugin):', f'class {class_name}(BypassPlugin):', 1)
+                        template = template.replace('PLUGIN_CLASS = MyCustomBypass', f'PLUGIN_CLASS = {class_name}', 1)
                     try:
                         with open(new_path, 'w', encoding='utf-8') as f:
                             f.write(template + ('\\n' if not template.endswith('\\n') else ''))
+
+                        # Show actual saved file name to the user and keep it in the field.
+                        plugin_filename_edit.setText(os.path.basename(new_path))
+
+                        # Reload plugins and refresh list immediately.
                         plugin_manager.load_all_plugins()
                         refresh_plugins()
                         QMessageBox.information(dlg, 'Plugin Saved', f'Plugin saved at:\\n{new_path}')

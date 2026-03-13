@@ -6,6 +6,7 @@ This file is used by PyInstaller to create the executable.
 import sys
 import os
 import multiprocessing
+import json
 
 # CRITICAL: Must be called at the very start for frozen Windows executables
 # This prevents the exe from spawning infinite GUI instances
@@ -72,5 +73,41 @@ def main():
         spec.loader.exec_module(module)
         module.main()
 
+
+def _run_scan_worker() -> int:
+    """Run scanner mode inside frozen executable for killable subprocess scans."""
+    import argparse
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--scan-worker', action='store_true')
+    parser.add_argument('--target', required=True)
+    parser.add_argument('--threads', type=int, default=5)
+    parser.add_argument('--delay', type=float, default=0.2)
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--categories', default='')
+    args, _ = parser.parse_known_args()
+
+    try:
+        from wafpierce.pierce import CloudFrontBypasser
+
+        print(f"[*] Scanning {args.target}")
+        scanner = CloudFrontBypasser(args.target, args.threads, args.delay, 5)
+        selected_categories = [c.strip() for c in args.categories.split(',') if c.strip()]
+        results = scanner.scan(selected_categories if selected_categories else None)
+
+        with open(args.output, 'w', encoding='utf-8') as f:
+            json.dump(results or [], f, indent=2)
+
+        print(f"[+] Scan complete: {len(results or [])} result(s)")
+        return 0
+    except KeyboardInterrupt:
+        print("[!] Scan interrupted by user")
+        return 130
+    except Exception as exc:
+        print(f"[!] Scan error: {exc}")
+        return 1
+
 if __name__ == '__main__':
+    if '--scan-worker' in sys.argv:
+        raise SystemExit(_run_scan_worker())
     main()

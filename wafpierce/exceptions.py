@@ -6,10 +6,12 @@ Comprehensive error handling for penetration testing operations
 
 class WAFPierceError(Exception):
     """Base exception for all WAFPierce errors"""
+    error_code = "WAFPIERCE_ERROR"
     
-    def __init__(self, message, details=None):
+    def __init__(self, message, details=None, error_code=None):
         self.message = message
         self.details = details or {}
+        self.error_code = error_code or self.error_code or self.__class__.__name__.upper()
         super().__init__(self.message)
     
     def __str__(self):
@@ -17,6 +19,15 @@ class WAFPierceError(Exception):
             details_str = ", ".join(f"{k}={v}" for k, v in self.details.items())
             return f"{self.message} ({details_str})"
         return self.message
+
+    def to_dict(self):
+        """Structured representation for logging, persistence, or GUI display."""
+        return {
+            'type': self.__class__.__name__,
+            'error_code': self.error_code,
+            'message': self.message,
+            'details': dict(self.details),
+        }
 
 
 # Network-related errors

@@ -1,6 +1,6 @@
 """
 SQLite Database for WAFPierce - Historical scan data storage
-Stores scan results, templates, payloads, and statistics
+Stores scan results, payloads, and statistics
 """
 import sqlite3
 import json
@@ -82,7 +82,7 @@ class WAFPierceDB:
         c.execute('CREATE INDEX IF NOT EXISTS idx_results_target ON results(target)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_results_severity ON results(severity)')
         
-        # Templates table - stores scan templates
+        # Legacy templates table (kept for database compatibility)
         c.execute('''
             CREATE TABLE IF NOT EXISTS templates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -549,58 +549,6 @@ class WAFPierceDB:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         c.execute('DELETE FROM persistent_targets WHERE target = ?', (target,))
-        conn.commit()
-        conn.close()
-    
-    # ==================== TEMPLATES ====================
-    
-    def save_template(self, name: str, settings: dict, categories: list = None, description: str = ''):
-        """Save a scan template."""
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        
-        c.execute('SELECT id FROM templates WHERE name = ?', (name,))
-        existing = c.fetchone()
-        
-        if existing:
-            c.execute('''
-                UPDATE templates SET settings = ?, categories = ?, description = ?, 
-                                    updated_at = CURRENT_TIMESTAMP
-                WHERE name = ?
-            ''', (json.dumps(settings), json.dumps(categories or []), description, name))
-        else:
-            c.execute('''
-                INSERT INTO templates (name, settings, categories, description)
-                VALUES (?, ?, ?, ?)
-            ''', (name, json.dumps(settings), json.dumps(categories or []), description))
-        
-        conn.commit()
-        conn.close()
-    
-    def get_templates(self) -> List[dict]:
-        """Get all scan templates."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        
-        c.execute('SELECT * FROM templates ORDER BY name')
-        rows = c.fetchall()
-        conn.close()
-        
-        templates = []
-        for row in rows:
-            t = dict(row)
-            t['settings'] = json.loads(t['settings'])
-            t['categories'] = json.loads(t['categories']) if t['categories'] else []
-            templates.append(t)
-        
-        return templates
-    
-    def delete_template(self, name: str):
-        """Delete a template."""
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute('DELETE FROM templates WHERE name = ?', (name,))
         conn.commit()
         conn.close()
     

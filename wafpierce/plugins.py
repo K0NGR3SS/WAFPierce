@@ -309,6 +309,8 @@ PLUGIN_CLASS = UnicodeBypassPlugin
     
     def load_all_plugins(self):
         """Load all discovered plugins."""
+        # Rebuild from disk every refresh to avoid stale plugin state.
+        self.plugins = {}
         for file_path in self.discover_plugins():
             self.load_plugin(file_path)
     
@@ -408,7 +410,7 @@ PLUGIN_CLASS = UnicodeBypassPlugin
     
     def get_plugin_info(self) -> List[Dict[str, Any]]:
         """Get info about all plugins."""
-        return [p.to_dict() for p in self.plugins.values()]
+        return sorted([p.to_dict() for p in self.plugins.values()], key=lambda p: p.get('name', '').lower())
 
 
 # Community Plugin Marketplace (placeholder for future implementation)

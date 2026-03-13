@@ -5,6 +5,7 @@ Provides retry logic, graceful degradation, and error logging
 import time
 import logging
 import warnings
+import random
 from functools import wraps
 from typing import Callable, Any, Optional, Tuple, Type, Dict, List
 import requests
@@ -20,7 +21,6 @@ from .exceptions import (
     RateLimitError,
     NetworkError,
     BackendDetectionError,
-    HeaderAnalysisError,
 )
 
 
@@ -30,7 +30,9 @@ logger = logging.getLogger(__name__)
 def retry_on_network_error(
     max_retries: int = 3,
     backoff_factor: float = 1.0,
-    exceptions: Tuple[Type[Exception], ...] = (NetworkError,)
+    exceptions: Tuple[Type[Exception], ...] = (NetworkError,),
+    jitter: float = 0.0,
+    on_retry: Optional[Callable[[int, int, Exception, float], None]] = None,
 ):
     """
     Decorator to retry function on network errors with exponential backoff
@@ -39,6 +41,8 @@ def retry_on_network_error(
         max_retries: Maximum number of retry attempts
         backoff_factor: Multiplier for exponential backoff (wait = backoff_factor * (2 ** attempt))
         exceptions: Tuple of exception types to catch and retry
+        jitter: Random seconds added to backoff delay (0 disables jitter)
+        on_retry: Optional callback(attempt, max_retries, exception, wait_time)
     
     Usage:
         @retry_on_network_error(max_retries=3, backoff_factor=0.5)
@@ -58,10 +62,17 @@ def retry_on_network_error(
                     
                     if attempt < max_retries - 1:
                         wait_time = backoff_factor * (2 ** attempt)
+                        if jitter > 0:
+                            wait_time += random.uniform(0, jitter)
                         logger.warning(
                             f"Attempt {attempt + 1}/{max_retries} failed: {e}. "
                             f"Retrying in {wait_time:.1f}s..."
                         )
+                        if on_retry:
+                            try:
+                                on_retry(attempt + 1, max_retries, e, wait_time)
+                            except Exception as cb_err:
+                                logger.debug(f"Retry callback failed: {cb_err}")
                         time.sleep(wait_time)
                     else:
                         logger.error(f"All {max_retries} attempts failed: {e}")
@@ -285,7 +296,7 @@ def validate_url(url: str) -> Tuple[bool, Optional[str]]:
         return False, f"Malformed URL: {str(e)}"
 
 
-def setup_logging(log_file: Optional[str] = None, level: str = 'INFO') -> None:
+def setup_logging(log_file: Optional[str] = None, level: str = 'INFO') -> logging.Logger:
     """
     Configure logging for WAFPierce
     
@@ -306,9 +317,19 @@ def setup_logging(log_file: Optional[str] = None, level: str = 'INFO') -> None:
     console_handler.setFormatter(formatter)
     console_handler.setLevel(log_level)
     
-    # Configure root logger
+    # Configure package logger (idempotent across repeated setup calls)
     logger = logging.getLogger('wafpierce')
     logger.setLevel(log_level)
+    logger.propagate = False
+
+    # Clear existing handlers to avoid duplicate log lines.
+    for h in list(logger.handlers):
+        logger.removeHandler(h)
+        try:
+            h.close()
+        except Exception:
+            pass
+
     logger.addHandler(console_handler)
     
     # File handler (if specified)

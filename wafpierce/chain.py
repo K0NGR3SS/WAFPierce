@@ -1,6 +1,6 @@
 """
 Full Pentest Chain: Bypass -> Enum -> Scan -> Recon -> Report
-With comprehensive error handling and graceful degradation
+WAF/CDN assessment workflow with comprehensive error handling
 """
 import os
 import json
@@ -13,13 +13,7 @@ from typing import List, Dict, Any, Optional
 from .pierce import CloudFrontBypasser
 from .exceptions import (
     WAFPierceError,
-    InvalidTargetError,
-    BaselineFailedError,
-    TargetUnreachableError,
-    ScanInterruptedError,
-    WordlistNotFoundError,
     OutputDirectoryError,
-    NoBypassFoundError,
 )
 from .error_handler import (
     safe_request,
@@ -98,7 +92,7 @@ DISCLAIMER_BANNER = """
 ║   ╚███╔███╔╝██║  ██║██║     ██║     ██║███████╗██║  ██║╚██████╗███████╗      ║
 ║    ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝     ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝      ║
 ║                                                                              ║
-║                    CloudFront WAF Bypass & Recon Scanner                     ║
+║                     WAF/CDN Bypass & Reconnaissance Scanner                  ║
 ║                                                                              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
@@ -421,7 +415,7 @@ class FullPentestChain:
         Returns:
             True if recon succeeded, False otherwise
         """
-        print_phase_header(4, "AWS Backend Reconnaissance", "Identifying CloudFront origin servers and AWS services")
+        print_phase_header(4, "AWS Backend Reconnaissance", "Identifying CDN/backend origin exposure and AWS services")
         logger.info("Starting Phase 4: AWS Reconnaissance - Backend Detection")
         
         print_status("Backend detection targets:", "info")
@@ -899,7 +893,7 @@ class FullPentestChain:
    {"- Restrict public access to: " + ", ".join([b['name'] for b in s3 if b.get('accessible')]) if any(b.get('accessible') for b in s3) else "- All buckets are properly secured"}
 
 4. **Backend Origin Security**:
-   - Ensure all backend origins (ELB, EC2, etc.) are only accessible via CloudFront
+    - Ensure all backend origins (ELB, EC2, etc.) are only accessible via your approved CDN/edge layer
    - Implement origin access controls
    - Use security groups to restrict direct access to EC2/ELB origins
    - Enable WAF on ALB if detected
@@ -907,13 +901,13 @@ class FullPentestChain:
 ### Medium Priority
 - Implement request signing
 - Add additional authentication layers
-- Review CloudFront distribution settings
-- Enable CloudFront access logs
+- Review CDN/edge distribution settings
+- Enable CDN/edge access logs
 - Use AWS WAF on all detected load balancers
 
 ## 5. Testing Methodology
 This assessment used the following techniques:
-- WAF bypass testing (12 techniques)
+- WAF/CDN bypass testing (12 techniques)
 - Directory enumeration ({len(live_paths)} paths found)
 - Vulnerability scanning (XSS, injection)
 - AWS resource enumeration:
@@ -1028,8 +1022,8 @@ def main():
     """Main entry point with comprehensive error handling"""
     from argparse import ArgumentParser
     
-    parser = ArgumentParser(description='WAFPierce Full Penetration Test Chain')
-    parser.add_argument("target", help="Target URL (e.g., https://example.cloudfront.net)")
+    parser = ArgumentParser(description='WAFPierce Full WAF/CDN Penetration Test Chain')
+    parser.add_argument("target", help="Target URL (e.g., https://example.com)")
     parser.add_argument("-o", "--output", default="pentest_results", help="Output directory")
     parser.add_argument("-t", "--threads", type=int, default=10, help="Number of threads")
     parser.add_argument("--log-file", help="Log file path")
