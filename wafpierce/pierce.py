@@ -729,7 +729,7 @@ class CloudFrontBypasser:
     _session_pool: Dict[str, requests.Session] = {}
     _session_lock = threading.Lock()
     
-    def __init__(self, target: str, threads: int = 10, delay: float = 0.2, timeout: int = 5):
+    def __init__(self, target: str, threads: int = 10, delay: float = 0.2, timeout: int = 5, proxy_config: dict = None, enable_http_logging: bool = False, enable_ssl_analysis: bool = False):
         """
         Initialize CloudFront WAF Bypasser
         
@@ -738,6 +738,9 @@ class CloudFrontBypasser:
             threads: Number of concurrent threads
             delay: Delay between requests (seconds)
             timeout: Request timeout (seconds)
+            proxy_config: Optional proxy configuration dict with 'type', 'host', 'port' keys
+            enable_http_logging: Enable full HTTP request/response logging for forensic analysis
+            enable_ssl_analysis: Enable SSL/TLS certificate and cipher analysis
         
         Raises:
             InvalidTargetError: If target URL is invalid
@@ -754,6 +757,22 @@ class CloudFrontBypasser:
         self.timeout = timeout
         self.results = []
         self._results_lock = threading.Lock()
+        self.proxy_config = proxy_config
+        
+        # HTTP Logging for forensic analysis
+        self.enable_http_logging = enable_http_logging
+        self._http_log: List[Dict[str, Any]] = []
+        self._http_log_lock = threading.Lock()
+        
+        # SSL/TLS Analysis
+        self.enable_ssl_analysis = enable_ssl_analysis
+        self._ssl_info: Dict[str, Any] = {}
+        
+        # Rate limiting auto-adjustment
+        self._rate_limit_detected = False
+        self._rate_limit_adjustments = 0
+        self._original_delay = delay
+        self._max_delay = delay * 10  # Max 10x original delay
         
         # Baseline tracking
         self._baseline_size = None
@@ -807,6 +826,23 @@ class CloudFrontBypasser:
         )
         session.mount('http://', adapter)
         session.mount('https://', adapter)
+        
+        # Configure proxy if provided
+        if self.proxy_config:
+            proxy_type = self.proxy_config.get('type', 'http')
+            proxy_host = self.proxy_config.get('host', '127.0.0.1')
+            proxy_port = self.proxy_config.get('port', 8080)
+            
+            if proxy_type in ('socks5', 'socks5h'):
+                proxy_url = f"socks5h://{proxy_host}:{proxy_port}"
+            else:
+                proxy_url = f"http://{proxy_host}:{proxy_port}"
+            
+            session.proxies = {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+            logger.info(f"Using proxy: {proxy_url}")
         
         # Default headers
         session.headers.update({
@@ -1119,6 +1155,206 @@ class CloudFrontBypasser:
             logger.error(f"Baseline request failed: {e}")
             raise
     
+    def _log_http_transaction(self, method: str, url: str, request_headers: Dict, 
+                              response: Optional[requests.Response], error: Optional[str] = None) -> None:
+        """
+        Log a full HTTP request/response transaction for forensic analysis
+        
+        Args:
+            method: HTTP method used
+            url: Request URL
+            request_headers: Headers sent with request
+            response: Response object (or None if error)
+            error: Error message if request failed
+        """
+        if not self.enable_http_logging:
+            return
+        
+        import datetime
+        
+        log_entry = {
+            'timestamp': datetime.datetime.now().isoformat(),
+            'request': {
+                'method': method,
+                'url': url,
+                'headers': dict(request_headers) if request_headers else {}
+            },
+            'response': None,
+            'error': error
+        }
+        
+        if response is not None:
+            try:
+                log_entry['response'] = {
+                    'status_code': response.status_code,
+                    'reason': response.reason,
+                    'headers': dict(response.headers),
+                    'elapsed_ms': response.elapsed.total_seconds() * 1000 if hasattr(response, 'elapsed') else None,
+                    'content_length': len(response.content) if response.content else 0,
+                    'body_preview': response.text[:2000] if response.text else ''
+                }
+            except Exception:
+                log_entry['response'] = {'error': 'Failed to capture response'}
+        
+        with self._http_log_lock:
+            self._http_log.append(log_entry)
+    
+    def get_http_log(self) -> List[Dict[str, Any]]:
+        """
+        Get the full HTTP transaction log
+        
+        Returns:
+            List of HTTP transaction log entries
+        """
+        with self._http_log_lock:
+            return list(self._http_log)
+    
+    def analyze_ssl_tls(self) -> Dict[str, Any]:
+        """
+        Perform SSL/TLS analysis on the target
+        
+        Returns:
+            Dictionary containing SSL/TLS information including:
+            - Certificate details (subject, issuer, validity)
+            - Cipher suite information
+            - Protocol version
+            - Security issues detected
+        """
+        if self._ssl_info:
+            return self._ssl_info
+        
+        parsed = urlparse(self.target)
+        if parsed.scheme != 'https':
+            self._ssl_info = {
+                'error': 'Target is not HTTPS',
+                'ssl_enabled': False
+            }
+            return self._ssl_info
+        
+        host = parsed.netloc.split(':')[0]
+        port = int(parsed.port) if parsed.port else 443
+        
+        ssl_info = {
+            'ssl_enabled': True,
+            'host': host,
+            'port': port,
+            'certificate': {},
+            'cipher': {},
+            'protocol': None,
+            'security_issues': [],
+            'certificate_chain': []
+        }
+        
+        try:
+            # Create SSL context
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            
+            # Connect and get SSL info
+            with socket.create_connection((host, port), timeout=self.timeout) as sock:
+                with context.wrap_socket(sock, server_hostname=host) as ssock:
+                    # Get cipher info
+                    cipher_info = ssock.cipher()
+                    if cipher_info:
+                        ssl_info['cipher'] = {
+                            'name': cipher_info[0],
+                            'version': cipher_info[1],
+                            'bits': cipher_info[2]
+                        }
+                    
+                    # Get protocol version
+                    ssl_info['protocol'] = ssock.version()
+                    
+                    # Get certificate
+                    cert = ssock.getpeercert(binary_form=True)
+                    if cert:
+                        try:
+                            from cryptography import x509  # type: ignore[reportMissingImports]
+                            from cryptography.hazmat.backends import default_backend  # type: ignore[reportMissingImports]
+                            
+                            cert_obj = x509.load_der_x509_certificate(cert, default_backend())
+                            
+                            ssl_info['certificate'] = {
+                                'subject': str(cert_obj.subject),
+                                'issuer': str(cert_obj.issuer),
+                                'serial_number': str(cert_obj.serial_number),
+                                'not_valid_before': cert_obj.not_valid_before_utc.isoformat() if hasattr(cert_obj, 'not_valid_before_utc') else str(cert_obj.not_valid_before),
+                                'not_valid_after': cert_obj.not_valid_after_utc.isoformat() if hasattr(cert_obj, 'not_valid_after_utc') else str(cert_obj.not_valid_after),
+                                'signature_algorithm': cert_obj.signature_algorithm_oid._name if hasattr(cert_obj.signature_algorithm_oid, '_name') else str(cert_obj.signature_algorithm_oid),
+                                'version': cert_obj.version.name,
+                                'public_key_type': type(cert_obj.public_key()).__name__,
+                                'public_key_bits': cert_obj.public_key().key_size if hasattr(cert_obj.public_key(), 'key_size') else 'Unknown'
+                            }
+                            
+                            # Check for Subject Alternative Names
+                            try:
+                                san_ext = cert_obj.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+                                san_names = [str(name.value) for name in san_ext.value]
+                                ssl_info['certificate']['subject_alt_names'] = san_names
+                            except Exception:
+                                pass
+                            
+                            # Check certificate validity
+                            import datetime
+                            now = datetime.datetime.now(datetime.timezone.utc)
+                            not_after = cert_obj.not_valid_after_utc if hasattr(cert_obj, 'not_valid_after_utc') else cert_obj.not_valid_after.replace(tzinfo=datetime.timezone.utc)
+                            not_before = cert_obj.not_valid_before_utc if hasattr(cert_obj, 'not_valid_before_utc') else cert_obj.not_valid_before.replace(tzinfo=datetime.timezone.utc)
+                            
+                            if now > not_after:
+                                ssl_info['security_issues'].append('Certificate has expired')
+                            elif now < not_before:
+                                ssl_info['security_issues'].append('Certificate not yet valid')
+                            elif (not_after - now).days < 30:
+                                ssl_info['security_issues'].append(f'Certificate expires in {(not_after - now).days} days')
+                            
+                        except ImportError:
+                            # cryptography not available, use basic cert info
+                            cert_dict = ssock.getpeercert()
+                            if cert_dict:
+                                ssl_info['certificate'] = {
+                                    'subject': dict(x[0] for x in cert_dict.get('subject', [])),
+                                    'issuer': dict(x[0] for x in cert_dict.get('issuer', [])),
+                                    'not_before': cert_dict.get('notBefore'),
+                                    'not_after': cert_dict.get('notAfter'),
+                                    'serial_number': cert_dict.get('serialNumber')
+                                }
+                        except Exception as e:
+                            ssl_info['certificate']['error'] = f'Failed to parse certificate: {str(e)}'
+            
+            # Check for security issues
+            protocol = ssl_info.get('protocol', '')
+            if protocol in ('SSLv2', 'SSLv3', 'TLSv1', 'TLSv1.0'):
+                ssl_info['security_issues'].append(f'Deprecated protocol: {protocol}')
+            
+            cipher_name = ssl_info.get('cipher', {}).get('name', '')
+            weak_ciphers = ['RC4', 'DES', '3DES', 'MD5', 'NULL', 'EXPORT', 'ADH', 'AECDH']
+            for weak in weak_ciphers:
+                if weak in cipher_name.upper():
+                    ssl_info['security_issues'].append(f'Weak cipher detected: {cipher_name}')
+                    break
+            
+            cipher_bits = ssl_info.get('cipher', {}).get('bits', 0)
+            if cipher_bits and cipher_bits < 128:
+                ssl_info['security_issues'].append(f'Weak cipher strength: {cipher_bits} bits')
+            
+        except ssl.SSLError as e:
+            ssl_info['error'] = f'SSL Error: {str(e)}'
+            ssl_info['security_issues'].append(f'SSL Error: {str(e)}')
+        except socket.timeout:
+            ssl_info['error'] = 'Connection timeout'
+        except socket.error as e:
+            ssl_info['error'] = f'Socket error: {str(e)}'
+        except Exception as e:
+            ssl_info['error'] = f'Analysis failed: {str(e)}'
+        
+        self._ssl_info = ssl_info
+        return ssl_info
+    
+    def get_ssl_info(self) -> Dict[str, Any]:
+        """Get cached SSL/TLS analysis results"""
+        return self._ssl_info if self._ssl_info else self.analyze_ssl_tls()
+
     def _test_request(
         self,
         headers: Optional[dict] = None,
@@ -1161,10 +1397,17 @@ class CloudFrontBypasser:
                 verify=False
             )
             
+            # Log HTTP transaction for forensic analysis
+            self._log_http_transaction(method, url, req_headers, resp)
+            
             if resp is None:
                 return None
             
-            # Rate limiting - reduced for speed
+            # Rate limit detection and auto-adjustment
+            if resp.status_code in [429, 503]:
+                self._handle_rate_limit(resp)
+            
+            # Rate limiting - use current delay (may have been adjusted)
             if self.delay > 0:
                 time.sleep(self.delay)
             
@@ -1191,12 +1434,15 @@ class CloudFrontBypasser:
             
         except requests.exceptions.Timeout:
             logger.debug(f"Timeout for {method} {path}")
+            self._log_http_transaction(method, url, req_headers, None, error='Timeout')
             return None
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
             logger.debug(f"Connection error for {method} {path}")
+            self._log_http_transaction(method, url, req_headers, None, error=f'Connection error: {str(e)}')
             return None
         except Exception as e:
             logger.debug(f"Request failed for {method} {path}: {e}")
+            self._log_http_transaction(method, url, req_headers, None, error=str(e))
             return None
     
     def _is_bypass_fast(self, response: requests.Response) -> Dict[str, Any]:
@@ -1285,6 +1531,36 @@ class CloudFrontBypasser:
         except Exception as e:
             logger.debug(f"Bypass detection error: {e}")
             return {'bypass': False, 'reason': 'Detection error', 'severity': 'INFO'}
+    
+    def _handle_rate_limit(self, response: requests.Response):
+        """Handle rate limit detection and auto-adjust delay."""
+        if self._rate_limit_adjustments >= 5:
+            # Already adjusted too many times, don't increase further
+            return
+        
+        self._rate_limit_detected = True
+        self._rate_limit_adjustments += 1
+        
+        # Check for Retry-After header
+        retry_after = response.headers.get('Retry-After')
+        if retry_after:
+            try:
+                wait_time = int(retry_after)
+                self.delay = min(wait_time, self._max_delay)
+                print(f"[!] Rate limit detected! Using Retry-After header: delay = {self.delay}s")
+                time.sleep(wait_time)
+                return
+            except ValueError:
+                pass
+        
+        # Exponential backoff: double the delay each time
+        new_delay = min(self.delay * 2, self._max_delay)
+        if new_delay > self.delay:
+            self.delay = new_delay
+            print(f"[!] Rate limit detected! Adjusting delay to {self.delay:.1f}s (adjustment #{self._rate_limit_adjustments})")
+        
+        # Wait before retrying
+        time.sleep(self.delay)
     
     def _is_bypass(self, response: requests.Response) -> Dict[str, Any]:
         """Determine if response indicates WAF bypass with detailed reasoning"""

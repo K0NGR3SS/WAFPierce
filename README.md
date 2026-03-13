@@ -1,7 +1,7 @@
 # WAFPierce
 **CloudFront WAF Bypass & Penetration Testing Tool**
 
-![Version](https://img.shields.io/badge/version-1.3-blue)
+![Version](https://img.shields.io/badge/version-1.4-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -15,6 +15,7 @@ It also supports rate-limit detection, API endpoint and directory discovery, pro
 
 **Trailer**
 
+https://youtu.be/O_iT_AuvczY
 
 **Key Features:**
 - **WAF Detection & Fingerprinting** - Identifies 17+ WAF vendors (Cloudflare, AWS WAF, Akamai, Imperva, F5, Sucuri, ModSecurity, and more)
@@ -37,6 +38,32 @@ It also supports rate-limit detection, API endpoint and directory discovery, pro
 - **Optimized Performance** - Connection pooling, response caching, and parallel batch testing
 
 ## Changelog
+
+### Version 1.4 (March 2026)
+
+#### Bug Fixes & Stability
+- **Fixed fatal GUI crash on launch** — Corrected a corrupted `Signal(object)` declaration in `QtWorker` that prevented the app from starting
+- **Fixed frozen-mode scan crash** — Resolved `ModuleNotFoundError: No module named 'charset_normalizer.md'` when running in-process scans from the PyInstaller executable; added a runtime compatibility shim and updated `.spec` hidden imports
+- **Fixed Plugin Manager crash** — `cannot access free variable 'os'` error when clicking "Open Plugins Folder" caused by a scoping issue in the nested closure; `os` and `sys` are now correctly imported at the method level
+- **Fixed URL data lookups** — Progress bar resets, target detail panels, and queue removal were incorrectly using censored display text instead of the actual URL stored in Qt `UserRole` data; all corrected to use `item.data(0, 256)`
+- **Fixed `self.output` stale reference** — `_restore_scan_queue` was calling `self.output.append(...)` on a non-existent widget; corrected to use `self.append_log(...)`
+
+#### Feature Improvements
+- **Plugin template editor is now editable** — The plugin template in the Plugin Manager "Create" tab was previously read-only; it can now be freely edited before saving
+- **Plugin filename input added** — A filename field has been added to the Create tab so users can name the plugin file; saved directly to the plugins folder (`%APPDATA%/wafpierce/plugins/`)
+- **Plugin list auto-refreshes on save** — After creating a plugin from the template, the plugin list reloads automatically without needing to reopen the dialog
+- **Custom Payloads dialog hardened** — Add and Import buttons now validate input, show proper error dialogs on failure, and guard against missing database connection
+- **Scheduled Scans dialog hardened** — Added database availability guard, fixed `datetime` parsing to use `fromisoformat` correctly, and added explicit error messages for all failure paths
+- **Hardened entry point** — `run_gui.py` now falls back to `importlib.util` module loading if the standard `from wafpierce.gui import main` import fails in unusual path contexts
+
+#### Removed
+- **Scan Templates** — The Templates feature (📋 button, `Ctrl+T` shortcut, and save/load/delete dialog) has been removed as it was not providing enough value
+
+#### Dependency Updates
+- Added `cryptography>=42.0.0` to `requirements.txt` and `setup.py` for SSL certificate analysis support
+- Added `urllib3`, `certifi`, `charset-normalizer`, and `idna` as explicit install requirements
+
+---
 
 ### Version 1.3 (February 2025) 
 

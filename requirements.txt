@@ -5,3 +5,4 @@ urllib3>=2.0.0
 certifi
 charset-normalizer
 idna
+cryptography>=42.0.0

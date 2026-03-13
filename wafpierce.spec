@@ -60,6 +60,8 @@ hidden_imports = [
     'urllib3.exceptions',
     'certifi',
     'charset_normalizer',
+    'charset_normalizer.md',
+    'charset_normalizer.md__mypyc',
     'idna',
     # WAFPierce modules
     'wafpierce',

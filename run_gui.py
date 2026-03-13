@@ -46,10 +46,31 @@ else:
 if bundle_dir not in sys.path:
     sys.path.insert(0, bundle_dir)
 
+# Also add workspace root parent to help Python find the package reliably
+package_dir = os.path.join(bundle_dir, 'wafpierce')
+if os.path.isdir(package_dir):
+    if bundle_dir not in sys.path:
+        sys.path.insert(0, bundle_dir)
+
 def main():
     """Launch the WAFPierce GUI."""
-    from wafpierce.gui import main as gui_main
-    gui_main()
+    try:
+        from wafpierce.gui import main as gui_main
+        gui_main()
+        return
+    except ModuleNotFoundError:
+        # Fallback loader for unusual launch contexts
+        import importlib.util
+        gui_path = os.path.join(bundle_dir, 'wafpierce', 'gui.py')
+        if not os.path.exists(gui_path):
+            raise
+        spec = importlib.util.spec_from_file_location('wafpierce.gui', gui_path)
+        if spec is None or spec.loader is None:
+            raise
+        module = importlib.util.module_from_spec(spec)
+        sys.modules['wafpierce.gui'] = module
+        spec.loader.exec_module(module)
+        module.main()
 
 if __name__ == '__main__':
     main()
