@@ -16,6 +16,8 @@ import socket
 import ssl
 import json
 import re
+import builtins
+import sys
 from typing import Optional, List, Dict, Any, Tuple, Set
 from functools import lru_cache
 import threading
@@ -42,6 +44,46 @@ from .error_handler import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _configure_console_output() -> None:
+    """Best-effort console setup to avoid Unicode crashes on legacy Windows code pages."""
+    for stream_name in ('stdout', 'stderr'):
+        stream = getattr(sys, stream_name, None)
+        if stream is None:
+            continue
+        try:
+            # Keep current encoding if possible, but force safe replacement behavior.
+            stream.reconfigure(errors='replace')
+        except Exception:
+            pass
+
+
+def _safe_print(*args, **kwargs):
+    """Print with fallback replacement when terminal encoding cannot represent Unicode."""
+    try:
+        builtins.print(*args, **kwargs)
+        return
+    except UnicodeEncodeError:
+        pass
+
+    sep = kwargs.get('sep', ' ')
+    end = kwargs.get('end', '\n')
+    target_file = kwargs.get('file', sys.stdout)
+    flush = kwargs.get('flush', False)
+
+    try:
+        text = sep.join(str(a) for a in args)
+    except Exception:
+        text = ' '.join(str(a) for a in args)
+
+    encoding = getattr(target_file, 'encoding', None) or 'utf-8'
+    safe_text = text.encode(encoding, errors='replace').decode(encoding, errors='replace')
+    builtins.print(safe_text, end=end, file=target_file, flush=flush)
+
+
+_configure_console_output()
+print = _safe_print
 
 
 # WAF Signature Database

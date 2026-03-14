@@ -7,9 +7,25 @@ import sys
 import json
 import hashlib
 import importlib.util
+import io
+import re
+import types
+import tokenize
 from typing import Dict, List, Any, Optional, Callable
 from datetime import datetime
 from abc import ABC, abstractmethod
+
+
+# Keep both import paths aliased to a single module object.
+# This prevents class identity mismatches between:
+#   - from wafpierce.plugins import BypassPlugin
+#   - from plugins import BypassPlugin
+_self_module = sys.modules.get(__name__)
+if _self_module is not None:
+    if __name__ == 'wafpierce.plugins':
+        sys.modules.setdefault('plugins', _self_module)
+    elif __name__ == 'plugins':
+        sys.modules.setdefault('wafpierce.plugins', _self_module)
 
 
 def _get_plugins_dir() -> str:
@@ -183,9 +199,50 @@ class PluginManager:
     
     def __init__(self, db=None):
         self.plugins_dir = _get_plugins_dir()
+        self.plugins_dirs = self._get_plugin_dirs()
         self.plugins: Dict[str, BypassPlugin] = {}
+        self.plugin_files: Dict[str, str] = {}
+        self.load_errors: Dict[str, str] = {}
         self.db = db
         self._create_example_plugin()
+
+    def _get_plugin_dirs(self) -> List[str]:
+        """Get all plugin directories to search."""
+        dirs = []
+
+        # Primary user plugins directory
+        dirs.append(_get_plugins_dir())
+
+        # Workspace-local plugin folders (common user expectation)
+        try:
+            module_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(module_dir)
+
+            candidates = [
+                os.path.join(module_dir, 'plugins'),
+                os.path.join(project_root, 'plugins'),
+                os.path.join(os.getcwd(), 'plugins'),
+            ]
+            dirs.extend(candidates)
+        except Exception:
+            pass
+
+        unique_dirs = []
+        seen = set()
+        for d in dirs:
+            if not d:
+                continue
+            norm = os.path.normcase(os.path.abspath(d))
+            if norm in seen:
+                continue
+            seen.add(norm)
+            try:
+                os.makedirs(d, exist_ok=True)
+            except Exception:
+                pass
+            unique_dirs.append(d)
+
+        return unique_dirs
     
     def _create_example_plugin(self):
         """Create an example plugin file if none exist."""
@@ -195,7 +252,10 @@ class PluginManager:
 Example WAFPierce Plugin
 This is a template for creating your own bypass plugins.
 """
-from wafpierce.plugins import BypassPlugin
+try:
+    from wafpierce.plugins import BypassPlugin
+except ImportError:
+    from plugins import BypassPlugin
 
 
 class UnicodeBypassPlugin(BypassPlugin):
@@ -258,35 +318,113 @@ PLUGIN_CLASS = UnicodeBypassPlugin
     def discover_plugins(self) -> List[str]:
         """Discover all plugin files in the plugins directory."""
         plugin_files = []
-        
-        if not os.path.exists(self.plugins_dir):
-            return plugin_files
-        
-        for filename in os.listdir(self.plugins_dir):
-            if filename.endswith('.py') and not filename.startswith('_'):
-                plugin_files.append(os.path.join(self.plugins_dir, filename))
-        
-        return plugin_files
+        seen = set()
+
+        for plugins_dir in self.plugins_dirs:
+            if not os.path.exists(plugins_dir):
+                continue
+
+            try:
+                for filename in os.listdir(plugins_dir):
+                    if not filename.endswith('.py') or filename.startswith('_'):
+                        continue
+                    path = os.path.abspath(os.path.join(plugins_dir, filename))
+                    key = os.path.normcase(path)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    plugin_files.append(path)
+            except Exception:
+                continue
+
+        return sorted(plugin_files, key=lambda p: os.path.basename(p).lower())
+
+    def _safe_module_name_for_path(self, file_path: str) -> str:
+        """Build a unique import module name for a plugin file path."""
+        base = os.path.splitext(os.path.basename(file_path))[0]
+        safe = re.sub(r'[^0-9a-zA-Z_]', '_', base)
+        digest = hashlib.sha1(os.path.abspath(file_path).encode('utf-8', errors='ignore')).hexdigest()[:10]
+        return f"wafpierce_user_plugin_{safe}_{digest}"
+
+    def _decode_plugin_source(self, source_bytes: bytes) -> str:
+        """Decode plugin source bytes with robust encoding detection/fallbacks."""
+        try:
+            encoding, _ = tokenize.detect_encoding(io.BytesIO(source_bytes).readline)
+            return source_bytes.decode(encoding)
+        except Exception:
+            pass
+
+        for encoding in ('utf-8-sig', 'utf-16', 'utf-16-le', 'utf-16-be', 'cp1252', 'latin-1'):
+            try:
+                return source_bytes.decode(encoding)
+            except Exception:
+                continue
+
+        raise ValueError('Unsupported text encoding for plugin file')
+
+    def _get_bypass_bases(self) -> List[type]:
+        """Return known BypassPlugin base class identities across import paths."""
+        bases: List[type] = [BypassPlugin]
+        for mod_name in ('wafpierce.plugins', 'plugins'):
+            mod = sys.modules.get(mod_name)
+            cls = getattr(mod, 'BypassPlugin', None) if mod else None
+            if isinstance(cls, type) and cls not in bases:
+                bases.append(cls)
+        return bases
+
+    def _is_valid_plugin_class(self, obj: Any) -> bool:
+        """Check whether object is a valid plugin class."""
+        if not isinstance(obj, type):
+            return False
+        for base in self._get_bypass_bases():
+            try:
+                if issubclass(obj, base) and obj is not base:
+                    return True
+            except TypeError:
+                continue
+        return False
     
     def load_plugin(self, file_path: str) -> Optional[BypassPlugin]:
         """Load a plugin from a file."""
         try:
             # Calculate checksum for integrity
+            if not os.path.exists(file_path):
+                self.load_errors[file_path] = 'File not found'
+                return None
+
             with open(file_path, 'rb') as f:
-                checksum = hashlib.sha256(f.read()).hexdigest()
+                source_bytes = f.read()
+                checksum = hashlib.sha256(source_bytes).hexdigest()
             
-            # Load module
-            module_name = os.path.splitext(os.path.basename(file_path))[0]
-            spec = importlib.util.spec_from_file_location(module_name, file_path)
-            module = importlib.util.module_from_spec(spec)
+            # Load module directly from source to avoid stale .pyc / import cache issues.
+            source_text = self._decode_plugin_source(source_bytes)
+            module_name = self._safe_module_name_for_path(file_path)
+            importlib.invalidate_caches()
+            code = compile(source_text, file_path, 'exec')
+            module = types.ModuleType(module_name)
+            module.__file__ = os.path.abspath(file_path)
+            module.__package__ = ''
+            module.__loader__ = None
+            sys.modules.pop(module_name, None)
             sys.modules[module_name] = module
-            spec.loader.exec_module(module)
+            exec(code, module.__dict__)
             
             # Get the plugin class
             plugin_class = getattr(module, 'PLUGIN_CLASS', None)
-            if plugin_class and issubclass(plugin_class, BypassPlugin):
+            if plugin_class is None:
+                # Fallback: auto-discover first BypassPlugin subclass in module
+                candidates = []
+                for obj in module.__dict__.values():
+                    if self._is_valid_plugin_class(obj):
+                        candidates.append(obj)
+                if candidates:
+                    plugin_class = candidates[0]
+
+            if self._is_valid_plugin_class(plugin_class):
                 plugin = plugin_class()
                 self.plugins[plugin.name] = plugin
+                self.plugin_files[plugin.name] = os.path.abspath(file_path)
+                self.load_errors.pop(file_path, None)
                 
                 # Save to database
                 if self.db:
@@ -302,8 +440,16 @@ PLUGIN_CLASS = UnicodeBypassPlugin
                     )
                 
                 return plugin
+            else:
+                self.load_errors[file_path] = 'No valid BypassPlugin class found (PLUGIN_CLASS missing/invalid)'
+        except SyntaxError as e:
+            self.load_errors[file_path] = f"Syntax error at line {getattr(e, 'lineno', '?')}: {e.msg}"
+        except UnicodeDecodeError:
+            self.load_errors[file_path] = 'Could not decode plugin file text (save as UTF-8 or UTF-16)'
+        except ValueError as e:
+            self.load_errors[file_path] = str(e)
         except Exception as e:
-            print(f"[!] Failed to load plugin {file_path}: {e}")
+            self.load_errors[file_path] = str(e)
         
         return None
     
@@ -311,6 +457,8 @@ PLUGIN_CLASS = UnicodeBypassPlugin
         """Load all discovered plugins."""
         # Rebuild from disk every refresh to avoid stale plugin state.
         self.plugins = {}
+        self.plugin_files = {}
+        self.load_errors = {}
         for file_path in self.discover_plugins():
             self.load_plugin(file_path)
     
@@ -389,18 +537,18 @@ PLUGIN_CLASS = UnicodeBypassPlugin
         plugin = self.plugins.get(name)
         if not plugin:
             return False
-        
+
         # Find and remove the plugin file
-        for file_path in self.discover_plugins():
-            loaded = self.load_plugin(file_path)
-            if loaded and loaded.name == name:
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
+        file_path = self.plugin_files.get(name)
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
         
         # Remove from memory
         del self.plugins[name]
+        self.plugin_files.pop(name, None)
         
         # Remove from database
         if self.db:
@@ -410,7 +558,20 @@ PLUGIN_CLASS = UnicodeBypassPlugin
     
     def get_plugin_info(self) -> List[Dict[str, Any]]:
         """Get info about all plugins."""
-        return sorted([p.to_dict() for p in self.plugins.values()], key=lambda p: p.get('name', '').lower())
+        info = []
+        for p in self.plugins.values():
+            data = p.to_dict()
+            data['file_path'] = self.plugin_files.get(p.name, '')
+            info.append(data)
+        return sorted(info, key=lambda p: p.get('name', '').lower())
+
+    def get_discovered_files(self) -> List[str]:
+        """Get all discovered plugin file paths."""
+        return self.discover_plugins()
+
+    def get_load_errors(self) -> Dict[str, str]:
+        """Get plugin load errors keyed by file path."""
+        return dict(self.load_errors)
 
 
 # Community Plugin Marketplace (placeholder for future implementation)

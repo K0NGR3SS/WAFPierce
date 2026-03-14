@@ -584,6 +584,20 @@ class WAFPierceDB:
         conn.close()
         
         return [dict(row) for row in rows]
+
+    def delete_custom_payload(self, payload_id: int) -> bool:
+        """Delete a custom payload by ID.
+
+        Returns:
+            True if a row was deleted, otherwise False.
+        """
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('DELETE FROM custom_payloads WHERE id = ?', (payload_id,))
+        deleted = c.rowcount > 0
+        conn.commit()
+        conn.close()
+        return deleted
     
     def import_payloads_from_file(self, filepath: str) -> int:
         """Import payloads from a JSON or text file."""

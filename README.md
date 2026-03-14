@@ -190,27 +190,7 @@ pip3 install -e .
 
 ### Run UI
 ```bash
-python3 -m wafpierce.gui  
-```
-
-### Basic Scan
-```bash
-wafpierce https://d123abc.cloudfront.net
-```
-
-### Advanced Options
-```bash
-# Specify threads
-wafpierce https://target.cloudfront.net -t 20
-
-# Custom output directory
-wafpierce https://target.cloudfront.net -o my_results
-```
-
-### Standalone WAF Bypass Scanner
-```bash
-# Run just the bypass scanner
-python3 -m wafpierce.pierce https://target.cloudfront.net -t 10
+python3 run_gui.py  
 ```
 
 ## Bypass Techniques

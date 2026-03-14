@@ -47,8 +47,8 @@ def _load_prefs() -> dict:
         'font_size': 12,
         'watermark': True,
         'threads': 5,
-        'concurrent': 1,
-        'use_concurrent': False,
+        'concurrent': 2,
+        'use_concurrent': True,
         'delay': 0.2,
         'window_geometry': '980x640',
         'qt_geometry': '1000x640',
@@ -1813,6 +1813,12 @@ def main() -> None:
                 import_btn.setFixedHeight(28)
                 import_btn.clicked.connect(self._import_targets_dialog)
                 top.addWidget(import_btn)
+
+                import_scan_btn = QPushButton('📂 Import JSON')
+                import_scan_btn.setFixedHeight(28)
+                import_scan_btn.setToolTip('Import saved scan results JSON')
+                import_scan_btn.clicked.connect(self._import_scan_json_dialog)
+                top.addWidget(import_scan_btn)
             except Exception:
                 pass
             
@@ -4889,6 +4895,106 @@ def main() -> None:
             except Exception as e:
                 QMessageBox.critical(self, 'Import Error', str(e))
 
+        def _import_scan_json_dialog(self):
+            """Import saved scan results from JSON and merge into current session results."""
+            try:
+                path, _ = QFileDialog.getOpenFileName(
+                    self,
+                    'Import Scan JSON',
+                    filter='JSON Files (*.json);;All Files (*.*)'
+                )
+                if not path:
+                    return
+
+                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                    raw = json.load(f)
+
+                records = []
+                default_target = 'Imported JSON'
+
+                if isinstance(raw, list):
+                    records = raw
+                elif isinstance(raw, dict):
+                    for key in ('results', 'findings', 'data', 'items'):
+                        if isinstance(raw.get(key), list):
+                            records = raw.get(key)
+                            break
+                    if not records and any(k in raw for k in ('technique', 'severity', 'bypass', 'reason')):
+                        records = [raw]
+                    default_target = str(raw.get('target') or raw.get('url') or default_target)
+
+                imported = []
+                for item in records:
+                    if not isinstance(item, dict):
+                        continue
+                    rec = dict(item)
+                    target = rec.get('target') or rec.get('url') or default_target
+                    rec['target'] = str(target)
+                    imported.append(rec)
+
+                if not imported:
+                    QMessageBox.information(self, 'Import JSON', 'No scan results found in this JSON file.')
+                    return
+
+                self._results.extend(imported)
+
+                by_target = {}
+                for r in imported:
+                    t = r.get('target', default_target)
+                    by_target.setdefault(t, []).append(r)
+
+                # Build existing target map from actual URLs in UserRole
+                existing_items = {}
+                for i in range(self.tree.topLevelItemCount()):
+                    item = self.tree.topLevelItem(i)
+                    actual = item.data(0, 256) or item.text(0)
+                    existing_items[actual] = item
+
+                for target, rows in by_target.items():
+                    prior = self._per_target_results.get(target, {'done': [], 'errors': [], 'tmp': None})
+                    prior_done = list(prior.get('done', []))
+                    prior_done.extend(rows)
+                    self._per_target_results[target] = {
+                        'done': prior_done,
+                        'errors': list(prior.get('errors', [])),
+                        'tmp': prior.get('tmp')
+                    }
+
+                    item = existing_items.get(target)
+                    if item is None:
+                        display_text = self._censor(target)
+                        item = QTreeWidgetItem([display_text, f'Done ({len(prior_done)})', ''])
+                        item.setData(0, 256, target)
+                        self.tree.addTopLevelItem(item)
+                        self._create_progress_bar_for_item(item, target)
+                        existing_items[target] = item
+                    else:
+                        item.setText(1, f'Done ({len(prior_done)})')
+
+                    try:
+                        item.setBackground(0, QBrush(QColor('#163f19')))
+                    except Exception:
+                        pass
+                    try:
+                        if target in self._progress_bars:
+                            self._progress_bars[target].setValue(100)
+                    except Exception:
+                        pass
+
+                try:
+                    self.save_btn.setEnabled(True)
+                    self.results_btn.setEnabled(True)
+                    self.results_btn.setStyleSheet(self._results_btn_green_style)
+                    self._start_results_pulse()
+                    self._update_legend_counts()
+                except Exception:
+                    pass
+
+                self.append_log(f"[+] Imported {len(imported)} scan result(s) from JSON\n")
+                QMessageBox.information(self, 'Import JSON', f'Imported {len(imported)} scan result(s).')
+            except Exception as e:
+                QMessageBox.critical(self, 'Import Error', str(e))
+
         # ==================== DASHBOARD ====================
         def _show_dashboard(self):
             """Show statistics dashboard."""
@@ -5371,7 +5477,6 @@ def main() -> None:
             try:
                 # Initialize plugin manager
                 plugin_manager = PluginManager(self._db)
-                plugin_manager.load_all_plugins()
                 
                 # Find a font that supports Unicode (Arabic, Cyrillic, etc.)
                 try:
@@ -5437,9 +5542,16 @@ def main() -> None:
                 
                 def refresh_plugins():
                     plugins_table.setRowCount(0)
+                    plugin_manager.load_all_plugins()
                     plugins_info = plugin_manager.get_plugin_info()
+                    discovered_files = plugin_manager.get_discovered_files() if hasattr(plugin_manager, 'get_discovered_files') else []
+                    load_errors = plugin_manager.get_load_errors() if hasattr(plugin_manager, 'get_load_errors') else {}
+                    loaded_paths = {
+                        os.path.normcase(os.path.abspath(p.get('file_path', '')))
+                        for p in plugins_info if p.get('file_path')
+                    }
                     
-                    if not plugins_info:
+                    if not plugins_info and not discovered_files:
                         plugins_table.setRowCount(1)
                         empty_item = QtWidgets.QTableWidgetItem(_t('no_plugins', self._lang) if 'no_plugins' in TRANSLATIONS.get(self._lang, {}) else 'No plugins installed.')
                         empty_item.setForeground(QBrush(QColor('#8b949e')))
@@ -5490,6 +5602,41 @@ def main() -> None:
                         action_layout.addWidget(del_btn)
                         
                         plugins_table.setCellWidget(row, 5, action_widget)
+
+                    # Also display plugin files that exist but failed to load
+                    for file_path in discovered_files:
+                        norm_path = os.path.normcase(os.path.abspath(file_path))
+                        if norm_path in loaded_paths:
+                            continue
+
+                        row = plugins_table.rowCount()
+                        plugins_table.insertRow(row)
+
+                        base = os.path.basename(file_path)
+                        name_item = QtWidgets.QTableWidgetItem(base)
+                        err = load_errors.get(file_path)
+                        if err:
+                            name_item.setToolTip(f"Load error: {err}\n\nPath: {file_path}")
+                        else:
+                            name_item.setToolTip(file_path)
+                        plugins_table.setItem(row, 0, name_item)
+
+                        plugins_table.setItem(row, 1, QtWidgets.QTableWidgetItem('-'))
+                        plugins_table.setItem(row, 2, QtWidgets.QTableWidgetItem('-'))
+                        plugins_table.setItem(row, 3, QtWidgets.QTableWidgetItem('local-file'))
+
+                        status_item = QtWidgets.QTableWidgetItem('Unloaded')
+                        status_item.setForeground(QBrush(QColor('#ef4444')))
+                        if err:
+                            status_item.setToolTip(err)
+                        plugins_table.setItem(row, 4, status_item)
+
+                        # No actions available for unloaded files
+                        action_widget = QWidget()
+                        action_layout = QHBoxLayout(action_widget)
+                        action_layout.setContentsMargins(2, 2, 2, 2)
+                        action_layout.addWidget(QLabel('—'))
+                        plugins_table.setCellWidget(row, 5, action_widget)
                 
                 def toggle_plugin(name):
                     plugin = plugin_manager.get_plugin(name)
@@ -5514,9 +5661,17 @@ def main() -> None:
                 
                 # Buttons
                 btn_layout = QHBoxLayout()
+
+                try:
+                    plugin_dirs_info = QLabel('Plugin folders: ' + ' | '.join(getattr(plugin_manager, 'plugins_dirs', [])))
+                    plugin_dirs_info.setStyleSheet('color: #8b949e; font-size: 11px;')
+                    plugin_dirs_info.setWordWrap(True)
+                    installed_layout.addWidget(plugin_dirs_info)
+                except Exception:
+                    pass
                 
                 refresh_btn = QPushButton('🔄 ' + (_t('refresh_plugins', self._lang) if 'refresh_plugins' in TRANSLATIONS.get(self._lang, {}) else 'Refresh'))
-                refresh_btn.clicked.connect(lambda: (plugin_manager.load_all_plugins(), refresh_plugins()))
+                refresh_btn.clicked.connect(refresh_plugins)
                 btn_layout.addWidget(refresh_btn)
                 
                 open_folder_btn = QPushButton('📂 ' + (_t('open_plugins_folder', self._lang) if 'open_plugins_folder' in TRANSLATIONS.get(self._lang, {}) else 'Open Plugins Folder'))
@@ -5558,69 +5713,251 @@ def main() -> None:
                 code_example = QTextEdit()
                 code_example.setReadOnly(False)
                 code_example.setStyleSheet('background-color: #16181a; color: #d7e1ea; font-family: monospace; border: 1px solid #2b2f33;')
-                code_example.setPlainText('''# Example Plugin: my_custom_bypass.py
+                code_example.setPlainText('''
+"""
+Example WAFPierce Plugin Template
+---------------------------------
 
-from wafpierce.plugins import BypassPlugin
+This file shows how to create your own custom WAF bypass plugin.
 
-class MyCustomBypass(BypassPlugin):
-    name = "My Custom Bypass"
-    version = "1.0.0"
-    author = "Your Name"
-    description = "Description of what this bypass does"
-    category = "encoding"  # bypass, encoding, header, injection, etc.
+To create your own plugin, you mainly need to change:
+
+1. Plugin metadata (name, author, description)
+2. The class name
+3. The payload modification logic
+4. The request method (GET, POST, headers, body, etc.)
+5. The reason text returned in the result
+
+Everything else can usually stay the same.
+
+Rename this file to something meaningful, for example:
+    my_custom_bypass.py
+"""
+
+# -----------------------------------------------------
+# REQUIRED IMPORT
+# All WAFPierce plugins must inherit from BypassPlugin
+# -----------------------------------------------------
+try:
+    from wafpierce.plugins import BypassPlugin
+except ImportError:
+    from plugins import BypassPlugin
+
+
+class DoubleEncodingBypassPlugin(BypassPlugin):
+    """
+    EDIT THIS CLASS NAME if you create your own plugin.
+
+    Example:
+        class MyHeaderBypass(BypassPlugin):
+        class JsonBodyBypass(BypassPlugin):
+        class CaseMutationBypass(BypassPlugin)
+    """
+
+    # -------------------------------------------------
+    # EDIT THESE METADATA FIELDS
+    # These appear in the WAFPierce plugin list/UI
+    # -------------------------------------------------
+
+    name = "Double URL Encoding Bypass"   # Change to your technique name
+    version = "1.0.0"                     # Update when you modify plugin
+    author = "Your Name"                  # Put your name or alias here
+    description = "Attempts to bypass WAF filters using double URL encoding"
+
+    # Plugin category helps organize plugins
+    # Examples: encoding, header, injection, bypass
+    category = "encoding"
+
+    # Optional tags for searching/filtering plugins
+    tags = ["encoding", "double-encoding", "obfuscation"]
+
+    # List WAFs your technique might work against
+    # You can add/remove vendors here
+    compatible_wafs = ["cloudflare", "modsecurity", "f5"]
+
     
     def execute(self, target, session, **kwargs):
-        # Your bypass logic here
-        payload = kwargs.get('payload', '<script>alert(1)</script>')
-        
-        # Encode or modify the payload
-        modified_payload = self.encode_payload(payload, 'url')
-        
-        # Make request
-        resp = session.get(target, params={'q': modified_payload}, timeout=10)
-        
-        # Check if bypassed
-        bypassed = not self.is_blocked(resp)
-        
-        return {
-            'success': True,
-            'bypass': bypassed,
-            'response': resp,
-            'technique': self.name,
-            'reason': 'Custom bypass worked!' if bypassed else 'Blocked',
-            'severity': 'HIGH' if bypassed else 'INFO'
-        }
+        """
+        REQUIRED FUNCTION
 
-# Register the plugin (required!)
-PLUGIN_CLASS = MyCustomBypass
+        Every plugin MUST implement execute().
+
+        Parameters
+        ----------
+        target : str
+            Target URL.
+
+        session : requests.Session
+            HTTP session used to send requests.
+
+        kwargs : dict
+            Optional arguments such as custom payloads.
+
+        Returns
+        -------
+        dict
+            Result object describing whether the bypass worked.
+        """
+
+        # Import libraries you need for your technique
+        import urllib.parse
+
+        # -------------------------------------------------
+        # EDIT THIS PAYLOAD IF NEEDED
+        #
+        # Users of your plugin can also override this
+        # using the 'payload' argument.
+        # -------------------------------------------------
+        payload = kwargs.get('payload', '<script>alert(1)</script>')
+
+
+        # -------------------------------------------------
+        # EDIT THIS SECTION
+        #
+        # This is where your bypass logic happens.
+        #
+        # In this example we double URL encode the payload.
+        #
+        # You could instead:
+        #   - Modify headers
+        #   - Change case
+        #   - Inject into JSON
+        #   - Use Unicode characters
+        #   - Split payloads
+        # -------------------------------------------------
+
+        # Step 1: Encode payload once
+        encoded_once = urllib.parse.quote(payload)
+
+        # Step 2: Encode again (double encoding)
+        modified_payload = urllib.parse.quote(encoded_once)
+
+
+        try:
+            # -------------------------------------------------
+            # EDIT REQUEST LOGIC IF NEEDED
+            #
+            # Current example sends payload as GET parameter:
+            #     ?q=<payload>
+            #
+            # You could change this to:
+            #
+            # POST body:
+            #     session.post(target, data={"q": modified_payload})
+            #
+            # Header injection:
+            #     session.get(target, headers={"X-Test": modified_payload})
+            #
+            # JSON body:
+            #     session.post(target, json={"q": modified_payload})
+            # -------------------------------------------------
+            resp = session.get(
+                target,
+                params={'q': modified_payload},
+                timeout=10
+            )
+
+            # Check if WAF blocked the request
+            bypassed = not self.is_blocked(resp)
+
+            # -------------------------------------------------
+            # EDIT RESULT MESSAGE
+            # -------------------------------------------------
+            return {
+                'success': True,
+                'bypass': bypassed,
+                'response': resp,
+                'technique': self.name,
+                'reason': (
+                    'Custom bypass worked!'
+                    if bypassed else 'Blocked'
+                ),
+                'severity': 'HIGH' if bypassed else 'INFO',
+                'payload': modified_payload
+            }
+
+        except Exception as e:
+            # Error handling (normally does not need modification)
+            return {
+                'success': False,
+                'bypass': False,
+                'response': None,
+                'technique': self.name,
+                'reason': str(e),
+                'severity': 'INFO'
+            }
+
+
+# -----------------------------------------------------
+# REQUIRED PLUGIN REGISTRATION
+#
+# WAFPierce automatically loads plugins using this
+# variable, so it must point to your plugin class.
+#
+# If you change the class name, update it here too.
+# -----------------------------------------------------
+PLUGIN_CLASS = DoubleEncodingBypassPlugin
 ''')
                 create_layout.addWidget(code_example, 1)
                 
                 create_btn = QPushButton('💾 Save Plugin to Plugins Folder')
                 def create_from_template():
                     plugins_dir = _get_plugins_dir()
-                    filename = (plugin_filename_edit.text() or '').strip()
-                    if not filename:
-                        QMessageBox.warning(dlg, 'Missing File Name', 'Please enter a file name.')
-                        return
+                    filename = (plugin_filename_edit.text() or 'my_plugin.py').strip()
                     if not filename.endswith('.py'):
                         filename += '.py'
                     filename = os.path.basename(filename)
 
-                    # Never overwrite existing plugin files: auto-increment as name(1).py, name(2).py, ...
+                    default_path = os.path.join(plugins_dir, filename)
+                    selected_path, _ = QFileDialog.getSaveFileName(
+                        dlg,
+                        'Save Plugin As',
+                        default_path,
+                        'Python Files (*.py)'
+                    )
+                    if not selected_path:
+                        return
+
+                    selected_name = os.path.basename(selected_path)
+                    if not selected_name.endswith('.py'):
+                        selected_name += '.py'
+                    new_path = os.path.join(plugins_dir, selected_name)
+                    filename = selected_name
+
+                    # Ask before overwrite.
+                    if os.path.exists(new_path):
+                        overwrite = QMessageBox.question(
+                            dlg,
+                            'Overwrite Plugin',
+                            f'"{selected_name}" already exists. Overwrite it?',
+                            QMessageBox.Yes | QMessageBox.No,
+                            QMessageBox.No
+                        )
+                        if overwrite != QMessageBox.Yes:
+                            return
+
                     base_name, ext = os.path.splitext(filename)
                     ext = ext or '.py'
-                    candidate_name = f"{base_name}{ext}"
-                    new_path = os.path.join(plugins_dir, candidate_name)
-                    counter = 1
-                    while os.path.exists(new_path):
-                        candidate_name = f"{base_name}({counter}){ext}"
-                        new_path = os.path.join(plugins_dir, candidate_name)
-                        counter += 1
 
-                    template = code_example.toPlainText().strip()
-                    if not template:
+                    template = code_example.toPlainText()
+                    if not template.strip():
                         QMessageBox.warning(dlg, 'Missing Code', 'Plugin code cannot be empty.')
+                        return
+
+                    # Normalize trailing whitespace/newline markers from editor content.
+                    template = template.rstrip()
+                    while template.endswith('\\n'):
+                        template = template[:-2].rstrip()
+
+                    # Validate Python syntax before saving.
+                    try:
+                        compile(template, filename, 'exec')
+                    except SyntaxError as se:
+                        QMessageBox.critical(
+                            dlg,
+                            'Syntax Error',
+                            f'Plugin code has a syntax error at line {getattr(se, "lineno", "?")}:\n{se.msg}'
+                        )
                         return
 
                     # If user kept the default template values, make metadata unique so it appears distinctly in the list.
@@ -5640,7 +5977,7 @@ PLUGIN_CLASS = MyCustomBypass
                         template = template.replace('PLUGIN_CLASS = MyCustomBypass', f'PLUGIN_CLASS = {class_name}', 1)
                     try:
                         with open(new_path, 'w', encoding='utf-8') as f:
-                            f.write(template + ('\\n' if not template.endswith('\\n') else ''))
+                            f.write(template + ('\n' if not template.endswith('\n') else ''))
 
                         # Show actual saved file name to the user and keep it in the field.
                         plugin_filename_edit.setText(os.path.basename(new_path))
@@ -5740,6 +6077,7 @@ PLUGIN_CLASS = MyCustomBypass
                 
                 add_btn = QPushButton('➕ ' + (_t('add_payload', self._lang) if 'add_payload' in TRANSLATIONS.get(self._lang, {}) else 'Add'))
                 import_btn = QPushButton('📥 ' + (_t('import_payloads', self._lang) if 'import_payloads' in TRANSLATIONS.get(self._lang, {}) else 'Import'))
+                delete_btn = QPushButton('🗑 Delete Selected')
                 
                 def add_payload():
                     name = name_edit.text().strip()
@@ -5771,12 +6109,48 @@ PLUGIN_CLASS = MyCustomBypass
                         QMessageBox.information(dlg, 'Imported', f'Imported {count} payloads')
                     except Exception as e:
                         QMessageBox.critical(dlg, 'Import Failed', str(e))
+
+                def delete_payload():
+                    item = payload_list.currentItem()
+                    if item is None:
+                        QMessageBox.warning(dlg, 'Delete Payload', 'Please select a payload to delete.')
+                        return
+
+                    payload_data = item.data(256) or {}
+                    payload_id = payload_data.get('id') if isinstance(payload_data, dict) else None
+                    payload_name = payload_data.get('name', 'selected payload') if isinstance(payload_data, dict) else 'selected payload'
+
+                    if payload_id is None:
+                        QMessageBox.warning(dlg, 'Delete Payload', 'Selected payload has no valid ID.')
+                        return
+
+                    confirm = QMessageBox.question(
+                        dlg,
+                        'Delete Payload',
+                        f'Delete payload "{payload_name}"?',
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    if confirm != QMessageBox.Yes:
+                        return
+
+                    try:
+                        deleted = self._db.delete_custom_payload(int(payload_id))
+                        if deleted:
+                            refresh_payloads()
+                            QMessageBox.information(dlg, 'Deleted', f'Payload "{payload_name}" deleted.')
+                        else:
+                            QMessageBox.warning(dlg, 'Delete Payload', 'Payload was not found or already deleted.')
+                    except Exception as e:
+                        QMessageBox.critical(dlg, 'Delete Failed', str(e))
                 
                 add_btn.clicked.connect(add_payload)
                 import_btn.clicked.connect(import_payloads)
+                delete_btn.clicked.connect(delete_payload)
                 
                 btn_layout.addWidget(add_btn)
                 btn_layout.addWidget(import_btn)
+                btn_layout.addWidget(delete_btn)
                 layout.addLayout(btn_layout)
                 
                 close_btn = QPushButton(_t('close', self._lang))
