@@ -37,5 +37,5 @@ To start contributing code, you'll need to set up the project locally:
 1. **Fork the repository** on GitHub.
 2. **Clone your fork** to your local machine:
    ```bash
-   git clone [https://github.com/YOUR-USERNAME/WAFPierce.git](https://github.com/YOUR-USERNAME/WAFPierce.git)
+   git clone [https://github.com/K0NGR3SS/WAFPierce.git](https://github.com/K0NGR3SS/WAFPierce.git)
    cd WAFPierce
