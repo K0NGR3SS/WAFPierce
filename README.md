@@ -1,9 +1,8 @@
-
 <div align="center">
   <img src="promotion1.png" alt="WAFPierce Logo" width="400"/>
   
   <h1>WAFPierce</h1>
-  <b>CloudFront WAF Bypass & Penetration Testing Tool</b>
+  <b>Teaching firewalls humility, one bypass at a time</b>
   <br><br>
   <a href="https://img.shields.io/badge/version-1.4-blue"><img src="https://img.shields.io/badge/version-1.4-blue"/></a>
   <a href="https://img.shields.io/badge/python-3.8+-green"><img src="https://img.shields.io/badge/python-3.8+-green"/></a>
