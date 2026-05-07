@@ -75,15 +75,17 @@ def validate_url_strict(url: str, allow_local: bool = False) -> str:
         raise InvalidTargetError("Localhost addresses not allowed for security reasons")
     
     # Check for IP addresses that might be internal
-    if hostname == parsed.netloc:
+    ip_pattern = re.compile(r'^(\d{1,3}\.){3}\d{1,3}$')
+    if ip_pattern.match(hostname):
         # It's an IP address, check for private ranges
-        ip_pattern = re.compile(r'^(\d{1,3}\.){3}\d{1,3}$')
-        if ip_pattern.match(hostname):
+        try:
             octets = [int(o) for o in hostname.split('.')]
             # Check for private IP ranges (RFC 1918)
             if octets[0] in (10, 172, 192):
                 if not allow_local:
                     raise InvalidTargetError("Private IP addresses not allowed for security reasons")
+        except (ValueError, IndexError):
+            pass  # Invalid IP format, let it through
     
     return url
 
@@ -337,8 +339,6 @@ def validate_url(url: str) -> Tuple[bool, Optional[str]]:
     Returns:
         Tuple of (is_valid, error_message)
     """
-    from urllib.parse import urlparse
-    
     try:
         parsed = urlparse(url)
         
